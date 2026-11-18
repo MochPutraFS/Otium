@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs & Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Runtime Uploads (keep directory structure, ignore user-uploaded files)
+public/uploads/*
+!public/uploads/.gitkeep
+public/uploads/attachments/*
+!public/uploads/attachments/.gitkeep
+public/uploads/avatars/*
+!public/uploads/avatars/.gitkeep
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
