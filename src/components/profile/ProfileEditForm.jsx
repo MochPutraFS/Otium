@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import {
   AlertCircle,
+  Info,
   Loader2,
-  Lock,
   RotateCcw,
   Save,
   ShieldCheck,
@@ -162,8 +162,6 @@ export default function ProfileEditForm({
     }, 400);
   }
 
-  const readOnlyInputClass =
-    "w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-500 cursor-not-allowed";
   const editableInputClass = (hasError) =>
     `w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-slate-900 transition focus:outline-none focus:ring-2 ${
       hasError
@@ -258,125 +256,80 @@ export default function ProfileEditForm({
         </div>
       </div>
 
-      {/* Bagian 2: Data Kepegawaian & Akun */}
-      <div>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900">
-              Data Kepegawaian &amp; Akun
-            </h3>
-            <p className="mt-0.5 text-xs text-slate-500">
-              {isAdmin
-                ? "Sebagai Administrator, Anda memiliki akses untuk memperbarui seluruh atribut kepegawaian."
-                : "Atribut administratif di bawah ini dikelola terpusat oleh Administrator."}
-            </p>
-          </div>
-          {isAdmin ? (
+      {/* Bagian 2: Pengaturan Administratif (Khusus Admin) atau Catatan Ringkas (Non-Admin) */}
+      {isAdmin ? (
+        <div>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">
+                Pengaturan Administratif (Khusus Admin)
+              </h3>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Sebagai Administrator, Anda dapat memperbarui atribut akun dan
+                kepegawaian di bawah ini.
+              </p>
+            </div>
             <span className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-xs font-medium text-purple-700">
               <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
               Mode Edit Admin
             </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
-              <Lock className="h-3 w-3" aria-hidden="true" />
-              Read-Only
-            </span>
-          )}
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {/* Username */}
-          <div>
-            <label
-              htmlFor="profile-username"
-              className="mb-1.5 flex items-center justify-between text-xs font-semibold text-slate-700"
-            >
-              <span>Username</span>
-              {!isAdmin && (
-                <Lock className="h-3 w-3 text-slate-400" aria-hidden="true" />
-              )}
-            </label>
-            <input
-              id="profile-username"
-              type="text"
-              value={formValues.username}
-              disabled={!isAdmin}
-              onChange={(e) => handleChange("username", e.target.value)}
-              className={
-                isAdmin
-                  ? editableInputClass(Boolean(errors.username))
-                  : readOnlyInputClass
-              }
-            />
-            {errors.username && (
-              <p className="mt-1.5 flex items-center gap-1 text-xs text-rose-600">
-                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                {errors.username}
-              </p>
-            )}
           </div>
 
-          {/* Email */}
-          <div>
-            <label
-              htmlFor="profile-email"
-              className="mb-1.5 flex items-center justify-between text-xs font-semibold text-slate-700"
-            >
-              <span>Email Perusahaan</span>
-              {!isAdmin && (
-                <Lock className="h-3 w-3 text-slate-400" aria-hidden="true" />
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Username */}
+            <div>
+              <label
+                htmlFor="profile-username"
+                className="mb-1.5 block text-xs font-semibold text-slate-700"
+              >
+                Username
+              </label>
+              <input
+                id="profile-username"
+                type="text"
+                value={formValues.username}
+                onChange={(e) => handleChange("username", e.target.value)}
+                className={editableInputClass(Boolean(errors.username))}
+              />
+              {errors.username && (
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-rose-600">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  {errors.username}
+                </p>
               )}
-            </label>
-            <input
-              id="profile-email"
-              type="email"
-              value={formValues.email}
-              disabled={!isAdmin}
-              onChange={(e) => handleChange("email", e.target.value)}
-              className={
-                isAdmin
-                  ? editableInputClass(Boolean(errors.email))
-                  : readOnlyInputClass
-              }
-            />
-            {errors.email && (
-              <p className="mt-1.5 flex items-center gap-1 text-xs text-rose-600">
-                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                {errors.email}
-              </p>
-            )}
-          </div>
+            </div>
 
-          {/* Role */}
-          <div>
-            <label
-              htmlFor="profile-role"
-              className="mb-1.5 flex items-center justify-between text-xs font-semibold text-slate-700"
-            >
-              <span>Peran (Role)</span>
-              <Lock className="h-3 w-3 text-slate-400" aria-hidden="true" />
-            </label>
-            <input
-              id="profile-role"
-              type="text"
-              value={formValues.role}
-              disabled
-              className={readOnlyInputClass}
-            />
-          </div>
-
-          {/* Divisi */}
-          <div>
-            <label
-              htmlFor="profile-division"
-              className="mb-1.5 flex items-center justify-between text-xs font-semibold text-slate-700"
-            >
-              <span>Divisi</span>
-              {!isAdmin && (
-                <Lock className="h-3 w-3 text-slate-400" aria-hidden="true" />
+            {/* Email */}
+            <div>
+              <label
+                htmlFor="profile-email"
+                className="mb-1.5 block text-xs font-semibold text-slate-700"
+              >
+                Email Perusahaan
+              </label>
+              <input
+                id="profile-email"
+                type="email"
+                value={formValues.email}
+                onChange={(e) => handleChange("email", e.target.value)}
+                className={editableInputClass(Boolean(errors.email))}
+              />
+              {errors.email && (
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-rose-600">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  {errors.email}
+                </p>
               )}
-            </label>
-            {isAdmin ? (
+            </div>
+
+            {/* Divisi */}
+            <div>
+              <label
+                htmlFor="profile-division"
+                className="mb-1.5 block text-xs font-semibold text-slate-700"
+              >
+                Divisi
+              </label>
               <select
                 id="profile-division"
                 value={formValues.divisionName}
@@ -389,29 +342,16 @@ export default function ProfileEditForm({
                   </option>
                 ))}
               </select>
-            ) : (
-              <input
-                id="profile-division"
-                type="text"
-                value={formValues.divisionName || "Belum ditentukan"}
-                disabled
-                className={readOnlyInputClass}
-              />
-            )}
-          </div>
+            </div>
 
-          {/* Tanggal Bergabung */}
-          <div>
-            <label
-              htmlFor="profile-joindate"
-              className="mb-1.5 flex items-center justify-between text-xs font-semibold text-slate-700"
-            >
-              <span>Tanggal Bergabung</span>
-              {!isAdmin && (
-                <Lock className="h-3 w-3 text-slate-400" aria-hidden="true" />
-              )}
-            </label>
-            {isAdmin ? (
+            {/* Tanggal Bergabung */}
+            <div>
+              <label
+                htmlFor="profile-joindate"
+                className="mb-1.5 block text-xs font-semibold text-slate-700"
+              >
+                Tanggal Bergabung
+              </label>
               <input
                 id="profile-joindate"
                 type="date"
@@ -419,58 +359,50 @@ export default function ProfileEditForm({
                 onChange={(e) => handleChange("joinDateIso", e.target.value)}
                 className={editableInputClass(false)}
               />
-            ) : (
-              <input
-                id="profile-joindate"
-                type="text"
-                value={profile.joinDate}
-                disabled
-                className={readOnlyInputClass}
-              />
-            )}
-          </div>
+            </div>
 
-          {/* Kuota Cuti Awal */}
-          <div>
-            <label
-              htmlFor="profile-quota"
-              className="mb-1.5 flex items-center justify-between text-xs font-semibold text-slate-700"
-            >
-              <span>Kuota Cuti Awal (Hari/Tahun)</span>
-              {!isAdmin && (
-                <Lock className="h-3 w-3 text-slate-400" aria-hidden="true" />
+            {/* Kuota Cuti Awal */}
+            <div>
+              <label
+                htmlFor="profile-quota"
+                className="mb-1.5 block text-xs font-semibold text-slate-700"
+              >
+                Kuota Cuti Awal (Hari/Tahun)
+              </label>
+              <input
+                id="profile-quota"
+                type="number"
+                step="0.5"
+                min="0"
+                max="60"
+                value={formValues.initialLeaveQuota}
+                onChange={(e) =>
+                  handleChange("initialLeaveQuota", e.target.value)
+                }
+                className={editableInputClass(Boolean(errors.initialLeaveQuota))}
+              />
+              {errors.initialLeaveQuota && (
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-rose-600">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  {errors.initialLeaveQuota}
+                </p>
               )}
-            </label>
-            <input
-              id="profile-quota"
-              type={isAdmin ? "number" : "text"}
-              step="0.5"
-              min="0"
-              max="60"
-              value={
-                isAdmin
-                  ? formValues.initialLeaveQuota
-                  : `${Number(profile.initialLeaveQuota ?? 12).toFixed(1)} Hari`
-              }
-              disabled={!isAdmin}
-              onChange={(e) =>
-                handleChange("initialLeaveQuota", e.target.value)
-              }
-              className={
-                isAdmin
-                  ? editableInputClass(Boolean(errors.initialLeaveQuota))
-                  : readOnlyInputClass
-              }
-            />
-            {errors.initialLeaveQuota && (
-              <p className="mt-1.5 flex items-center gap-1 text-xs text-rose-600">
-                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                {errors.initialLeaveQuota}
-              </p>
-            )}
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex items-start gap-2.5 rounded-xl border border-slate-200/80 bg-slate-50/80 px-3.5 py-3 text-xs text-slate-600">
+          <Info
+            className="mt-0.5 h-4 w-4 shrink-0 text-slate-400"
+            aria-hidden="true"
+          />
+          <p className="leading-relaxed">
+            Atribut akun &amp; kepegawaian (Username, Email, Divisi, Tanggal
+            Bergabung, dan Kuota Cuti) ditampilkan pada panel kiri dan dikelola
+            terpusat oleh Administrator.
+          </p>
+        </div>
+      )}
 
       {/* Footer Aksi Form */}
       <div className="flex flex-col-reverse items-stretch justify-end gap-2.5 border-t border-slate-100 pt-4 sm:flex-row sm:items-center">

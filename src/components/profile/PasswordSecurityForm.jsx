@@ -141,9 +141,8 @@ export default function PasswordSecurityForm({ onPasswordSaved }) {
           aria-hidden="true"
         />
         <p className="leading-relaxed">
-          Demi keamanan, password akan di-hash menggunakan{" "}
-          <strong className="font-semibold">bcryptjs</strong> saat terhubung ke
-          server. Jangan bagikan password Anda kepada siapa pun.
+          Gunakan password unik yang tidak dipakai di layanan lain dan jangan
+          bagikan kredensial akun Anda kepada siapa pun.
         </p>
       </div>
 

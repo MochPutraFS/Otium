@@ -7,7 +7,6 @@ import {
   Building2,
   Camera,
   Mail,
-  Phone,
   Trash2,
   Upload,
   UserCheck,
@@ -210,16 +209,6 @@ export default function ProfileIdentityCard({
             </dd>
           </div>
         )}
-
-        <div className="flex items-start justify-between gap-3">
-          <dt className="flex items-center gap-1.5 text-slate-500">
-            <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
-            Telepon
-          </dt>
-          <dd className="text-right font-semibold text-slate-800">
-            {profile.phone || "—"}
-          </dd>
-        </div>
       </dl>
     </section>
   );
