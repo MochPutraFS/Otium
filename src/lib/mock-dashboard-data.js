@@ -17,6 +17,40 @@ export const PREVIEW_ROLE_OPTIONS = [
   { key: "hrd", label: "HRD", role: "HRD" },
 ];
 
+export const DIVISION_OPTIONS = [
+  "IT & Sistem Internal",
+  "Engineering",
+  "Product & Design",
+  "Marketing",
+  "Finance & Ops",
+  "Human Resources",
+];
+
+export const ROLE_ACCESS_SUMMARIES = {
+  Admin: {
+    title: "Ringkasan Wewenang Administrator",
+    subtitle: "Pengelola pusat master data & hak akses sistem Otium.",
+    protectionNote:
+      "Akun Administrator diproteksi secara sistem dari penghapusan guna menjaga keberlangsungan pengelolaan portal.",
+    permissions: [
+      "Kelola penuh 4 Modul CMS (Pengguna, Divisi, Anggota Divisi, Jenis Cuti Dinamis)",
+      "Dapat menyunting seluruh field administratif profil (Username, Email, Divisi, Tgl Gabung, Kuota Awal)",
+      "Memantau statistik pengajuan cuti lintas divisi & karyawan belum eligible (< 1 tahun)",
+    ],
+  },
+  HRD: {
+    title: "Ringkasan Wewenang HRD (Final Approver)",
+    subtitle: "Penyetuju akhir seluruh permohonan cuti tingkat perusahaan.",
+    protectionNote:
+      "Akun HRD diproteksi dari penghapusan oleh Admin untuk menjaga ketersediaan approver final.",
+    permissions: [
+      "Persetujuan Final Tahap 2 (Karyawan berstatus Approved by Leader & Ketua Divisi berstatus Pending)",
+      "Mendukung persetujuan massal (Multi-Approve Checkbox) dalam satu transaksi atomik",
+      "Akses penuh ke seluruh riwayat pengajuan cuti perusahaan & rekap karyawan cuti bulanan",
+    ],
+  },
+};
+
 export const ROLE_PRESETS = {
   admin: {
     key: "admin",
@@ -28,7 +62,12 @@ export const ROLE_PRESETS = {
     role: "Admin",
     divisionName: "IT & Sistem Internal",
     leaderName: null,
+    phone: "0811-9023-4410",
+    address: "Jl. Gatot Subroto Kav. 28, Jakarta Selatan",
+    avatarUrl: null,
+    isActive: true,
     joinDate: "05 Jan 2022",
+    joinDateIso: "2022-01-05",
     tenureLabel: "4 Tahun 10 Bulan",
     isEligibleAnnualLeave: true,
     initialLeaveQuota: 12.0,
@@ -65,7 +104,12 @@ export const ROLE_PRESETS = {
     role: "Karyawan",
     divisionName: "Engineering",
     leaderName: "Andi Wijaya",
+    phone: "0812-3456-7890",
+    address: "Jl. Merdeka Selatan No. 45, Kebayoran Baru, Jakarta Selatan",
+    avatarUrl: null,
+    isActive: true,
     joinDate: "10 Jan 2024",
+    joinDateIso: "2024-01-10",
     tenureLabel: "2 Tahun 10 Bulan",
     isEligibleAnnualLeave: true,
     initialLeaveQuota: 12.0,
@@ -111,7 +155,12 @@ export const ROLE_PRESETS = {
     role: "Ketua Divisi",
     divisionName: "Engineering",
     leaderName: null,
+    phone: "0813-7788-2211",
+    address: "Jl. Kemang Raya No. 18, Mampang Prapatan, Jakarta Selatan",
+    avatarUrl: null,
+    isActive: true,
     joinDate: "12 Mar 2021",
+    joinDateIso: "2021-03-12",
     tenureLabel: "5 Tahun 8 Bulan",
     isEligibleAnnualLeave: true,
     initialLeaveQuota: 12.0,
@@ -157,7 +206,12 @@ export const ROLE_PRESETS = {
     role: "HRD",
     divisionName: "Human Resources",
     leaderName: null,
+    phone: "0815-6621-9904",
+    address: "Jl. Sudirman No. 112, Tanah Abang, Jakarta Pusat",
+    avatarUrl: null,
+    isActive: true,
     joinDate: "01 Feb 2020",
+    joinDateIso: "2020-02-01",
     tenureLabel: "6 Tahun 9 Bulan",
     isEligibleAnnualLeave: true,
     initialLeaveQuota: 12.0,

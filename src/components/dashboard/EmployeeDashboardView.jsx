@@ -9,6 +9,9 @@ import {
   CalendarCheck,
   CalendarPlus,
   Check,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Clock,
   FileText,
   Handshake,
@@ -17,7 +20,6 @@ import {
 } from "lucide-react";
 import StatsCard from "@/components/ui/StatsCard";
 import StatusBadge from "@/components/ui/StatusBadge";
-import QuotaOverviewCard from "@/components/ui/QuotaOverviewCard";
 import EmptyState from "@/components/ui/EmptyState";
 
 const STATUS_FILTER_OPTIONS = [
@@ -108,18 +110,26 @@ function MiniApprovalStepper({ status, rejectedByRole }) {
   );
 }
 
-// Tampilan dashboard untuk role Karyawan
+// Tampilan dashboard untuk role Karyawan (Ringkas tanpa panel kuota duplikat)
 export default function EmployeeDashboardView({ data }) {
   const { user, stats, handoverInbox, recentRequests } = data;
   const [selectedStatus, setSelectedStatus] = useState("Semua");
+  const [isHandoverExpanded, setIsHandoverExpanded] = useState(false);
 
   const filteredRequests = useMemo(() => {
     if (selectedStatus === "Semua") return recentRequests;
     return recentRequests.filter((req) => req.status === selectedStatus);
   }, [recentRequests, selectedStatus]);
 
+  const quotaRemainingPercent =
+    stats.initialQuota > 0
+      ? Math.round((stats.remainingQuota / stats.initialQuota) * 100)
+      : 0;
+
+  const firstHandover = handoverInbox[0] || null;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Sapaan dan tombol ajukan cuti */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -144,14 +154,23 @@ export default function EmployeeDashboardView({ data }) {
         </Link>
       </div>
 
-      {/* Ringkasan kuota, sakit, total pengajuan, dan divisi */}
+      {/* Ringkasan kuota (+ badge Eligible & progress bar), sakit, total pengajuan, dan divisi */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Sisa Kuota Tahunan"
           value={`${stats.remainingQuota.toFixed(1)} Hari`}
-          subtitle={`Terpakai: ${stats.usedQuota.toFixed(1)} dari ${stats.initialQuota.toFixed(1)} Hari`}
+          subtitle={`Terpakai: ${stats.usedQuota.toFixed(1)} dari ${stats.initialQuota.toFixed(1)} Hari (${quotaRemainingPercent}%)`}
           icon={<CalendarCheck className="h-5 w-5" aria-hidden="true" />}
           variant="emerald"
+          badge={
+            <StatusBadge
+              status={
+                user.isEligibleAnnualLeave ? "Eligible" : "Belum Eligible"
+              }
+            />
+          }
+          progressPercent={quotaRemainingPercent}
+          progressVariant={user.isEligibleAnnualLeave ? "emerald" : "amber"}
         />
         <StatsCard
           title="Cuti Sakit Diajukan"
@@ -182,41 +201,69 @@ export default function EmployeeDashboardView({ data }) {
         />
       </div>
 
-      {/* Daftar tugas handover (kiri) & ringkasan kuota (kanan) */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <section className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-7">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <Handshake
-                  className="h-4 w-4 text-blue-600"
-                  aria-hidden="true"
-                />
-                <h3 className="text-sm font-semibold text-slate-900">
-                  Tugas Serah Terima (Handover Inbox)
-                </h3>
+      {/* Banner Kondisional Handover Inbox (Ringkas agar tabel riwayat langsung terlihat) */}
+      {handoverInbox.length === 0 ? (
+        <div className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600 shadow-sm">
+          <CheckCircle2
+            className="h-4 w-4 shrink-0 text-emerald-500"
+            aria-hidden="true"
+          />
+          <span>
+            Tidak ada penunjukan serah terima tugas (handover) aktif di divisi{" "}
+            <strong className="font-semibold text-slate-800">
+              {user.divisionName}
+            </strong>{" "}
+            saat ini.
+          </span>
+        </div>
+      ) : (
+        <section className="overflow-hidden rounded-2xl border border-blue-200 bg-blue-50/40 shadow-sm">
+          <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3 sm:items-center">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-blue-200 bg-white text-blue-600">
+                <Handshake className="h-4 w-4" aria-hidden="true" />
               </div>
-              <p className="mt-0.5 text-xs text-slate-500">
-                Daftar penunjukan Anda sebagai rekan pengganti sementara di
-                divisi {user.divisionName}.
-              </p>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center rounded-full bg-blue-600 px-2 py-0.5 text-[11px] font-semibold text-white">
+                    Handover Aktif ({handoverInbox.length})
+                  </span>
+                  <p className="truncate text-xs font-semibold text-slate-900 sm:text-sm">
+                    Menggantikan {firstHandover.requesterName} &middot;{" "}
+                    {firstHandover.periodLabel} (
+                    {firstHandover.totalDays.toFixed(1)} Hari)
+                  </p>
+                </div>
+                <p className="mt-0.5 truncate text-xs text-slate-600">
+                  Tugas: &ldquo;{firstHandover.handoverNotes}&rdquo;
+                  {handoverInbox.length > 1
+                    ? ` (+${handoverInbox.length - 1} penunjukan lainnya)`
+                    : ""}
+                </p>
+              </div>
             </div>
-            <span className="inline-flex shrink-0 items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
-              {handoverInbox.length} Tugas
-            </span>
+
+            <button
+              type="button"
+              onClick={() => setIsHandoverExpanded((prev) => !prev)}
+              aria-expanded={isHandoverExpanded}
+              className="inline-flex w-fit shrink-0 items-center gap-1.5 rounded-xl border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-50"
+            >
+              {isHandoverExpanded ? "Tutup Detail" : "Lihat Detail"}
+              {isHandoverExpanded ? (
+                <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+              )}
+            </button>
           </div>
 
-          <div className="mt-4 flex-1 space-y-3">
-            {handoverInbox.length === 0 ? (
-              <EmptyState
-                title="Tidak ada tugas serah terima aktif"
-                description="Jika rekan satu divisi menunjuk Anda sebagai pengganti saat cuti, daftarnya akan tampil di sini."
-              />
-            ) : (
-              handoverInbox.map((item) => (
+          {isHandoverExpanded && (
+            <div className="space-y-2.5 border-t border-blue-200/80 bg-white p-4">
+              {handoverInbox.map((item) => (
                 <article
                   key={item.id}
-                  className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-4 transition hover:border-blue-200 hover:bg-blue-50/30"
+                  className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3.5"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
@@ -233,28 +280,18 @@ export default function EmployeeDashboardView({ data }) {
                     </div>
                     <StatusBadge status={item.status} />
                   </div>
-                  <p className="mt-2.5 rounded-lg border border-slate-200/70 bg-white px-3 py-2 text-xs leading-relaxed text-slate-600">
+                  <p className="mt-2 rounded-lg border border-slate-200/70 bg-white px-3 py-2 text-xs leading-relaxed text-slate-600">
                     <span className="font-semibold text-slate-700">
                       Catatan Tugas:{" "}
                     </span>
                     {item.handoverNotes}
                   </p>
                 </article>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
-
-        <div className="lg:col-span-5">
-          <QuotaOverviewCard
-            joinDate={user.joinDate}
-            tenureLabel={user.tenureLabel}
-            isEligibleAnnualLeave={user.isEligibleAnnualLeave}
-            initialQuota={stats.initialQuota}
-            remainingQuota={stats.remainingQuota}
-          />
-        </div>
-      </div>
+      )}
 
       {/* Tabel riwayat cuti terbaru dengan filter status */}
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
