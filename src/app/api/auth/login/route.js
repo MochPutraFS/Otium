@@ -4,6 +4,7 @@ import {
   authenticateCredentials,
   buildSessionCookieOptions,
   createSessionToken,
+  getSafeCallbackUrl,
 } from "@/lib/auth";
 
 export async function POST(request) {
@@ -20,22 +21,31 @@ export async function POST(request) {
   const identifier = body?.identifier ?? body?.email ?? body?.username ?? "";
   const password = body?.password ?? "";
   const rememberMe = Boolean(body?.rememberMe);
+  const callbackUrl =
+    typeof body?.callbackUrl === "string" ? body.callbackUrl : "";
 
   try {
     const authResult = await authenticateCredentials(identifier, password);
 
     if (!authResult.ok) {
       return NextResponse.json(
-        { error: authResult.error },
+        {
+          error: authResult.error,
+          ...(authResult.fieldErrors
+            ? { fieldErrors: authResult.fieldErrors }
+            : {}),
+        },
         { status: authResult.status }
       );
     }
 
     const token = await createSessionToken(authResult.user, rememberMe);
+    const redirectTo = getSafeCallbackUrl(callbackUrl, authResult.user.role);
     const response = NextResponse.json(
       {
         success: true,
         user: authResult.user,
+        redirectTo,
       },
       { status: 200 }
     );

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   ROLE_ROUTE_RULES,
   SESSION_COOKIE_NAME,
+  matchesRoutePrefix,
   verifySessionToken,
 } from "@/lib/jwt";
 
@@ -11,7 +12,10 @@ export async function middleware(request) {
   const user = token ? await verifySessionToken(token) : null;
 
   // 1. Blokir rute registrasi publik (/register atau /signup) -> arahkan ke /login
-  if (pathname.startsWith("/register") || pathname.startsWith("/signup")) {
+  if (
+    matchesRoutePrefix(pathname, "/register") ||
+    matchesRoutePrefix(pathname, "/signup")
+  ) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -59,7 +63,7 @@ export async function middleware(request) {
 
   // 4. Evaluasi Hak Akses Role (RBAC) pada halaman UI
   const matchedRule = ROLE_ROUTE_RULES.find((rule) =>
-    pathname.startsWith(rule.prefix)
+    matchesRoutePrefix(pathname, rule.prefix)
   );
   if (matchedRule && !matchedRule.allowedRoles.includes(user.role)) {
     const redirectUrl = new URL("/dashboard", request.url);

@@ -97,6 +97,20 @@ export async function verifySessionToken(token) {
 }
 
 /**
+ * Mencocokkan pathname terhadap prefix rute secara akurat pada batas segmen ('/').
+ * Mencegah false-positive seperti '/leaves-extra' yang tidak boleh cocok dengan '/leaves'.
+ * @param {string} pathname
+ * @param {string} prefix
+ * @returns {boolean}
+ */
+export function matchesRoutePrefix(pathname, prefix) {
+  if (typeof pathname !== "string" || typeof prefix !== "string") {
+    return false;
+  }
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+/**
  * Memastikan callbackUrl aman (anti Open Redirect) dan sesuai hak akses role pengguna.
  * Jika tidak valid atau role tidak berhak, diarahkan ke /dashboard.
  * @param {string} callbackUrl
@@ -116,16 +130,16 @@ export function getSafeCallbackUrl(callbackUrl, role) {
   const pathname = callbackUrl.split("?")[0];
   if (
     pathname === "/" ||
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/register") ||
-    pathname.startsWith("/signup") ||
-    pathname.startsWith("/api/")
+    matchesRoutePrefix(pathname, "/login") ||
+    matchesRoutePrefix(pathname, "/register") ||
+    matchesRoutePrefix(pathname, "/signup") ||
+    matchesRoutePrefix(pathname, "/api")
   ) {
     return "/dashboard";
   }
 
   const matchedRule = ROLE_ROUTE_RULES.find((rule) =>
-    pathname.startsWith(rule.prefix)
+    matchesRoutePrefix(pathname, rule.prefix)
   );
   if (!matchedRule || !matchedRule.allowedRoles.includes(role)) {
     return "/dashboard";

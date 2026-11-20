@@ -1,11 +1,13 @@
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { query } from "@/lib/db";
+import { validateLoginCredentials } from "@/lib/validators";
 import {
   SESSION_COOKIE_NAME,
   createSessionToken,
   getSafeCallbackUrl,
   getSessionMaxAge,
+  matchesRoutePrefix,
   verifySessionToken,
 } from "@/lib/jwt";
 
@@ -14,6 +16,7 @@ export {
   createSessionToken,
   getSafeCallbackUrl,
   getSessionMaxAge,
+  matchesRoutePrefix,
   verifySessionToken,
 };
 
@@ -28,6 +31,19 @@ export function buildSessionCookieOptions(rememberMe = false) {
     path: "/",
     secure: process.env.NODE_ENV === "production",
     maxAge: getSessionMaxAge(rememberMe),
+  };
+}
+
+/**
+ * Membangun opsi penghapusan cookie sesi (Single Source of Truth untuk logout & 401 cleanup).
+ */
+export function buildClearSessionCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 0,
   };
 }
 
@@ -50,13 +66,7 @@ export async function setSessionCookie(token, rememberMe = false) {
  */
 export async function clearSessionCookie() {
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE_NAME, "", {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 0,
-  });
+  cookieStore.set(SESSION_COOKIE_NAME, "", buildClearSessionCookieOptions());
 }
 
 /**
@@ -76,21 +86,12 @@ export async function getSession() {
  * @param {string} rawPassword
  */
 export async function authenticateCredentials(rawIdentifier, rawPassword) {
-  const identifier =
-    typeof rawIdentifier === "string" ? rawIdentifier.trim() : "";
-  const password = typeof rawPassword === "string" ? rawPassword : "";
-
-  if (!identifier || !password) {
-    return {
-      ok: false,
-      status: 400,
-      error: "Email/Username dan Password wajib diisi.",
-      fieldErrors: {
-        identifier: identifier ? "" : "Email atau Username wajib diisi.",
-        password: password ? "" : "Password wajib diisi.",
-      },
-    };
+  const validation = validateLoginCredentials(rawIdentifier, rawPassword);
+  if (!validation.ok) {
+    return validation;
   }
+
+  const { identifier, password } = validation;
 
   const sql = `
     SELECT
@@ -205,6 +206,49 @@ export async function getCurrentUser() {
     isActive: row.is_active,
     initials: buildUserInitials(row.full_name),
   };
+}
+
+/**
+ * Helper Two-Layer RBAC: memastikan pengguna memiliki sesi valid & status akun aktif di PostgreSQL.
+ * Cocok digunakan oleh Server Actions dan Route Handlers sebelum mengeksekusi query mutasi/privat.
+ * @returns {Promise<{ ok: true, user: object } | { ok: false, status: 401, error: string }>}
+ */
+export async function requireAuth() {
+  const user = await getCurrentUser();
+  if (!user) {
+    return {
+      ok: false,
+      status: 401,
+      error: "Sesi tidak valid atau akun berstatus nonaktif. Silakan login kembali.",
+    };
+  }
+  return { ok: true, user };
+}
+
+/**
+ * Helper Two-Layer RBAC: memverifikasi sesi aktif sekaligus mencocokkan role pengguna terhadap daftar role diizinkan.
+ * @param {string[]} allowedRoles
+ * @returns {Promise<{ ok: true, user: object } | { ok: false, status: 401 | 403, error: string }>}
+ */
+export async function requireRole(allowedRoles = []) {
+  const auth = await requireAuth();
+  if (!auth.ok) {
+    return auth;
+  }
+
+  if (
+    Array.isArray(allowedRoles) &&
+    allowedRoles.length > 0 &&
+    !allowedRoles.includes(auth.user.role)
+  ) {
+    return {
+      ok: false,
+      status: 403,
+      error: "Anda tidak memiliki hak akses untuk operasi ini.",
+    };
+  }
+
+  return auth;
 }
 
 /**

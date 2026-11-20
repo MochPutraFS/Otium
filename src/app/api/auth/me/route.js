@@ -1,14 +1,24 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import {
+  SESSION_COOKIE_NAME,
+  buildClearSessionCookieOptions,
+  getCurrentUser,
+} from "@/lib/auth";
 
 export async function GET() {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
+      const response = NextResponse.json(
         { error: "Sesi tidak valid atau akun berstatus nonaktif." },
         { status: 401 }
       );
+      response.cookies.set(
+        SESSION_COOKIE_NAME,
+        "",
+        buildClearSessionCookieOptions()
+      );
+      return response;
     }
 
     return NextResponse.json({ user }, { status: 200 });

@@ -73,9 +73,9 @@ export default function LoginBrandPanel() {
 
         {/* Kartu Ledger Alur Persetujuan (Domain-Authentic, Swiss Hairline Grid) */}
         <div className="overflow-hidden rounded-xl border border-stone-300/90 bg-white/90">
-          <div className="flex items-center justify-between border-b border-stone-200 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+          <div className="flex items-center justify-between border-b border-stone-200 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-700">
             <span>Alur Persetujuan Berjenjang</span>
-            <span className="font-mono text-slate-500">2-STAGE</span>
+            <span className="font-mono text-slate-600">2-STAGE</span>
           </div>
 
           <ol className="divide-y divide-stone-200/90">
@@ -101,13 +101,13 @@ export default function LoginBrandPanel() {
       {/* Colophon Footer: 4 Peran Otomatis & Copyright */}
       <div className="border-t border-stone-300/80 pt-5">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-slate-700">
-          <span className="text-slate-500">Deteksi peran otomatis</span>
-          <ArrowRight className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+          <span className="text-slate-600">Deteksi peran otomatis</span>
+          <ArrowRight className="h-3.5 w-3.5 text-slate-500" aria-hidden="true" />
           {SYSTEM_ROLES.map((role, index) => (
             <span key={role} className="inline-flex items-center gap-2">
               <span>{role}</span>
               {index < SYSTEM_ROLES.length - 1 && (
-                <span className="text-stone-400" aria-hidden="true">
+                <span className="text-stone-500" aria-hidden="true">
                   /
                 </span>
               )}
@@ -115,7 +115,7 @@ export default function LoginBrandPanel() {
           ))}
         </div>
 
-        <p className="mt-3 text-xs text-slate-500">
+        <p className="mt-3 text-xs text-slate-600">
           &copy; {new Date().getFullYear()} Otium &mdash; Sistem Manajemen Cuti
           Karyawan.
         </p>

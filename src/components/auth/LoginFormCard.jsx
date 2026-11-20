@@ -29,29 +29,31 @@ const REASON_BANNERS = {
 };
 
 function validateIdentifier(value) {
-  return value.trim() ? "" : "Email atau Username wajib diisi.";
+  const trimmed = value.trim();
+  if (!trimmed) return "Email atau Username wajib diisi.";
+  if (trimmed.length > 100) return "Email atau Username maksimal 100 karakter.";
+  return "";
 }
 
 function validatePassword(value) {
-  return value ? "" : "Password wajib diisi.";
+  if (!value) return "Password wajib diisi.";
+  if (value.length > 128) return "Password maksimal 128 karakter.";
+  return "";
 }
 
 /**
- * Form Login terpusat untuk portal Otium (4 role: Admin, Karyawan, Ketua Divisi, HRD).
- * Terhubung ke Server Action `loginAction`, menerapkan praktik terbaik modern-web-guidance:
- * - autofill-sign-in-form (autocomplete, spellCheck, autoCorrect, autoCapitalize, enterKeyHint)
- * - validate-input-after-interaction & accessible-error-announcement (blur validation, focus-first-invalid, polite live region)
+ * Form Login terpusat (Pure Production) untuk portal Otium (4 role: Admin, Karyawan, Ketua Divisi, HRD).
+ * Terhubung eksklusif ke Server Action `loginAction`, menerapkan praktik terbaik modern-web-guidance:
+ * - autofill-sign-in-form & autofill-highlight-inputs (autocomplete, spellCheck, autoCorrect, autoCapitalize, enterKeyHint, :autofill)
+ * - validate-input-after-interaction & accessible-error-announcement (blur validation, focus-first-invalid, 500ms polite live region)
  * - brand-consistent-forms (native checkbox dengan accent-color + fallback @supports not)
  */
-export default function LoginFormCard({
-  onSubmit,
-  callbackUrl = "",
-  reason = "",
-}) {
+export default function LoginFormCard({ callbackUrl = "", reason = "" }) {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isCapsLockOn, setIsCapsLockOn] = useState(false);
   const [touched, setTouched] = useState({
     identifier: false,
     password: false,
@@ -78,26 +80,33 @@ export default function LoginFormCard({
     };
   }, []);
 
-  function announceFieldError(label, message) {
+  function clearAnnouncement() {
     if (announceTimerRef.current) {
       clearTimeout(announceTimerRef.current);
+      announceTimerRef.current = null;
     }
     setAnnouncement("");
+  }
+
+  function announceFieldError(label, message) {
+    clearAnnouncement();
     if (!message) return;
 
+    // Jeda 500ms agar tidak menimpa pengumuman fokus field berikutnya pada screen reader
     announceTimerRef.current = setTimeout(() => {
       setAnnouncement(`${label}: ${message}`);
-    }, 350);
+    }, 500);
   }
 
   function handleIdentifierChange(e) {
     const nextValue = e.target.value;
     setIdentifier(nextValue);
     if (touched.identifier || fieldErrors.identifier) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        identifier: validateIdentifier(nextValue),
-      }));
+      const nextErr = validateIdentifier(nextValue);
+      setFieldErrors((prev) => ({ ...prev, identifier: nextErr }));
+      if (!nextErr) {
+        clearAnnouncement();
+      }
     }
     if (errorMsg) setErrorMsg("");
   }
@@ -108,6 +117,8 @@ export default function LoginFormCard({
     setFieldErrors((prev) => ({ ...prev, identifier: err }));
     if (err) {
       announceFieldError("Email atau Username", err);
+    } else {
+      clearAnnouncement();
     }
   }
 
@@ -115,26 +126,45 @@ export default function LoginFormCard({
     const nextValue = e.target.value;
     setPassword(nextValue);
     if (touched.password || fieldErrors.password) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        password: validatePassword(nextValue),
-      }));
+      const nextErr = validatePassword(nextValue);
+      setFieldErrors((prev) => ({ ...prev, password: nextErr }));
+      if (!nextErr) {
+        clearAnnouncement();
+      }
     }
     if (errorMsg) setErrorMsg("");
   }
 
+  function handlePasswordKeyEvent(e) {
+    if (typeof e.getModifierState === "function") {
+      setIsCapsLockOn(Boolean(e.getModifierState("CapsLock")));
+    }
+  }
+
   function handlePasswordBlur() {
+    setIsCapsLockOn(false);
     setTouched((prev) => ({ ...prev, password: true }));
     const err = validatePassword(password);
     setFieldErrors((prev) => ({ ...prev, password: err }));
     if (err) {
       announceFieldError("Password", err);
+    } else {
+      clearAnnouncement();
+    }
+  }
+
+  function focusFirstInvalid(errors) {
+    if (errors?.identifier) {
+      identifierRef.current?.focus();
+    } else if (errors?.password) {
+      passwordRef.current?.focus();
     }
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setErrorMsg("");
+    clearAnnouncement();
 
     const nextFieldErrors = {
       identifier: validateIdentifier(identifier),
@@ -144,13 +174,7 @@ export default function LoginFormCard({
     if (nextFieldErrors.identifier || nextFieldErrors.password) {
       setTouched({ identifier: true, password: true });
       setFieldErrors(nextFieldErrors);
-
-      // Pindahkan fokus ke input invalid pertama (accessible-error-announcement)
-      if (nextFieldErrors.identifier) {
-        identifierRef.current?.focus();
-      } else if (nextFieldErrors.password) {
-        passwordRef.current?.focus();
-      }
+      focusFirstInvalid(nextFieldErrors);
       return;
     }
 
@@ -165,12 +189,12 @@ export default function LoginFormCard({
         callbackUrl,
       };
 
-      const submitHandler =
-        typeof onSubmit === "function" ? onSubmit : loginAction;
-      const result = await submitHandler(payload);
+      const result = await loginAction(payload);
 
       if (result?.fieldErrors) {
+        setTouched({ identifier: true, password: true });
         setFieldErrors((prev) => ({ ...prev, ...result.fieldErrors }));
+        focusFirstInvalid(result.fieldErrors);
       }
       if (result?.error) {
         setErrorMsg(result.error);
@@ -185,6 +209,13 @@ export default function LoginFormCard({
       setIsLoading(false);
     }
   }
+
+  const passwordDescribedBy = [
+    fieldErrors.password ? "password-error" : null,
+    isCapsLockOn ? "password-capslock-notice" : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div className="w-full max-w-[400px] rounded-2xl border border-stone-200/90 bg-white p-6 shadow-sm sm:p-8 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
@@ -212,7 +243,7 @@ export default function LoginFormCard({
 
       {/* Heading Form */}
       <div>
-        <p className="hidden text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 lg:block">
+        <p className="hidden text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600 lg:block">
           Portal Internal &middot; Otium
         </p>
         <h1 className="text-2xl font-semibold tracking-[-0.02em] text-slate-950 lg:mt-2 lg:text-[1.75rem]">
@@ -279,7 +310,7 @@ export default function LoginFormCard({
             Email atau Username
           </label>
           <div className="relative mt-1.5">
-            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500">
               <Mail className="h-4 w-4" aria-hidden="true" />
             </span>
             <input
@@ -292,6 +323,7 @@ export default function LoginFormCard({
               autoCorrect="off"
               autoCapitalize="none"
               enterKeyHint="next"
+              maxLength={100}
               required
               disabled={isLoading}
               aria-invalid={fieldErrors.identifier ? "true" : "false"}
@@ -302,7 +334,7 @@ export default function LoginFormCard({
               onChange={handleIdentifierChange}
               onBlur={handleIdentifierBlur}
               placeholder="nama@perusahaan.com atau username"
-              className={`block w-full rounded-lg border bg-white py-2.5 pl-10 pr-3.5 text-sm text-slate-950 placeholder:text-slate-400 transition-colors duration-150 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 ${
+              className={`otium-input block w-full rounded-lg border bg-white py-2.5 pl-10 pr-3.5 text-sm text-slate-950 placeholder:text-slate-500 transition-colors duration-150 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 ${
                 fieldErrors.identifier
                   ? "border-rose-500 bg-rose-50/40 focus-visible:border-rose-600 focus-visible:ring-rose-500/20"
                   : "border-slate-300 hover:border-slate-400 focus-visible:border-slate-900 focus-visible:ring-slate-900/15"
@@ -322,14 +354,25 @@ export default function LoginFormCard({
 
         {/* Field Password */}
         <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-slate-800"
-          >
-            Password
-          </label>
+          <div className="flex items-center justify-between gap-2">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-slate-800"
+            >
+              Password
+            </label>
+            {isCapsLockOn && (
+              <span
+                id="password-capslock-notice"
+                className="inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-800"
+              >
+                <AlertCircle className="h-3 w-3 shrink-0" aria-hidden="true" />
+                Caps Lock aktif
+              </span>
+            )}
+          </div>
           <div className="relative mt-1.5">
-            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500">
               <Lock className="h-4 w-4" aria-hidden="true" />
             </span>
             <input
@@ -339,17 +382,18 @@ export default function LoginFormCard({
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
               enterKeyHint="done"
+              maxLength={128}
               required
               disabled={isLoading}
               aria-invalid={fieldErrors.password ? "true" : "false"}
-              aria-describedby={
-                fieldErrors.password ? "password-error" : undefined
-              }
+              aria-describedby={passwordDescribedBy || undefined}
               value={password}
               onChange={handlePasswordChange}
+              onKeyDown={handlePasswordKeyEvent}
+              onKeyUp={handlePasswordKeyEvent}
               onBlur={handlePasswordBlur}
               placeholder="Masukkan password Anda"
-              className={`block w-full rounded-lg border bg-white py-2.5 pl-10 pr-11 text-sm text-slate-950 placeholder:text-slate-400 transition-colors duration-150 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 ${
+              className={`otium-input block w-full rounded-lg border bg-white py-2.5 pl-10 pr-11 text-sm text-slate-950 placeholder:text-slate-500 transition-colors duration-150 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 ${
                 fieldErrors.password
                   ? "border-rose-500 bg-rose-50/40 focus-visible:border-rose-600 focus-visible:ring-rose-500/20"
                   : "border-slate-300 hover:border-slate-400 focus-visible:border-slate-900 focus-visible:ring-slate-900/15"
@@ -359,11 +403,12 @@ export default function LoginFormCard({
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               disabled={isLoading}
+              aria-controls="password"
               aria-pressed={showPassword}
               aria-label={
                 showPassword ? "Sembunyikan password" : "Tampilkan password"
               }
-              className="absolute inset-y-0 right-1 my-1 flex w-9 cursor-pointer items-center justify-center rounded-md text-slate-500 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 disabled:cursor-not-allowed"
+              className="absolute inset-y-0 right-1 my-1 flex w-9 cursor-pointer items-center justify-center rounded-md text-slate-600 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 disabled:cursor-not-allowed"
             >
               {showPassword ? (
                 <EyeOff className="h-4 w-4" aria-hidden="true" />
@@ -426,7 +471,7 @@ export default function LoginFormCard({
       </form>
 
       {/* Catatan Colophon Ringkas (Tanpa Registrasi Publik) */}
-      <p className="mt-7 border-t border-stone-200 pt-5 text-xs leading-relaxed text-slate-500">
+      <p className="mt-7 border-t border-stone-200 pt-5 text-xs leading-relaxed text-slate-600">
         Akses akun dikelola oleh Administrator &middot; Peran pengguna
         terdeteksi otomatis setelah masuk.
       </p>
