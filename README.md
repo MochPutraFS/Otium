@@ -8,28 +8,28 @@ Aplikasi web full-stack untuk mengelola siklus pengajuan cuti karyawan, verifika
 
 ## Status Pengembangan Saat Ini
 
-- [x] **Inisialisasi Proyek & Skema Database PostgreSQL** (`database/schema.sql`, `seed.sql`, `src/lib/db.js`)
-- [x] **UI Halaman Login (`/login`)** — Split-screen branding Otium, input Email/Username, toggle password, Remember Me, validasi client-side
-- [x] **UI App Shell & 4 Variasi Dashboard (`/dashboard`)** *(Mode UI-Only)*:
-  - Sidebar gelap *collapsible* (desktop) & drawer (mobile) dengan menu adaptif 4 role (`Admin`, `Karyawan`, `Ketua Divisi`, `HRD`)
-  - `TopNavbar` dengan info tanggal & hari libur terdekat, dropdown notifikasi internal, dan menu profil
-  - 4 tampilan Dashboard spesifik role lengkap dengan visualisasi SVG/Tailwind (Donut kuota `0.5` hari, Mini-Stepper 2 tahap, strip jadwal cuti Sen–Jum, bar ketersediaan divisi, dan progres masa kerja `< 1 tahun`)
-  - *Floating Preview Role Dock* sementara untuk berpindah 4 role (`?role=admin|karyawan|ketua-divisi|hrd`) sebelum integrasi autentikasi backend
-- [x] **UI Halaman Profil & Panel Kuota Realtime (`/profile`)** — Layout 2 kolom bertab (*Informasi Pribadi* & *Keamanan*), avatar interaktif, adaptif 4 role (`QuotaOverviewCard` untuk Karyawan/Ketua Divisi & `RoleAccessSummaryCard` untuk Admin/HRD)
-- [x] **UI Halaman Pengajuan & Riwayat Cuti (`/leaves/new`, `/leaves`)** — Form interaktif dengan kalkulator hari kerja (exclude Sabtu/Minggu & dukungan `0.5` hari), *What-If Quota Widget*, *Slide-Over Detail Drawer* (Timeline 2 jalur), dan *Modal Pembatalan* (alasan wajib + simulasi *Auto-Refund*)
-- [x] **UI Halaman Verifikasi Ketua Divisi & Persetujuan Final HRD (`/approvals/leader`, `/approvals/hrd`)** — Pola *Hybrid View* (*Compact Card* untuk antrean aktif + *Tabel Ringkas* untuk riwayat), *Slide-Over Detail Drawer*, Smart `ApprovalModal` (chip catatan cepat & info *Auto-Refund*), serta **Multi-Approve Checkbox HRD** (Jalur 1 & Jalur 2)
-- [ ] **UI 4 Modul CMS Admin (`/admin/users`, `/admin/divisions`, `/admin/division-members`, `/admin/leave-types`)** *(sedang dikerjakan)*
-- [ ] **Integrasi Backend (Middleware RBAC, JWT Cookie, Server Actions, Route Handlers, & Raw SQL `pg`)**
+### Backend & Integrasi PostgreSQL (Production-Ready)
+- [x] **Skema Database PostgreSQL** (`database/schema.sql`, `database/seed.sql`, `src/lib/db.js`) — 7 tabel relasional dengan *parameterized queries* (`pg`) dan helper transaksi atomik (`withTransaction`)
+- [x] **Autentikasi & Proteksi RBAC 2 Lapis (`/login`, `src/middleware.js`, `/api/auth/*`)** — Login Email/Username + `bcryptjs`, JWT HttpOnly Cookie (*Remember Me* 1 hari / 7 hari), deteksi role otomatis, proteksi rute per role, dan pemblokiran akun nonaktif
+- [x] **App Shell, Notifikasi Internal & Halaman Profil (`/profile`, `/api/notifications`, `/api/upload`)** — Navigasi adaptif 4 role, notifikasi internal dari PostgreSQL, pembaruan profil, unggah avatar lokal, serta perubahan kata sandi
+- [x] **CMS Admin — Manajemen User (`/admin/users`)** — CRUD user dengan proteksi akun `Admin` & `HRD`, pencarian/filter, dan validasi berlapis
+- [x] **CMS Admin — Manajemen Divisi & Anggota Divisi (`/admin/divisions`, `/admin/division-members`)** — CRUD divisi, aturan 1 Ketua Divisi per divisi, penghapusan divisi dengan *Double Confirmation* tanpa menghapus akun anggota, serta penugasan/pelepasan anggota divisi
+
+### Antarmuka UI (Tahap Integrasi Backend Berikutnya)
+- [x] **Dashboard Adaptif 4 Role (`/dashboard`)** — Tampilan khusus `Admin`, `Karyawan`, `Ketua Divisi`, dan `HRD`
+- [x] **Pengajuan & Riwayat Cuti (`/leaves/new`, `/leaves`)** — Kalkulator hari kerja (exclude Sabtu/Minggu & dukungan `0.5` hari), *What-If Quota Widget*, *Slide-Over Detail Drawer*, dan *Modal Pembatalan*
+- [x] **Verifikasi Ketua Divisi & Persetujuan Final HRD (`/approvals/leader`, `/approvals/hrd`)** — *Hybrid View*, `ApprovalModal`, dan *Multi-Approve Checkbox* HRD
+- [x] **CMS Admin — Manajemen Jenis Cuti (`/admin/leave-types`)** — Konfigurasi dinamis kategori cuti
 
 ---
 
-## Tech Stack & Batasan Teknis
+## Tech Stack & Arsitektur
 
 - **Framework:** Next.js 15 (App Router)
-- **Bahasa:** JavaScript Murni (`.js` / `.jsx`) — *tanpa TypeScript*
+- **Bahasa:** JavaScript Murni (`.js` / `.jsx`)
 - **Styling & Ikon:** Tailwind CSS + `lucide-react`
 - **Database:** PostgreSQL
-- **Akses Data:** Raw SQL Murni menggunakan `pg` (`node-postgres`) dengan *parameterized queries* (`$1, $2, ...`) dan transaksi atomik (`BEGIN ... COMMIT / ROLLBACK`) — *tanpa ORM / Query Builder*
+- **Akses Data:** Raw SQL Murni menggunakan `pg` (`node-postgres`) dengan *parameterized queries* (`$1, $2, ...`) dan transaksi atomik (`BEGIN ... COMMIT / ROLLBACK`)
 - **Backend Pattern:** Kombinasi Next.js Server Actions (`"use server"`) dan Route Handlers (`src/app/api/**/route.js`)
 
 ---
@@ -37,18 +37,21 @@ Aplikasi web full-stack untuk mengelola siklus pengajuan cuti karyawan, verifika
 ## Struktur Direktori
 
 ```text
-sistem-manajemen-cuti-karyawan/
-├── database/                  # Skrip PostgreSQL pgAdmin (schema.sql, seed.sql, database.sql)
+otium/
+├── database/                  # Skrip PostgreSQL pgAdmin (schema.sql, seed.sql)
 ├── public/
 │   ├── images/                # Logo Otium & aset statis
 │   └── uploads/               # Penyimpanan lokal lampiran surat dokter & avatar
 ├── src/
+│   ├── middleware.js          # Edge Auth Guard & RBAC Route Protection
 │   ├── app/                   # Next.js App Router (.js / .jsx)
 │   │   ├── (auth)/login/      # Halaman Login terpusat
-│   │   └── (dashboard)/       # App Shell: dashboard, profile, leaves, approvals, admin
+│   │   ├── (dashboard)/       # App Shell: dashboard, profile, leaves, approvals, admin
+│   │   └── api/               # Next.js Route Handlers (auth, notifications, upload, admin, divisions)
 │   ├── actions/               # Next.js Server Actions ("use server")
 │   ├── components/            # Komponen UI modular (auth, layout, ui, dashboard, profile, leaves, approvals, admin)
-│   └── lib/                   # Pool koneksi 'pg', utilitas tanggal, dan mock data pratinjau UI
+│   └── lib/                   # Pool koneksi 'pg', auth/JWT, validasi, utilitas tanggal, dan data helpers
+├── .env.example               # Template variabel lingkungan
 ├── jsconfig.json              # Path alias JavaScript (@/* -> ./src/*)
 ├── LICENSE                    # Lisensi MIT
 └── README.md
@@ -56,31 +59,28 @@ sistem-manajemen-cuti-karyawan/
 
 ---
 
-## Setup & Pratinjau Lokal
+## Setup Lokal
 
 1. **Clone repository**
    ```bash
-   git clone https://github.com/<username>/sistem-manajemen-cuti-karyawan.git
-   cd sistem-manajemen-cuti-karyawan
+   git clone https://github.com/MochPutraFS/Otium.git
+   cd Otium
    ```
 2. **Install dependencies**
    ```bash
    npm install
    ```
-3. **Setup Database PostgreSQL** *(untuk tahap backend)*
+3. **Setup Database PostgreSQL**
    - Buat database baru di PostgreSQL / pgAdmin.
-   - Import file SQL dari folder `/database` (`schema.sql` dan `seed.sql`).
-   - Sesuaikan variabel `DATABASE_URL` dan `JWT_SECRET` pada `.env`.
-4. **Jalankan Server Development**
+   - Jalankan skrip `database/schema.sql` diikuti `database/seed.sql`.
+4. **Konfigurasi Environment Variables**
+   - Salin `.env.example` menjadi `.env.local` (atau `.env`) lalu sesuaikan nilai `DATABASE_URL` dan `JWT_SECRET`.
+5. **Jalankan Server Development**
    ```bash
    npm run dev
    ```
-5. **Pratinjau Halaman UI**
-   - Halaman Login: `http://localhost:3000/login`
-   - Dashboard (4 Role): `http://localhost:3000/dashboard` (gunakan dock **Pratinjau Role UI** di pojok kanan bawah atau query `?role=admin`, `?role=karyawan`, `?role=ketua-divisi`, `?role=hrd`)
-   - Profil & Kuota: `http://localhost:3000/profile`
-   - Pengajuan & Riwayat Cuti: `http://localhost:3000/leaves/new` & `http://localhost:3000/leaves`
-   - Verifikasi Ketua Divisi & Final HRD: `http://localhost:3000/approvals/leader?role=ketua-divisi` & `http://localhost:3000/approvals/hrd?role=hrd`
+6. **Akses Aplikasi**
+   - Buka `http://localhost:3000/login` di browser Anda.
 
 ---
 
