@@ -10,16 +10,24 @@ out/
 build/
 dist/
 
-# Environment Variables
+# Environment Variables & Secrets
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+*.pem
+*.key
+*.secret
 
-# Docs PDF & AI Rules (dikecualikan dari repo)
+# Docs PDF, AI Agent Config & Local Tooling (dikecualikan dari repo)
 docs/TUGAS FINAL PRAKTIKUM PEMROGRAMAN WEB 2026.pdf
 ANTIGRAVITY_RULES.md
+AGENTS.md
+CLAUDE.md
+.agent/
+.agents/
+graphify-out/
+__pycache__/
+*.pyc
 
 # Logs & Debug
 npm-debug.log*

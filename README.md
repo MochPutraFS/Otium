@@ -15,7 +15,10 @@ Aplikasi web full-stack untuk mengelola siklus pengajuan cuti karyawan, verifika
   - `TopNavbar` dengan info tanggal & hari libur terdekat, dropdown notifikasi internal, dan menu profil
   - 4 tampilan Dashboard spesifik role lengkap dengan visualisasi SVG/Tailwind (Donut kuota `0.5` hari, Mini-Stepper 2 tahap, strip jadwal cuti Sen–Jum, bar ketersediaan divisi, dan progres masa kerja `< 1 tahun`)
   - *Floating Preview Role Dock* sementara untuk berpindah 4 role (`?role=admin|karyawan|ketua-divisi|hrd`) sebelum integrasi autentikasi backend
-- [ ] **UI Halaman Profil, Form Pengajuan Cuti, Verifikasi Leader/HRD, & 4 Modul CMS Admin**
+- [x] **UI Halaman Profil & Panel Kuota Realtime (`/profile`)** — Layout 2 kolom bertab (*Informasi Pribadi* & *Keamanan*), avatar interaktif, adaptif 4 role (`QuotaOverviewCard` untuk Karyawan/Ketua Divisi & `RoleAccessSummaryCard` untuk Admin/HRD)
+- [x] **UI Halaman Pengajuan & Riwayat Cuti (`/leaves/new`, `/leaves`)** — Form interaktif dengan kalkulator hari kerja (exclude Sabtu/Minggu & dukungan `0.5` hari), *What-If Quota Widget*, *Slide-Over Detail Drawer* (Timeline 2 jalur), dan *Modal Pembatalan* (alasan wajib + simulasi *Auto-Refund*)
+- [x] **UI Halaman Verifikasi Ketua Divisi & Persetujuan Final HRD (`/approvals/leader`, `/approvals/hrd`)** — Pola *Hybrid View* (*Compact Card* untuk antrean aktif + *Tabel Ringkas* untuk riwayat), *Slide-Over Detail Drawer*, Smart `ApprovalModal` (chip catatan cepat & info *Auto-Refund*), serta **Multi-Approve Checkbox HRD** (Jalur 1 & Jalur 2)
+- [ ] **UI 4 Modul CMS Admin (`/admin/users`, `/admin/divisions`, `/admin/division-members`, `/admin/leave-types`)** *(sedang dikerjakan)*
 - [ ] **Integrasi Backend (Middleware RBAC, JWT Cookie, Server Actions, Route Handlers, & Raw SQL `pg`)**
 
 ---
@@ -42,10 +45,10 @@ sistem-manajemen-cuti-karyawan/
 ├── src/
 │   ├── app/                   # Next.js App Router (.js / .jsx)
 │   │   ├── (auth)/login/      # Halaman Login terpusat
-│   │   └── (dashboard)/       # App Shell Layout & Dashboard 4 Role
+│   │   └── (dashboard)/       # App Shell: dashboard, profile, leaves, approvals, admin
 │   ├── actions/               # Next.js Server Actions ("use server")
-│   ├── components/            # Komponen UI modular (auth, layout, ui, dashboard)
-│   └── lib/                   # Pool koneksi 'pg', utilitas, dan mock data pratinjau UI
+│   ├── components/            # Komponen UI modular (auth, layout, ui, dashboard, profile, leaves, approvals, admin)
+│   └── lib/                   # Pool koneksi 'pg', utilitas tanggal, dan mock data pratinjau UI
 ├── jsconfig.json              # Path alias JavaScript (@/* -> ./src/*)
 ├── LICENSE                    # Lisensi MIT
 └── README.md
@@ -75,6 +78,9 @@ sistem-manajemen-cuti-karyawan/
 5. **Pratinjau Halaman UI**
    - Halaman Login: `http://localhost:3000/login`
    - Dashboard (4 Role): `http://localhost:3000/dashboard` (gunakan dock **Pratinjau Role UI** di pojok kanan bawah atau query `?role=admin`, `?role=karyawan`, `?role=ketua-divisi`, `?role=hrd`)
+   - Profil & Kuota: `http://localhost:3000/profile`
+   - Pengajuan & Riwayat Cuti: `http://localhost:3000/leaves/new` & `http://localhost:3000/leaves`
+   - Verifikasi Ketua Divisi & Final HRD: `http://localhost:3000/approvals/leader?role=ketua-divisi` & `http://localhost:3000/approvals/hrd?role=hrd`
 
 ---
 
