@@ -227,7 +227,7 @@ export default function LoginFormCard({ callbackUrl = "", reason = "" }) {
       {/* Header Identitas Mobile/Tablet */}
       <div className="mb-7 flex items-center gap-3 lg:hidden">
         <img
-          src="/images/otium-logo.png"
+          src="/images/otium-logo.svg"
           alt="Logo Otium"
           className="h-9 w-9 shrink-0 object-contain"
         />

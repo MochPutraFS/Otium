@@ -1,30 +1,35 @@
+import { redirect } from "next/navigation";
 import AdminUsersClient from "@/components/admin/AdminUsersClient";
-import AdminRoleGuardNotice from "@/components/admin/AdminRoleGuardNotice";
-import {
-  ROLE_PRESETS,
-  resolvePreviewRole,
-} from "@/lib/mock-dashboard-data";
+import { getCurrentUser } from "@/lib/auth";
+import { getAdminUsersWorkspaceData } from "@/lib/admin-users-data";
 
 export const metadata = {
   title: "Manajemen Pengguna — Otium Sistem Manajemen Cuti Karyawan",
 };
 
-// Halaman CMS Modul 1: Manajemen Pengguna — Khusus Admin (/admin/users)
-export default async function AdminUsersPage({ searchParams }) {
-  const resolvedParams = (await searchParams) || {};
-  const previewRoleKey = resolvePreviewRole(resolvedParams.role);
-  const activeUser = ROLE_PRESETS[previewRoleKey] || ROLE_PRESETS.karyawan;
-
-  if (activeUser.role !== "Admin") {
-    return (
-      <AdminRoleGuardNotice
-        currentRoleName={activeUser.role}
-        currentRoleKey={previewRoleKey}
-        targetPath="/admin/users"
-        moduleTitle="Manajemen Pengguna"
-      />
-    );
+/**
+ * Halaman CMS Modul 1: Manajemen Pengguna (/admin/users) — Pure Production.
+ * Menerapkan Layer 2 RBAC: memverifikasi ulang sesi aktif & role 'Admin' di PostgreSQL,
+ * lalu memuat seluruh akun pengguna dan master divisi secara realtime dari database.
+ */
+export default async function AdminUsersPage() {
+  const currentUser = await getCurrentUser();
+  if (!currentUser) {
+    redirect("/login?reason=inactive");
   }
 
-  return <AdminUsersClient />;
+  if (currentUser.role !== "Admin") {
+    redirect("/dashboard?error=unauthorized_role");
+  }
+
+  const workspaceData = await getAdminUsersWorkspaceData();
+
+  return (
+    <AdminUsersClient
+      initialUsers={workspaceData.users}
+      divisions={workspaceData.divisions}
+      currentAdminId={currentUser.id}
+      todayIso={workspaceData.todayIso}
+    />
+  );
 }

@@ -1,19 +1,31 @@
+import { redirect } from "next/navigation";
 import ProfilePageView from "@/components/profile/ProfilePageView";
-import {
-  ROLE_PRESETS,
-  resolvePreviewRole,
-} from "@/lib/mock-dashboard-data";
+import { getCurrentUser } from "@/lib/auth";
+import { getProfilePageData } from "@/lib/shell-data";
 
 export const metadata = {
   title: "Profil & Pengaturan Akun — Otium Sistem Manajemen Cuti Karyawan",
 };
 
-// Halaman Profil & Panel Kuota Realtime (/profile)
-// Sementara role dibaca dari query ?role= di URL untuk pratinjau UI 4 role.
-export default async function ProfilePage({ searchParams }) {
-  const resolvedParams = (await searchParams) || {};
-  const previewRoleKey = resolvePreviewRole(resolvedParams.role);
-  const activeUser = ROLE_PRESETS[previewRoleKey] || ROLE_PRESETS.karyawan;
+/**
+ * Halaman Profil & Panel Kuota Realtime (/profile) — Pure Production.
+ * Menerapkan Layer 2 RBAC: memverifikasi sesi aktif & memuat data profil langsung dari PostgreSQL.
+ */
+export default async function ProfilePage() {
+  const currentUser = await getCurrentUser();
+  if (!currentUser) {
+    redirect("/login?reason=inactive");
+  }
 
-  return <ProfilePageView initialUser={activeUser} roleKey={previewRoleKey} />;
+  const profileData = await getProfilePageData(currentUser.id);
+  if (!profileData) {
+    redirect("/login?reason=inactive");
+  }
+
+  return (
+    <ProfilePageView
+      initialProfile={profileData.profile}
+      divisions={profileData.divisions}
+    />
+  );
 }

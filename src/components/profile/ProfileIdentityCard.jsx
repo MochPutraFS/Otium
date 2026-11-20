@@ -6,6 +6,7 @@ import {
   AtSign,
   Building2,
   Camera,
+  Loader2,
   Mail,
   Trash2,
   Upload,
@@ -16,14 +17,7 @@ import StatusBadge from "@/components/ui/StatusBadge";
 const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
 const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-const ROLE_AVATAR_TONE = {
-  Admin: "bg-purple-100 text-purple-700 ring-purple-200",
-  Karyawan: "bg-blue-100 text-blue-700 ring-blue-200",
-  "Ketua Divisi": "bg-sky-100 text-sky-700 ring-sky-200",
-  HRD: "bg-indigo-100 text-indigo-700 ring-indigo-200",
-};
-
-function computeInitials(fullName, fallbackInitials = "US") {
+function computeInitials(fullName, fallbackInitials = "OT") {
   const parts = String(fullName || "")
     .trim()
     .split(/\s+/)
@@ -33,10 +27,12 @@ function computeInitials(fullName, fallbackInitials = "US") {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
-// Kartu identitas pengguna (kolom kiri atas) + pratinjau unggah avatar lokal
+/**
+ * Kartu identitas pengguna (kolom kiri atas) + unggah/hapus avatar ke /api/upload & PostgreSQL.
+ */
 export default function ProfileIdentityCard({
   profile,
-  avatarPreviewUrl,
+  isBusy = false,
   onAvatarChange,
   onAvatarRemove,
 }) {
@@ -44,17 +40,16 @@ export default function ProfileIdentityCard({
   const [avatarError, setAvatarError] = useState("");
 
   const initials = computeInitials(profile.fullName, profile.initials);
-  const avatarToneClass =
-    ROLE_AVATAR_TONE[profile.role] || "bg-slate-100 text-slate-700 ring-slate-200";
+  const avatarUrl = profile.avatarUrl || null;
 
   function handleOpenFilePicker() {
+    if (isBusy) return;
     setAvatarError("");
     fileInputRef.current?.click();
   }
 
   function handleFileSelected(event) {
     const file = event.target.files?.[0];
-    // Reset value agar file yang sama tetap bisa dipilih ulang setelah dihapus
     event.target.value = "";
 
     if (!file) return;
@@ -74,12 +69,13 @@ export default function ProfileIdentityCard({
   }
 
   function handleRemoveClick() {
+    if (isBusy) return;
     setAvatarError("");
     onAvatarRemove();
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="rounded-xl border border-stone-200 bg-white p-5">
       {/* Bagian Avatar Interaktif */}
       <div className="flex flex-col items-center text-center">
         <input
@@ -89,52 +85,65 @@ export default function ProfileIdentityCard({
           onChange={handleFileSelected}
           className="hidden"
           aria-label="Pilih foto profil"
+          disabled={isBusy}
         />
 
         <button
           type="button"
           onClick={handleOpenFilePicker}
-          className="group relative h-24 w-24 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          disabled={isBusy}
+          className="group relative h-24 w-24 cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A] disabled:cursor-wait"
           title="Klik untuk mengganti foto profil"
+          aria-label="Ganti foto profil"
         >
-          {avatarPreviewUrl ? (
+          {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={avatarPreviewUrl}
+              src={avatarUrl}
               alt={`Foto profil ${profile.fullName}`}
-              className="h-24 w-24 rounded-full object-cover ring-4 ring-slate-100"
+              className="h-24 w-24 rounded-full border border-stone-300 object-cover"
             />
           ) : (
-            <div
-              className={`flex h-24 w-24 items-center justify-center rounded-full text-2xl font-bold tracking-tight ring-4 ${avatarToneClass}`}
-            >
+            <div className="flex h-24 w-24 items-center justify-center rounded-full border border-stone-300 bg-[#0F172A] text-2xl font-semibold tracking-tight text-white">
               {initials}
             </div>
           )}
 
-          {/* Hover overlay kamera */}
-          <span className="absolute inset-0 flex flex-col items-center justify-center rounded-full bg-slate-900/55 text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-            <Camera className="h-5 w-5" aria-hidden="true" />
-            <span className="mt-1 text-[10px] font-medium">Ubah Foto</span>
+          {/* Overlay kamera saat hover atau loading */}
+          <span
+            className={`absolute inset-0 flex flex-col items-center justify-center rounded-full bg-[#0F172A]/65 text-white transition-opacity duration-150 ${
+              isBusy ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+            }`}
+          >
+            {isBusy ? (
+              <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+            ) : (
+              <>
+                <Camera className="h-5 w-5" aria-hidden="true" />
+                <span className="mt-1 text-[10px] font-medium">Ubah Foto</span>
+              </>
+            )}
           </span>
         </button>
 
         {/* Tombol Ganti / Hapus Foto */}
-        <div className="mt-3 flex items-center justify-center gap-2">
+        <div className="mt-3.5 flex items-center justify-center gap-2">
           <button
             type="button"
             onClick={handleOpenFilePicker}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+            disabled={isBusy}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium text-[#0F172A] transition-colors duration-150 hover:bg-[#F4F2EC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Upload className="h-3.5 w-3.5 text-slate-500" aria-hidden="true" />
-            Ganti Foto
+            <Upload className="h-3.5 w-3.5 text-slate-600" aria-hidden="true" />
+            {isBusy ? "Memproses..." : "Ganti Foto"}
           </button>
 
-          {avatarPreviewUrl && (
+          {avatarUrl && (
             <button
               type="button"
               onClick={handleRemoveClick}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50/70 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
+              disabled={isBusy}
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 transition-colors duration-150 hover:bg-rose-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
               Hapus
@@ -142,7 +151,7 @@ export default function ProfileIdentityCard({
           )}
         </div>
 
-        <p className="mt-2 text-[11px] text-slate-400">
+        <p className="mt-2 text-[11px] text-slate-500">
           JPG, PNG, atau WEBP &bull; Maks. 2 MB
         </p>
 
@@ -157,9 +166,9 @@ export default function ProfileIdentityCard({
         )}
 
         {/* Nama Lengkap & Badge Role/Status */}
-        <h2 className="mt-4 text-lg font-bold tracking-tight text-slate-900">
+        <h3 className="mt-4 text-lg font-semibold tracking-tight text-[#0F172A]">
           {profile.fullName}
-        </h2>
+        </h3>
         <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1.5">
           <StatusBadge status={profile.role} />
           <StatusBadge status={profile.isActive ? "Aktif" : "Nonaktif"} />
@@ -167,44 +176,56 @@ export default function ProfileIdentityCard({
       </div>
 
       {/* Ringkasan Biodata */}
-      <dl className="mt-5 space-y-2.5 border-t border-slate-100 pt-4 text-xs">
+      <dl className="mt-5 space-y-2.5 border-t border-stone-200 pt-4 text-xs">
         <div className="flex items-start justify-between gap-3">
-          <dt className="flex items-center gap-1.5 text-slate-500">
-            <AtSign className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
+          <dt className="flex items-center gap-1.5 text-slate-600">
+            <AtSign
+              className="h-3.5 w-3.5 shrink-0 text-slate-500"
+              aria-hidden="true"
+            />
             Username
           </dt>
-          <dd className="truncate font-semibold text-slate-800">
+          <dd className="truncate font-semibold text-[#0F172A]">
             {profile.username}
           </dd>
         </div>
 
         <div className="flex items-start justify-between gap-3">
-          <dt className="flex items-center gap-1.5 text-slate-500">
-            <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
+          <dt className="flex items-center gap-1.5 text-slate-600">
+            <Mail
+              className="h-3.5 w-3.5 shrink-0 text-slate-500"
+              aria-hidden="true"
+            />
             Email
           </dt>
-          <dd className="truncate font-semibold text-slate-800">
+          <dd className="truncate font-semibold text-[#0F172A]">
             {profile.email}
           </dd>
         </div>
 
         <div className="flex items-start justify-between gap-3">
-          <dt className="flex items-center gap-1.5 text-slate-500">
-            <Building2 className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
+          <dt className="flex items-center gap-1.5 text-slate-600">
+            <Building2
+              className="h-3.5 w-3.5 shrink-0 text-slate-500"
+              aria-hidden="true"
+            />
             Divisi
           </dt>
-          <dd className="text-right font-semibold text-slate-800">
+          <dd className="text-right font-semibold text-[#0F172A]">
             {profile.divisionName || "Belum ditentukan"}
           </dd>
         </div>
 
         {profile.leaderName && (
           <div className="flex items-start justify-between gap-3">
-            <dt className="flex items-center gap-1.5 text-slate-500">
-              <UserCheck className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
+            <dt className="flex items-center gap-1.5 text-slate-600">
+              <UserCheck
+                className="h-3.5 w-3.5 shrink-0 text-slate-500"
+                aria-hidden="true"
+              />
               Ketua Divisi
             </dt>
-            <dd className="text-right font-semibold text-slate-800">
+            <dd className="text-right font-semibold text-[#0F172A]">
               {profile.leaderName}
             </dd>
           </div>

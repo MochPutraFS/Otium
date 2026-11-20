@@ -1,34 +1,178 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   AlertTriangle,
   CheckCircle2,
   Eye,
   EyeOff,
+  Loader2,
+  Lock,
   Save,
   UserPlus,
   X,
 } from "lucide-react";
-import {
-  ADMIN_WORKSPACE_TODAY_ISO,
-  calculateTenureMeta,
-} from "@/lib/mock-admin-data";
+import { parseIsoDate } from "@/lib/date-utils";
 
 const ROLE_OPTIONS = ["Admin", "Karyawan", "Ketua Divisi", "HRD"];
 
-// Modal Tambah / Edit Pengguna (CMS Modul 1)
+/**
+ * Menghitung pratinjau masa kerja (>= 1 tahun vs < 1 tahun) terhadap tanggal server hari ini.
+ * @param {string} joinDateIso
+ * @param {string} todayIso
+ */
+function calculateTenurePreview(joinDateIso, todayIso) {
+  const join = parseIsoDate(joinDateIso);
+  const today = parseIsoDate(todayIso);
+  if (!join || !today) {
+    return { isEligible: false, label: "Tanggal belum valid" };
+  }
+
+  let years = today.getFullYear() - join.getFullYear();
+  let months = today.getMonth() - join.getMonth();
+  if (today.getDate() < join.getDate()) {
+    months -= 1;
+  }
+  if (months < 0) {
+    years -= 1;
+    months += 12;
+  }
+
+  if (years < 0) {
+    return { isEligible: false, label: "Tanggal masa depan" };
+  }
+
+  const isEligible = years >= 1;
+  let label = "< 1 bulan";
+  if (years === 0 && months > 0) label = `${months} bulan`;
+  else if (years > 0 && months === 0) label = `${years} tahun`;
+  else if (years > 0 && months > 0) label = `${years} thn ${months} bln`;
+
+  return { isEligible, label };
+}
+
+function validateSingleField(field, values, { isEdit, initialUser, existingUsers }) {
+  switch (field) {
+    case "fullName": {
+      const trimmed = values.fullName.trim();
+      if (trimmed.length < 3) return "Nama lengkap wajib diisi minimal 3 karakter.";
+      if (trimmed.length > 150) return "Nama lengkap maksimal 150 karakter.";
+      return "";
+    }
+    case "username": {
+      const trimmed = values.username.trim().toLowerCase();
+      if (!trimmed || !/^[a-z0-9._-]{3,50}$/.test(trimmed)) {
+        return "Username 3–50 karakter (huruf kecil, angka, titik, garis bawah, atau strip).";
+      }
+      const dup = existingUsers.some(
+        (u) =>
+          u.username.toLowerCase() === trimmed &&
+          (!isEdit || u.id !== initialUser?.id)
+      );
+      if (dup) return "Username sudah digunakan oleh akun lain.";
+      return "";
+    }
+    case "email": {
+      const trimmed = values.email.trim().toLowerCase();
+      if (
+        !trimmed ||
+        trimmed.length > 100 ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)
+      ) {
+        return "Masukkan alamat email valid, misalnya nama@otium.id.";
+      }
+      const dup = existingUsers.some(
+        (u) =>
+          u.email.toLowerCase() === trimmed &&
+          (!isEdit || u.id !== initialUser?.id)
+      );
+      if (dup) return "Email sudah terdaftar pada akun lain.";
+      return "";
+    }
+    case "password": {
+      const pwd = values.password;
+      if (!isEdit) {
+        if (!pwd) return "Password wajib diisi untuk akun baru.";
+        if (pwd.length < 8) return "Password minimal 8 karakter.";
+        if (!(/[A-Za-z]/.test(pwd) && /[0-9]/.test(pwd))) {
+          return "Password harus mengandung kombinasi huruf dan angka.";
+        }
+      } else if (pwd.length > 0) {
+        if (pwd.length < 8) return "Password baru minimal 8 karakter.";
+        if (!(/[A-Za-z]/.test(pwd) && /[0-9]/.test(pwd))) {
+          return "Password baru harus mengandung kombinasi huruf dan angka.";
+        }
+      }
+      return "";
+    }
+    case "initialLeaveQuota": {
+      const parsed = Number(values.initialLeaveQuota);
+      if (
+        values.initialLeaveQuota === "" ||
+        Number.isNaN(parsed) ||
+        parsed < 0 ||
+        parsed > 365
+      ) {
+        return "Kuota awal harus antara 0 hingga 365 hari.";
+      }
+      if (Math.round(parsed * 2) !== parsed * 2) {
+        return "Kuota awal harus kelipatan 0.5 hari.";
+      }
+      return "";
+    }
+    case "remainingLeaveQuota": {
+      if (!isEdit) return "";
+      const parsed = Number(values.remainingLeaveQuota);
+      if (
+        values.remainingLeaveQuota === "" ||
+        Number.isNaN(parsed) ||
+        parsed < 0 ||
+        parsed > 365
+      ) {
+        return "Sisa kuota harus antara 0 hingga 365 hari.";
+      }
+      if (Math.round(parsed * 2) !== parsed * 2) {
+        return "Sisa kuota harus kelipatan 0.5 hari.";
+      }
+      return "";
+    }
+    case "joinDate": {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(values.joinDate)) {
+        return "Tanggal bergabung wajib diisi dengan format valid.";
+      }
+      return "";
+    }
+    default:
+      return "";
+  }
+}
+
+/**
+ * Modal Tambah / Edit Pengguna (CMS Modul 1) menggunakan elemen natif <dialog>.
+ * Menerapkan validasi pasca-interaksi (:user-invalid + aria-invalid/aria-describedby)
+ * dan proteksi anti-self-lockout untuk Admin.
+ */
 export default function UserFormModal({
   isOpen,
   mode = "create",
   initialUser = null,
+  currentAdminId = null,
+  todayIso = "",
   existingUsers = [],
   divisions = [],
+  isSubmitting = false,
+  serverError = "",
+  serverFieldErrors = null,
   onClose,
   onSubmit,
 }) {
   const isEdit = mode === "edit" && Boolean(initialUser);
+  const isEditingSelf = isEdit && Number(initialUser?.id) === Number(currentAdminId);
+
+  const dialogRef = useRef(null);
+  const formRef = useRef(null);
+  const titleId = useId();
 
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
@@ -39,10 +183,14 @@ export default function UserFormModal({
   const [divisionId, setDivisionId] = useState("");
   const [initialLeaveQuota, setInitialLeaveQuota] = useState("12.0");
   const [remainingLeaveQuota, setRemainingLeaveQuota] = useState("12.0");
-  const [joinDate, setJoinDate] = useState(ADMIN_WORKSPACE_TODAY_ISO);
+  const [joinDate, setJoinDate] = useState(todayIso);
   const [isActive, setIsActive] = useState(true);
-  const [errors, setErrors] = useState({});
 
+  const [touched, setTouched] = useState({});
+  const [errors, setErrors] = useState({});
+  const [liveAnnouncement, setLiveAnnouncement] = useState("");
+
+  // Reset form ketika modal dibuka / target user berubah
   useEffect(() => {
     if (!isOpen) return;
     if (isEdit && initialUser) {
@@ -57,7 +205,7 @@ export default function UserFormModal({
       setRemainingLeaveQuota(
         Number(initialUser.remainingLeaveQuota ?? 12).toFixed(1)
       );
-      setJoinDate(initialUser.joinDate || ADMIN_WORKSPACE_TODAY_ISO);
+      setJoinDate(initialUser.joinDate || todayIso);
       setIsActive(Boolean(initialUser.isActive));
     } else {
       setFullName("");
@@ -69,166 +217,301 @@ export default function UserFormModal({
       setDivisionId("");
       setInitialLeaveQuota("12.0");
       setRemainingLeaveQuota("12.0");
-      setJoinDate(ADMIN_WORKSPACE_TODAY_ISO);
+      setJoinDate(todayIso);
       setIsActive(true);
     }
+    setTouched({});
     setErrors({});
-  }, [isOpen, isEdit, initialUser]);
+    setLiveAnnouncement("");
+  }, [isOpen, isEdit, initialUser, todayIso]);
 
+  // Sinkronkan fieldErrors dari Server Action
   useEffect(() => {
-    if (!isOpen) return;
-    function handleKeyDown(event) {
-      if (event.key === "Escape") onClose?.();
-    }
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+    if (!serverFieldErrors || Object.keys(serverFieldErrors).length === 0) return;
+    setErrors((prev) => ({ ...prev, ...serverFieldErrors }));
+    const nextTouched = {};
+    Object.keys(serverFieldErrors).forEach((k) => {
+      nextTouched[k] = true;
+    });
+    setTouched((prev) => ({ ...prev, ...nextTouched }));
 
-  const tenurePreview = useMemo(
-    () => calculateTenureMeta(joinDate, ADMIN_WORKSPACE_TODAY_ISO),
-    [joinDate]
+    const firstErrorKey = Object.keys(serverFieldErrors)[0];
+    const firstMsg = serverFieldErrors[firstErrorKey];
+    if (firstMsg) {
+      setLiveAnnouncement(firstMsg);
+    }
+  }, [serverFieldErrors]);
+
+  // Buka & tutup native <dialog> melalui showModal()
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (isOpen) {
+      if (!dialog.open) {
+        dialog.showModal();
+      }
+    } else if (dialog.open) {
+      dialog.close();
+      dialog.returnValue = "";
+    }
+  }, [isOpen]);
+
+  // Fallback light-dismiss untuk browser tanpa dukungan atribut closedby (mis. Safari)
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog || !isOpen) return undefined;
+
+    function handleCancel(event) {
+      if (isSubmitting) {
+        event.preventDefault();
+      }
+    }
+
+    function handleClose() {
+      dialog.returnValue = "";
+      if (!isSubmitting) {
+        onClose?.();
+      }
+    }
+
+    dialog.addEventListener("cancel", handleCancel);
+    dialog.addEventListener("close", handleClose);
+
+    let cleanupPointer = null;
+    if (
+      typeof HTMLDialogElement !== "undefined" &&
+      !("closedBy" in HTMLDialogElement.prototype)
+    ) {
+      let pressedOutside = false;
+      const isOutside = (e) => {
+        const rect = dialog.getBoundingClientRect();
+        return (
+          e.clientX < rect.left ||
+          e.clientX > rect.right ||
+          e.clientY < rect.top ||
+          e.clientY > rect.bottom
+        );
+      };
+      const onPointerDown = (e) => {
+        pressedOutside = isOutside(e);
+      };
+      const onPointerUp = (e) => {
+        if (!isSubmitting && pressedOutside && isOutside(e)) {
+          dialog.close();
+        }
+        pressedOutside = false;
+      };
+      dialog.addEventListener("pointerdown", onPointerDown);
+      dialog.addEventListener("pointerup", onPointerUp);
+      cleanupPointer = () => {
+        dialog.removeEventListener("pointerdown", onPointerDown);
+        dialog.removeEventListener("pointerup", onPointerUp);
+      };
+    }
+
+    return () => {
+      dialog.removeEventListener("cancel", handleCancel);
+      dialog.removeEventListener("close", handleClose);
+      cleanupPointer?.();
+    };
+  }, [isOpen, isSubmitting, onClose]);
+
+  const currentValues = useMemo(
+    () => ({
+      fullName,
+      username,
+      email,
+      password,
+      role,
+      divisionId,
+      initialLeaveQuota,
+      remainingLeaveQuota,
+      joinDate,
+      isActive,
+    }),
+    [
+      fullName,
+      username,
+      email,
+      password,
+      role,
+      divisionId,
+      initialLeaveQuota,
+      remainingLeaveQuota,
+      joinDate,
+      isActive,
+    ]
   );
 
-  // Deteksi jika user yang sedang diedit adalah Ketua Divisi aktif dan akan diubah role/dinonaktifkan
+  const tenurePreview = useMemo(
+    () => calculateTenurePreview(joinDate, todayIso),
+    [joinDate, todayIso]
+  );
+
   const ledDivision = useMemo(() => {
     if (!isEdit || !initialUser) return null;
+    if (initialUser.ledDivisionName) {
+      return { id: initialUser.ledDivisionId, name: initialUser.ledDivisionName };
+    }
     return divisions.find((d) => d.leaderId === initialUser.id) || null;
   }, [isEdit, initialUser, divisions]);
 
   const willReleaseLeadership =
     Boolean(ledDivision) && (role !== "Ketua Divisi" || !isActive);
 
-  if (!isOpen) return null;
-
-  function validateForm() {
-    const nextErrors = {};
-    const trimmedName = fullName.trim();
-    const trimmedUsername = username.trim().toLowerCase();
-    const trimmedEmail = email.trim().toLowerCase();
-
-    if (trimmedName.length < 3) {
-      nextErrors.fullName = "Nama lengkap minimal 3 karakter.";
+  function handleBlur(field) {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    const msg = validateSingleField(field, currentValues, {
+      isEdit,
+      initialUser,
+      existingUsers,
+    });
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (msg) next[field] = msg;
+      else delete next[field];
+      return next;
+    });
+    if (msg) {
+      setLiveAnnouncement(msg);
     }
-    if (!trimmedUsername || !/^[a-z0-9._-]{3,30}$/.test(trimmedUsername)) {
-      nextErrors.username =
-        "Username 3–30 karakter (huruf kecil, angka, titik, underscore, atau strip).";
-    } else {
-      const dupUsername = existingUsers.some(
-        (u) =>
-          u.username.toLowerCase() === trimmedUsername &&
-          (!isEdit || u.id !== initialUser.id)
-      );
-      if (dupUsername) {
-        nextErrors.username = "Username sudah digunakan oleh akun lain.";
-      }
-    }
-
-    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      nextErrors.email = "Format email tidak valid.";
-    } else {
-      const dupEmail = existingUsers.some(
-        (u) =>
-          u.email.toLowerCase() === trimmedEmail &&
-          (!isEdit || u.id !== initialUser.id)
-      );
-      if (dupEmail) {
-        nextErrors.email = "Email sudah terdaftar pada akun lain.";
-      }
-    }
-
-    if (!isEdit && password.length < 6) {
-      nextErrors.password = "Password wajib diisi (minimal 6 karakter).";
-    } else if (isEdit && password.length > 0 && password.length < 6) {
-      nextErrors.password = "Password baru minimal 6 karakter.";
-    }
-
-    const parsedInit = Number(initialLeaveQuota);
-    if (Number.isNaN(parsedInit) || parsedInit < 0 || parsedInit > 365) {
-      nextErrors.initialLeaveQuota = "Kuota awal harus >= 0 (kelipatan 0.5).";
-    } else if (Math.round(parsedInit * 2) !== parsedInit * 2) {
-      nextErrors.initialLeaveQuota = "Kuota harus kelipatan 0.5 hari.";
-    }
-
-    if (isEdit) {
-      const parsedRem = Number(remainingLeaveQuota);
-      if (Number.isNaN(parsedRem) || parsedRem < 0 || parsedRem > 365) {
-        nextErrors.remainingLeaveQuota =
-          "Sisa kuota harus >= 0 (kelipatan 0.5).";
-      } else if (Math.round(parsedRem * 2) !== parsedRem * 2) {
-        nextErrors.remainingLeaveQuota = "Sisa kuota harus kelipatan 0.5 hari.";
-      }
-    }
-
-    if (!joinDate) {
-      nextErrors.joinDate = "Tanggal bergabung wajib diisi.";
-    }
-
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
   }
 
-  function handleSubmit(event) {
+  function handleFieldChange(field, setter, nextValue) {
+    setter(nextValue);
+    if (touched[field] || errors[field]) {
+      const nextVals = { ...currentValues, [field]: nextValue };
+      const msg = validateSingleField(field, nextVals, {
+        isEdit,
+        initialUser,
+        existingUsers,
+      });
+      setErrors((prev) => {
+        const next = { ...prev };
+        if (msg) next[field] = msg;
+        else delete next[field];
+        return next;
+      });
+    }
+  }
+
+  function validateAllFields() {
+    const fields = [
+      "fullName",
+      "username",
+      "email",
+      "password",
+      "initialLeaveQuota",
+      "remainingLeaveQuota",
+      "joinDate",
+    ];
+    const nextErrors = {};
+    const nextTouched = {};
+
+    for (const field of fields) {
+      nextTouched[field] = true;
+      const msg = validateSingleField(field, currentValues, {
+        isEdit,
+        initialUser,
+        existingUsers,
+      });
+      if (msg) nextErrors[field] = msg;
+    }
+
+    setTouched((prev) => ({ ...prev, ...nextTouched }));
+    setErrors(nextErrors);
+    return nextErrors;
+  }
+
+  async function handleSubmit(event) {
     event.preventDefault();
-    if (!validateForm()) return;
+    if (isSubmitting) return;
+
+    const nextErrors = validateAllFields();
+    const errorKeys = Object.keys(nextErrors);
+    if (errorKeys.length > 0) {
+      const fieldIdMap = {
+        fullName: "user-fullname",
+        username: "user-username",
+        email: "user-email",
+        password: "user-password",
+        initialLeaveQuota: "user-initial-quota",
+        remainingLeaveQuota: "user-remaining-quota",
+        joinDate: isEdit ? "user-joindate-edit" : "user-joindate",
+      };
+      const firstId = fieldIdMap[errorKeys[0]];
+      if (firstId) {
+        formRef.current?.querySelector(`#${firstId}`)?.focus();
+      }
+      setLiveAnnouncement(nextErrors[errorKeys[0]]);
+      return;
+    }
 
     const initQuotaNum = Number(initialLeaveQuota);
     const remQuotaNum = isEdit ? Number(remainingLeaveQuota) : initQuotaNum;
 
-    onSubmit?.({
+    await onSubmit?.({
       id: isEdit ? initialUser.id : undefined,
       fullName: fullName.trim(),
       username: username.trim().toLowerCase(),
       email: email.trim().toLowerCase(),
-      role,
+      password: password || undefined,
+      role: isEditingSelf ? initialUser.role : role,
       divisionId: divisionId ? Number(divisionId) : null,
       initialLeaveQuota: initQuotaNum,
       remainingLeaveQuota: remQuotaNum,
       joinDate,
-      isActive,
-      passwordChanged: Boolean(password),
+      isActive: isEditingSelf ? true : isActive,
     });
   }
 
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="user-form-modal-title"
-    >
-      <div
-        className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+  const inputBaseClass =
+    "otium-field-input mt-1 w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-150 hover:border-stone-400 focus-visible:border-slate-900 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-slate-500";
 
-      <div className="relative z-10 flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/70 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-200">
-              <UserPlus className="h-5 w-5" aria-hidden="true" />
+  return (
+    <dialog
+      ref={dialogRef}
+      closedby={isSubmitting ? "none" : "any"}
+      aria-labelledby={titleId}
+      className="otium-modal w-full max-w-2xl"
+    >
+      <div className="flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-xl border border-stone-300 bg-white shadow-2xl">
+        {/* Live region tunggal untuk pembaca layar */}
+        <div aria-live="polite" className="visually-hidden">
+          {liveAnnouncement}
+        </div>
+
+        {/* Header Editorial */}
+        <div className="flex items-start justify-between gap-4 border-b border-stone-200 bg-[#F4F2EC] px-6 py-4">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-stone-300 bg-white text-slate-900">
+              <UserPlus className="h-4 w-4" aria-hidden="true" />
             </div>
             <div>
-              <h3
-                id="user-form-modal-title"
-                className="text-base font-bold text-slate-900"
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">
+                {isEdit ? "Pembaruan Akun" : "Provisioning Akun Baru"}
+              </p>
+              <h2
+                id={titleId}
+                className="mt-0.5 text-base font-bold tracking-tight text-slate-900"
               >
                 {isEdit ? "Edit Data Pengguna" : "Tambah Pengguna Baru"}
-              </h3>
-              <p className="text-xs text-slate-500">
+              </h2>
+              <p className="mt-0.5 text-xs text-slate-600">
                 {isEdit
                   ? `Perbarui identitas, role, kuota cuti, atau tanggal bergabung ${initialUser.fullName}.`
-                  : "Provisioning akun terpusat oleh Admin (tidak ada registrasi publik)."}
+                  : "Seluruh akun dibuat terpusat oleh Admin tanpa registrasi publik."}
               </p>
             </div>
           </div>
 
           <button
             type="button"
-            onClick={onClose}
-            aria-label="Tutup modal"
-            className="cursor-pointer rounded-lg p-1.5 text-slate-400 transition-colors duration-200 hover:bg-slate-200/70 hover:text-slate-700"
+            disabled={isSubmitting}
+            onClick={() => onClose?.()}
+            aria-label="Tutup dialog"
+            className="cursor-pointer rounded-lg p-1.5 text-slate-600 transition-colors duration-150 hover:bg-stone-200/80 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -236,95 +519,228 @@ export default function UserFormModal({
 
         {/* Form Body */}
         <form
+          ref={formRef}
           id="admin-user-form"
+          noValidate
           onSubmit={handleSubmit}
-          className="flex-1 space-y-4 overflow-y-auto px-5 py-5"
+          className="flex-1 space-y-5 overflow-y-auto px-6 py-5"
         >
+          {serverError && (
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 rounded-lg border border-rose-300 bg-rose-50 px-3.5 py-3 text-xs text-rose-900"
+            >
+              <AlertCircle
+                className="mt-0.5 h-4 w-4 shrink-0 text-rose-700"
+                aria-hidden="true"
+              />
+              <span>{serverError}</span>
+            </div>
+          )}
+
+          {isEditingSelf && (
+            <div className="flex items-start gap-2.5 rounded-lg border border-stone-300 bg-[#F4F2EC] px-3.5 py-3 text-xs text-slate-700">
+              <Lock
+                className="mt-0.5 h-4 w-4 shrink-0 text-slate-700"
+                aria-hidden="true"
+              />
+              <div>
+                <p className="font-semibold text-slate-900">
+                  Proteksi Anti-Self-Lockout Aktif
+                </p>
+                <p className="mt-0.5 text-slate-600">
+                  Anda sedang mengedit akun Admin Anda sendiri. Perubahan{" "}
+                  <strong>Role</strong> dan <strong>Status Aktif</strong> dikunci
+                  agar akses Administrator tidak terputus.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Nama Lengkap */}
             <div>
               <label
                 htmlFor="user-fullname"
-                className="block text-xs font-semibold text-slate-700"
+                className="block text-xs font-semibold text-slate-900"
               >
-                Nama Lengkap <span className="text-rose-600">*</span>
+                Nama Lengkap <span className="text-rose-700">*</span>
               </label>
               <input
                 id="user-fullname"
+                name="fullName"
                 type="text"
+                autoFocus
+                required
+                minLength={3}
+                maxLength={150}
+                autoComplete="name"
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                onChange={(e) =>
+                  handleFieldChange("fullName", setFullName, e.target.value)
+                }
+                onBlur={() => handleBlur("fullName")}
+                aria-invalid={Boolean(errors.fullName) ? "true" : "false"}
+                aria-describedby={
+                  errors.fullName ? "user-fullname-error" : undefined
+                }
                 placeholder="Contoh: Rina Permata"
-                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className={inputBaseClass}
               />
               {errors.fullName && (
-                <p className="mt-1 text-xs text-rose-600">{errors.fullName}</p>
+                <p
+                  id="user-fullname-error"
+                  className="mt-1.5 flex items-start gap-1 text-xs font-medium text-rose-700"
+                >
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>{errors.fullName}</span>
+                </p>
               )}
             </div>
 
+            {/* Username */}
             <div>
               <label
                 htmlFor="user-username"
-                className="block text-xs font-semibold text-slate-700"
+                className="block text-xs font-semibold text-slate-900"
               >
-                Username <span className="text-rose-600">*</span>
+                Username <span className="text-rose-700">*</span>
               </label>
+              <span
+                id="user-username-hint"
+                className="mt-0.5 block text-[11px] text-slate-600"
+              >
+                3–50 karakter: huruf kecil, angka, titik, underscore, atau strip.
+              </span>
               <input
                 id="user-username"
+                name="username"
                 type="text"
+                required
+                minLength={3}
+                maxLength={50}
+                pattern="[a-zA-Z0-9._\-]{3,50}"
+                autoComplete="username"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Contoh: rina.p"
-                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                onChange={(e) =>
+                  handleFieldChange("username", setUsername, e.target.value)
+                }
+                onBlur={() => handleBlur("username")}
+                aria-invalid={Boolean(errors.username) ? "true" : "false"}
+                aria-describedby={
+                  errors.username
+                    ? "user-username-hint user-username-error"
+                    : "user-username-hint"
+                }
+                placeholder="rina.permata"
+                className={inputBaseClass}
               />
               {errors.username && (
-                <p className="mt-1 text-xs text-rose-600">{errors.username}</p>
+                <p
+                  id="user-username-error"
+                  className="mt-1.5 flex items-start gap-1 text-xs font-medium text-rose-700"
+                >
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>{errors.username}</span>
+                </p>
               )}
             </div>
 
+            {/* Email Perusahaan */}
             <div>
               <label
                 htmlFor="user-email"
-                className="block text-xs font-semibold text-slate-700"
+                className="block text-xs font-semibold text-slate-900"
               >
-                Email Perusahaan <span className="text-rose-600">*</span>
+                Email Perusahaan <span className="text-rose-700">*</span>
               </label>
+              <span
+                id="user-email-hint"
+                className="mt-0.5 block text-[11px] text-slate-600"
+              >
+                Format: nama@otium.id (unik per akun).
+              </span>
               <input
                 id="user-email"
+                name="email"
                 type="email"
+                required
+                maxLength={100}
+                autoComplete="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) =>
+                  handleFieldChange("email", setEmail, e.target.value)
+                }
+                onBlur={() => handleBlur("email")}
+                aria-invalid={Boolean(errors.email) ? "true" : "false"}
+                aria-describedby={
+                  errors.email
+                    ? "user-email-hint user-email-error"
+                    : "user-email-hint"
+                }
                 placeholder="rina.permata@otium.id"
-                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className={inputBaseClass}
               />
               {errors.email && (
-                <p className="mt-1 text-xs text-rose-600">{errors.email}</p>
+                <p
+                  id="user-email-error"
+                  className="mt-1.5 flex items-start gap-1 text-xs font-medium text-rose-700"
+                >
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>{errors.email}</span>
+                </p>
               )}
             </div>
 
+            {/* Password */}
             <div>
               <label
                 htmlFor="user-password"
-                className="block text-xs font-semibold text-slate-700"
+                className="block text-xs font-semibold text-slate-900"
               >
                 Password{" "}
                 {isEdit ? (
-                  <span className="font-normal text-slate-400">
-                    (Kosongkan jika tetap)
+                  <span className="font-normal text-slate-600">
+                    (Opsional saat edit)
                   </span>
                 ) : (
-                  <span className="text-rose-600">*</span>
+                  <span className="text-rose-700">*</span>
                 )}
               </label>
-              <div className="relative mt-1.5">
+              <span
+                id="user-password-hint"
+                className="mt-0.5 block text-[11px] text-slate-600"
+              >
+                {isEdit
+                  ? "Kosongkan bila tetap. Jika diisi: min. 8 karakter (huruf & angka)."
+                  : "Minimal 8 karakter dengan kombinasi huruf dan angka."}
+              </span>
+              <div className="relative mt-1">
                 <input
                   id="user-password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
+                  required={!isEdit}
+                  minLength={isEdit ? undefined : 8}
+                  maxLength={128}
+                  autoComplete="new-password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={
-                    isEdit ? "Isi hanya untuk reset password" : "Minimal 6 karakter"
+                  onChange={(e) =>
+                    handleFieldChange("password", setPassword, e.target.value)
                   }
-                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-3.5 pr-10 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  onBlur={() => handleBlur("password")}
+                  aria-invalid={Boolean(errors.password) ? "true" : "false"}
+                  aria-describedby={
+                    errors.password
+                      ? "user-password-hint user-password-error"
+                      : "user-password-hint"
+                  }
+                  placeholder={
+                    isEdit
+                      ? "Isi hanya untuk reset password"
+                      : "Contoh: Otium2026"
+                  }
+                  className="otium-field-input w-full rounded-lg border border-stone-300 bg-white py-2.5 pl-3.5 pr-10 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-150 hover:border-stone-400 focus-visible:border-slate-900 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-slate-900"
                 />
                 <button
                   type="button"
@@ -332,7 +748,7 @@ export default function UserFormModal({
                   aria-label={
                     showPassword ? "Sembunyikan password" : "Tampilkan password"
                   }
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer rounded-lg p-1 text-slate-400 hover:text-slate-700"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer rounded-md p-1 text-slate-600 transition-colors duration-150 hover:bg-stone-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" aria-hidden="true" />
@@ -342,22 +758,33 @@ export default function UserFormModal({
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-xs text-rose-600">{errors.password}</p>
+                <p
+                  id="user-password-error"
+                  className="mt-1.5 flex items-start gap-1 text-xs font-medium text-rose-700"
+                >
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>{errors.password}</span>
+                </p>
               )}
             </div>
 
+            {/* Role Pengguna */}
             <div>
               <label
                 htmlFor="user-role"
-                className="block text-xs font-semibold text-slate-700"
+                className="block text-xs font-semibold text-slate-900"
               >
-                Role Pengguna <span className="text-rose-600">*</span>
+                Role Pengguna <span className="text-rose-700">*</span>
               </label>
               <select
                 id="user-role"
+                name="role"
+                disabled={isEditingSelf}
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="mt-1.5 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                aria-invalid={Boolean(errors.role) ? "true" : "false"}
+                aria-describedby={errors.role ? "user-role-error" : undefined}
+                className={`${inputBaseClass} cursor-pointer`}
               >
                 {ROLE_OPTIONS.map((r) => (
                   <option key={r} value={r}>
@@ -365,21 +792,32 @@ export default function UserFormModal({
                   </option>
                 ))}
               </select>
+              {errors.role && (
+                <p
+                  id="user-role-error"
+                  className="mt-1.5 text-xs font-medium text-rose-700"
+                >
+                  {errors.role}
+                </p>
+              )}
             </div>
 
+            {/* Divisi */}
             <div>
               <label
                 htmlFor="user-division"
-                className="block text-xs font-semibold text-slate-700"
+                className="block text-xs font-semibold text-slate-900"
               >
                 Divisi{" "}
-                <span className="font-normal text-slate-400">(Opsional)</span>
+                <span className="font-normal text-slate-600">(Opsional)</span>
               </label>
               <select
                 id="user-division"
+                name="divisionId"
                 value={divisionId}
                 onChange={(e) => setDivisionId(e.target.value)}
-                className="mt-1.5 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                aria-invalid={Boolean(errors.divisionId) ? "true" : "false"}
+                className={`${inputBaseClass} cursor-pointer`}
               >
                 <option value="">Belum ditetapkan (NULL)</option>
                 {divisions.map((div) => (
@@ -388,55 +826,116 @@ export default function UserFormModal({
                   </option>
                 ))}
               </select>
-            </div>
-
-            <div>
-              <label
-                htmlFor="user-initial-quota"
-                className="block text-xs font-semibold text-slate-700"
-              >
-                Kuota Cuti Tahunan Awal (Hari){" "}
-                <span className="text-rose-600">*</span>
-              </label>
-              <input
-                id="user-initial-quota"
-                type="number"
-                step="0.5"
-                min="0"
-                max="365"
-                value={initialLeaveQuota}
-                onChange={(e) => setInitialLeaveQuota(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              />
-              {errors.initialLeaveQuota && (
-                <p className="mt-1 text-xs text-rose-600">
-                  {errors.initialLeaveQuota}
+              {errors.divisionId && (
+                <p className="mt-1.5 text-xs font-medium text-rose-700">
+                  {errors.divisionId}
                 </p>
               )}
             </div>
 
+            {/* Kuota Awal */}
+            <div>
+              <label
+                htmlFor="user-initial-quota"
+                className="block text-xs font-semibold text-slate-900"
+              >
+                Kuota Cuti Tahunan Awal (Hari){" "}
+                <span className="text-rose-700">*</span>
+              </label>
+              <span
+                id="user-initial-quota-hint"
+                className="mt-0.5 block text-[11px] text-slate-600"
+              >
+                Mendukung kelipatan 0.5 hari (default 12.0).
+              </span>
+              <input
+                id="user-initial-quota"
+                name="initialLeaveQuota"
+                type="number"
+                required
+                step="0.5"
+                min="0"
+                max="365"
+                value={initialLeaveQuota}
+                onChange={(e) =>
+                  handleFieldChange(
+                    "initialLeaveQuota",
+                    setInitialLeaveQuota,
+                    e.target.value
+                  )
+                }
+                onBlur={() => handleBlur("initialLeaveQuota")}
+                aria-invalid={
+                  Boolean(errors.initialLeaveQuota) ? "true" : "false"
+                }
+                aria-describedby={
+                  errors.initialLeaveQuota
+                    ? "user-initial-quota-hint user-initial-quota-error"
+                    : "user-initial-quota-hint"
+                }
+                className={`${inputBaseClass} tabular-nums`}
+              />
+              {errors.initialLeaveQuota && (
+                <p
+                  id="user-initial-quota-error"
+                  className="mt-1.5 flex items-start gap-1 text-xs font-medium text-rose-700"
+                >
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>{errors.initialLeaveQuota}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Sisa Kuota (Edit) atau Join Date (Create) */}
             {isEdit ? (
               <div>
                 <label
                   htmlFor="user-remaining-quota"
-                  className="block text-xs font-semibold text-slate-700"
+                  className="block text-xs font-semibold text-slate-900"
                 >
                   Sisa Kuota Saat Ini (Hari){" "}
-                  <span className="text-rose-600">*</span>
+                  <span className="text-rose-700">*</span>
                 </label>
+                <span
+                  id="user-remaining-quota-hint"
+                  className="mt-0.5 block text-[11px] text-slate-600"
+                >
+                  Saldo realtime saat ini (kelipatan 0.5 hari).
+                </span>
                 <input
                   id="user-remaining-quota"
+                  name="remainingLeaveQuota"
                   type="number"
+                  required
                   step="0.5"
                   min="0"
                   max="365"
                   value={remainingLeaveQuota}
-                  onChange={(e) => setRemainingLeaveQuota(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  onChange={(e) =>
+                    handleFieldChange(
+                      "remainingLeaveQuota",
+                      setRemainingLeaveQuota,
+                      e.target.value
+                    )
+                  }
+                  onBlur={() => handleBlur("remainingLeaveQuota")}
+                  aria-invalid={
+                    Boolean(errors.remainingLeaveQuota) ? "true" : "false"
+                  }
+                  aria-describedby={
+                    errors.remainingLeaveQuota
+                      ? "user-remaining-quota-hint user-remaining-quota-error"
+                      : "user-remaining-quota-hint"
+                  }
+                  className={`${inputBaseClass} tabular-nums`}
                 />
                 {errors.remainingLeaveQuota && (
-                  <p className="mt-1 text-xs text-rose-600">
-                    {errors.remainingLeaveQuota}
+                  <p
+                    id="user-remaining-quota-error"
+                    className="mt-1.5 flex items-start gap-1 text-xs font-medium text-rose-700"
+                  >
+                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span>{errors.remainingLeaveQuota}</span>
                   </p>
                 )}
               </div>
@@ -444,62 +943,105 @@ export default function UserFormModal({
               <div>
                 <label
                   htmlFor="user-joindate"
-                  className="block text-xs font-semibold text-slate-700"
+                  className="block text-xs font-semibold text-slate-900"
                 >
-                  Tanggal Bergabung (Join Date){" "}
-                  <span className="text-rose-600">*</span>
+                  Tanggal Bergabung <span className="text-rose-700">*</span>
                 </label>
+                <span
+                  id="user-joindate-hint"
+                  className="mt-0.5 block text-[11px] text-slate-600"
+                >
+                  Acuan kelayakan Cuti Tahunan (masa kerja &ge; 1 tahun).
+                </span>
                 <input
                   id="user-joindate"
+                  name="joinDate"
                   type="date"
+                  required
                   value={joinDate}
-                  onChange={(e) => setJoinDate(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  onChange={(e) =>
+                    handleFieldChange("joinDate", setJoinDate, e.target.value)
+                  }
+                  onBlur={() => handleBlur("joinDate")}
+                  aria-invalid={Boolean(errors.joinDate) ? "true" : "false"}
+                  aria-describedby={
+                    errors.joinDate
+                      ? "user-joindate-hint user-joindate-error"
+                      : "user-joindate-hint"
+                  }
+                  className={`${inputBaseClass} tabular-nums`}
                 />
                 {errors.joinDate && (
-                  <p className="mt-1 text-xs text-rose-600">{errors.joinDate}</p>
+                  <p
+                    id="user-joindate-error"
+                    className="mt-1.5 flex items-start gap-1 text-xs font-medium text-rose-700"
+                  >
+                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span>{errors.joinDate}</span>
+                  </p>
                 )}
               </div>
             )}
           </div>
 
-          {/* Join Date (saat Edit) + Toggle Status Aktif */}
+          {/* Join Date (Edit) + Status Akun */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {isEdit && (
               <div>
                 <label
                   htmlFor="user-joindate-edit"
-                  className="block text-xs font-semibold text-slate-700"
+                  className="block text-xs font-semibold text-slate-900"
                 >
-                  Tanggal Bergabung (Join Date){" "}
-                  <span className="text-rose-600">*</span>
+                  Tanggal Bergabung <span className="text-rose-700">*</span>
                 </label>
                 <input
                   id="user-joindate-edit"
+                  name="joinDate"
                   type="date"
+                  required
                   value={joinDate}
-                  onChange={(e) => setJoinDate(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  onChange={(e) =>
+                    handleFieldChange("joinDate", setJoinDate, e.target.value)
+                  }
+                  onBlur={() => handleBlur("joinDate")}
+                  aria-invalid={Boolean(errors.joinDate) ? "true" : "false"}
+                  aria-describedby={
+                    errors.joinDate ? "user-joindate-edit-error" : undefined
+                  }
+                  className={`${inputBaseClass} tabular-nums`}
                 />
                 {errors.joinDate && (
-                  <p className="mt-1 text-xs text-rose-600">{errors.joinDate}</p>
+                  <p
+                    id="user-joindate-edit-error"
+                    className="mt-1.5 flex items-start gap-1 text-xs font-medium text-rose-700"
+                  >
+                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span>{errors.joinDate}</span>
+                  </p>
                 )}
               </div>
             )}
 
             <div className={isEdit ? "" : "sm:col-span-2"}>
-              <span className="block text-xs font-semibold text-slate-700">
+              <span className="block text-xs font-semibold text-slate-900">
                 Status Akun
               </span>
-              <label className="mt-1.5 flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 transition-colors duration-200 hover:bg-slate-100/70">
+              <label
+                className={`otium-checkbox-label mt-1.5 flex items-center gap-3 rounded-lg border border-stone-300 px-3.5 py-2.5 transition-colors duration-150 ${
+                  isEditingSelf
+                    ? "cursor-not-allowed bg-stone-100 opacity-75"
+                    : "cursor-pointer bg-[#F4F2EC]/70 hover:bg-[#F4F2EC]"
+                }`}
+              >
                 <input
                   type="checkbox"
+                  disabled={isEditingSelf}
                   checked={isActive}
                   onChange={(e) => setIsActive(e.target.checked)}
-                  className="h-4 w-4 cursor-pointer rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  className="otium-checkbox h-4 w-4 cursor-pointer rounded border-stone-400 disabled:cursor-not-allowed"
                 />
                 <span className="text-xs font-medium text-slate-800">
-                  Akun Aktif (Dapat Login &amp; Mengajukan/Memverifikasi Cuti)
+                  Akun Aktif (Dapat Login &amp; Bertransaksi Cuti)
                 </span>
               </label>
             </div>
@@ -507,42 +1049,43 @@ export default function UserFormModal({
 
           {/* Live Preview Kelayakan Masa Kerja 1 Tahun */}
           <div
-            className={`flex items-start gap-2.5 rounded-xl border p-3 text-xs ${
+            className={`flex items-start gap-2.5 rounded-lg border px-3.5 py-3 text-xs ${
               tenurePreview.isEligible
-                ? "border-emerald-200 bg-emerald-50/70 text-emerald-900"
-                : "border-amber-200 bg-amber-50/80 text-amber-900"
+                ? "border-emerald-300/80 bg-emerald-50/70 text-emerald-950"
+                : "border-amber-300/90 bg-amber-50/80 text-amber-950"
             }`}
           >
             {tenurePreview.isEligible ? (
               <CheckCircle2
-                className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600"
+                className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700"
                 aria-hidden="true"
               />
             ) : (
               <AlertCircle
-                className="mt-0.5 h-4 w-4 shrink-0 text-amber-600"
+                className="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
                 aria-hidden="true"
               />
             )}
             <div>
               <p className="font-semibold">
-                Simulasi Masa Kerja: {tenurePreview.label} —{" "}
+                Evaluasi Masa Kerja: {tenurePreview.label} —{" "}
                 {tenurePreview.isEligible
-                  ? "Eligible Cuti Tahunan (>= 1 Tahun)"
+                  ? "Eligible Cuti Tahunan (≥ 1 Tahun)"
                   : "Belum Eligible Cuti Tahunan (< 1 Tahun)"}
               </p>
-              <p className="mt-0.5 opacity-85">
-                Ubah <em>Tanggal Bergabung</em> untuk menguji aturan masa kerja
-                minimal 1 tahun pada pengajuan Cuti Tahunan.
+              <p className="mt-0.5 text-[11px] opacity-85">
+                Dihitung terhadap tanggal server hari ini ({todayIso}). Karyawan
+                dengan masa kerja &lt; 1 tahun tetap dapat mengajukan Cuti Sakit
+                atau Cuti Lainnya.
               </p>
             </div>
           </div>
 
           {/* Peringatan otomatis bila Ketua Divisi aktif diubah role / dinonaktifkan */}
           {willReleaseLeadership && (
-            <div className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-900">
+            <div className="flex items-start gap-2.5 rounded-lg border border-rose-300 bg-rose-50 px-3.5 py-3 text-xs text-rose-950">
               <AlertTriangle
-                className="mt-0.5 h-4 w-4 shrink-0 text-rose-600"
+                className="mt-0.5 h-4 w-4 shrink-0 text-rose-700"
                 aria-hidden="true"
               />
               <div>
@@ -553,7 +1096,8 @@ export default function UserFormModal({
                   Akun ini sedang memimpin divisi{" "}
                   <strong>{ledDivision.name}</strong>. Mengubah role menjadi
                   selain <em>Ketua Divisi</em> atau menonaktifkan akun akan
-                  mengosongkan <code>divisions.leader_id</code> divisi tersebut.
+                  mengosongkan <code className="font-mono">divisions.leader_id</code>{" "}
+                  divisi tersebut dalam satu transaksi SQL atomik.
                 </p>
               </div>
             </div>
@@ -561,24 +1105,34 @@ export default function UserFormModal({
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2.5 border-t border-slate-200 bg-slate-50/70 px-5 py-3.5">
+        <div className="flex items-center justify-end gap-2.5 border-t border-stone-200 bg-[#F4F2EC] px-6 py-3.5">
           <button
             type="button"
-            onClick={onClose}
-            className="cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-100"
+            disabled={isSubmitting}
+            onClick={() => onClose?.()}
+            className="cursor-pointer rounded-lg border border-stone-300 bg-white px-4 py-2 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Batal
           </button>
           <button
             type="submit"
             form="admin-user-form"
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition-colors duration-200 hover:bg-blue-700"
+            disabled={isSubmitting}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Save className="h-3.5 w-3.5" aria-hidden="true" />
-            {isEdit ? "Simpan Perubahan" : "Simpan Pengguna"}
+            {isSubmitting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+            ) : (
+              <Save className="h-3.5 w-3.5" aria-hidden="true" />
+            )}
+            {isSubmitting
+              ? "Menyimpan..."
+              : isEdit
+                ? "Simpan Perubahan"
+                : "Simpan Pengguna"}
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

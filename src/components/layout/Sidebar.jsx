@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAction } from "@/actions/auth-actions";
@@ -117,18 +118,32 @@ const MENU_GROUPS = [
   },
 ];
 
-// Menu samping dengan tema gelap (bisa diciutkan di desktop, jadi drawer di mobile)
+/**
+ * Sidebar navigasi editorial Warm Paper Light (#FAF9F6) — Opsi B (Swiss Editorial Minimalism).
+ * Desktop: fixed collapsible rail dengan hairline border stone-300; Mobile: native modal <dialog>.
+ */
 export default function Sidebar({
   user,
   userRole = "Karyawan",
   pendingCount = 0,
-  previewRoleKey = "karyawan",
   isCollapsed = false,
   onToggleCollapse,
   isOpenMobile = false,
   onCloseMobile,
 }) {
   const pathname = usePathname();
+  const mobileDialogRef = useRef(null);
+
+  useEffect(() => {
+    const dialog = mobileDialogRef.current;
+    if (!dialog) return;
+
+    if (isOpenMobile && !dialog.open) {
+      dialog.showModal();
+    } else if (!isOpenMobile && dialog.open) {
+      dialog.close();
+    }
+  }, [isOpenMobile]);
 
   const filteredGroups = MENU_GROUPS.map((group) => ({
     ...group,
@@ -145,109 +160,120 @@ export default function Sidebar({
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   }
 
-  function buildHref(href) {
-    if (previewRoleKey && href.startsWith("/") && !href.startsWith("/login")) {
-      const separator = href.includes("?") ? "&" : "?";
-      return `${href}${separator}role=${previewRoleKey}`;
+  function renderAvatar(sizeClass = "h-8 w-8") {
+    if (user?.avatarUrl) {
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={user.avatarUrl}
+          alt=""
+          className={`${sizeClass} shrink-0 rounded-lg border border-stone-200 object-cover`}
+        />
+      );
     }
-    return href;
+
+    return (
+      <div
+        className={`flex ${sizeClass} shrink-0 items-center justify-center rounded-lg bg-[#0F172A] text-xs font-semibold tracking-tight text-white`}
+      >
+        {user?.initials || "OT"}
+      </div>
+    );
   }
 
-  function renderSidebarInner(compact = false) {
+  function renderSidebarInner(compact = false, isMobileDrawer = false) {
     return (
-      <div className="relative flex h-full flex-col overflow-hidden bg-gradient-to-b from-slate-950 via-blue-950 to-slate-900 text-slate-100">
-        {/* Efek glow tipis di sudut atas */}
+      <div className="flex h-full flex-col bg-[#FAF9F6] text-[#0F172A]">
+        {/* Header Brand Otium */}
         <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-sky-400/10 blur-3xl"
-        />
-
-        {/* Logo Otium dan tombol collapse/close */}
-        <div
-          className={`relative z-10 flex h-16 shrink-0 items-center border-b border-white/10 ${
+          className={`flex h-16 shrink-0 items-center border-b border-stone-200 ${
             compact ? "justify-center px-3" : "justify-between px-4"
           }`}
         >
           <Link
-            href={buildHref("/dashboard")}
+            href="/dashboard"
             onClick={onCloseMobile}
-            title="Otium — Sistem Manajemen Cuti"
-            className="flex min-w-0 items-center gap-3"
+            aria-label="Otium — Kembali ke Dashboard"
+            className="flex min-w-0 cursor-pointer items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A]"
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-stone-200 bg-white">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/images/otium-logo.png"
-                alt="Logo Otium"
-                className="h-7 w-7 object-contain"
+                src="/images/otium-logo.svg"
+                alt=""
+                className="h-6 w-6 object-contain"
               />
             </div>
             {!compact && (
               <div className="min-w-0 leading-tight">
-                <span className="block truncate text-base font-bold tracking-tight text-white">
+                <span className="block truncate text-base font-bold tracking-tight text-[#0F172A]">
                   Otium
                 </span>
-                <span className="block truncate text-[11px] font-medium text-sky-200/80">
-                  Manajemen Cuti
+                <span className="mt-0.5 block truncate text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500">
+                  Leave Portal
                 </span>
               </div>
             )}
           </Link>
 
           {/* Tombol ciutkan sidebar di desktop */}
-          {!compact && (
+          {!compact && !isMobileDrawer && (
             <button
               type="button"
               onClick={onToggleCollapse}
               title="Ciutkan Sidebar"
               aria-label="Ciutkan Sidebar"
-              className="hidden rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white lg:inline-flex"
+              className="hidden h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors duration-150 hover:bg-[#F4F2EC] hover:text-[#0F172A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A] lg:inline-flex"
             >
               <PanelLeftClose className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
 
           {/* Tombol tutup drawer di mobile */}
-          <button
-            type="button"
-            onClick={onCloseMobile}
-            aria-label="Tutup menu navigasi"
-            className="rounded-lg p-1.5 text-slate-300 transition hover:bg-white/10 hover:text-white lg:hidden"
-          >
-            <X className="h-5 w-5" aria-hidden="true" />
-          </button>
+          {isMobileDrawer && (
+            <button
+              type="button"
+              onClick={onCloseMobile}
+              aria-label="Tutup menu navigasi"
+              autoFocus
+              className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-slate-600 transition-colors duration-150 hover:bg-[#F4F2EC] hover:text-[#0F172A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A] lg:hidden"
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+            </button>
+          )}
         </div>
 
         {/* Tombol lebarkan sidebar saat sedang mode ikon */}
-        {compact && (
-          <div className="relative z-10 hidden justify-center border-b border-white/10 py-2.5 lg:flex">
+        {compact && !isMobileDrawer && (
+          <div className="hidden justify-center border-b border-stone-200 py-2.5 lg:flex">
             <button
               type="button"
               onClick={onToggleCollapse}
               title="Lebarkan Sidebar"
               aria-label="Lebarkan Sidebar"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 transition hover:bg-white/10 hover:text-white"
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors duration-150 hover:bg-[#F4F2EC] hover:text-[#0F172A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A]"
             >
               <PanelLeftOpen className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
         )}
 
-        {/* Menu navigasi sesuai role */}
+        {/* Daftar Menu Navigasi RBAC */}
         <nav
           aria-label="Navigasi Utama"
-          className={`relative z-10 flex-1 space-y-5 overflow-y-auto py-5 ${
-            compact ? "px-2.5" : "px-3.5"
+          className={`flex-1 space-y-5 overflow-y-auto py-5 ${
+            compact ? "px-2.5" : "px-3"
           }`}
         >
           {filteredGroups.map((group) => (
             <div key={group.section}>
               {!compact ? (
-                <p className="px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400/90">
+                <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                   {group.section}
                 </p>
               ) : (
                 <div
-                  className="mx-auto mb-2 h-px w-6 bg-white/10"
+                  className="mx-auto mb-2 h-px w-6 bg-stone-300/80"
                   aria-hidden="true"
                 />
               )}
@@ -261,17 +287,18 @@ export default function Sidebar({
                   return (
                     <li key={item.href}>
                       <Link
-                        href={buildHref(item.href)}
+                        href={item.href}
                         onClick={onCloseMobile}
+                        aria-current={active ? "page" : undefined}
                         title={compact ? item.label : undefined}
-                        className={`group relative flex items-center rounded-xl text-sm font-medium transition ${
+                        className={`group relative flex cursor-pointer items-center rounded-lg text-sm transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A] ${
                           compact
                             ? "justify-center p-2.5"
-                            : "justify-between gap-2.5 px-3 py-2.5"
+                            : "justify-between gap-2.5 px-3 py-2"
                         } ${
                           active
-                            ? "bg-blue-600 text-white shadow-md shadow-blue-950/50 ring-1 ring-sky-300/30"
-                            : "text-slate-300 hover:bg-white/10 hover:text-white"
+                            ? "bg-[#ECE9E0] font-semibold text-[#0F172A] before:absolute before:inset-y-1.5 before:left-0 before:w-[3px] before:rounded-r before:bg-[#0F172A]"
+                            : "font-medium text-slate-700 hover:bg-[#F4F2EC] hover:text-[#0F172A]"
                         }`}
                       >
                         <span
@@ -282,8 +309,8 @@ export default function Sidebar({
                           <Icon
                             className={`h-4 w-4 shrink-0 ${
                               active
-                                ? "text-white"
-                                : "text-slate-400 group-hover:text-sky-200"
+                                ? "text-[#0F172A]"
+                                : "text-slate-500 group-hover:text-[#0F172A]"
                             }`}
                             aria-hidden="true"
                           />
@@ -294,10 +321,10 @@ export default function Sidebar({
 
                         {showCounter && !compact && (
                           <span
-                            className={`inline-flex min-w-[1.35rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-bold ${
+                            className={`inline-flex min-w-[1.35rem] items-center justify-center rounded-full px-1.5 py-0.5 font-mono text-[11px] font-semibold tabular-nums ${
                               active
-                                ? "bg-white/20 text-white"
-                                : "bg-rose-500 text-white"
+                                ? "bg-[#0F172A] text-white"
+                                : "bg-rose-600 text-white"
                             }`}
                           >
                             {pendingCount}
@@ -307,7 +334,7 @@ export default function Sidebar({
                         {showCounter && compact && (
                           <span
                             aria-label={`${pendingCount} menunggu tindakan`}
-                            className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-slate-950"
+                            className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-rose-600 ring-2 ring-[#FAF9F6]"
                           />
                         )}
                       </Link>
@@ -319,22 +346,20 @@ export default function Sidebar({
           ))}
         </nav>
 
-        {/* Info singkat akun dan tombol logout */}
-        <div className="relative z-10 shrink-0 border-t border-white/10 bg-slate-950/40 p-3">
+        {/* Footer Identitas Akun & Logout */}
+        <div className="shrink-0 border-t border-stone-200 bg-[#F4F2EC]/60 p-3">
           {user && !compact && (
             <Link
               href="/profile"
               onClick={onCloseMobile}
-              className="mb-2 flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/5 p-2.5 transition hover:bg-white/10"
+              className="mb-2 flex cursor-pointer items-center gap-2.5 rounded-lg border border-stone-200 bg-white p-2.5 transition-colors duration-150 hover:border-stone-300 hover:bg-[#FAF9F6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A]"
             >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 text-xs font-bold text-white">
-                {user.initials}
-              </div>
+              {renderAvatar("h-8 w-8")}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold text-white">
+                <p className="truncate text-xs font-semibold text-[#0F172A]">
                   {user.fullName}
                 </p>
-                <p className="truncate text-[11px] text-sky-200/80">
+                <p className="truncate text-[11px] text-slate-600">
                   {user.role}
                   {user.divisionName ? ` · ${user.divisionName}` : ""}
                 </p>
@@ -346,9 +371,10 @@ export default function Sidebar({
             <Link
               href="/profile"
               title={`${user.fullName} (${user.role})`}
-              className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 text-xs font-bold text-white ring-1 ring-white/20 transition hover:opacity-90"
+              aria-label={`Buka profil ${user.fullName}`}
+              className="mx-auto mb-2 flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg transition-opacity duration-150 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A]"
             >
-              {user.initials}
+              {renderAvatar("h-9 w-9")}
             </Link>
           )}
 
@@ -357,7 +383,7 @@ export default function Sidebar({
               type="submit"
               onClick={onCloseMobile}
               title={compact ? "Keluar (Logout)" : undefined}
-              className={`flex w-full cursor-pointer items-center rounded-xl text-sm font-medium text-rose-300 transition hover:bg-rose-500/15 hover:text-rose-200 ${
+              className={`flex w-full cursor-pointer items-center rounded-lg text-sm font-medium text-rose-700 transition-colors duration-150 hover:bg-rose-50 hover:text-rose-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600 ${
                 compact ? "justify-center p-2.5" : "gap-3 px-3 py-2"
               }`}
             >
@@ -372,33 +398,33 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Sidebar desktop */}
+      {/* Sidebar Desktop */}
       <aside
-        className={`hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:flex-col lg:border-r lg:border-slate-800/80 lg:transition-all lg:duration-200 ${
+        aria-label="Panel Navigasi Samping"
+        className={`hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:flex-col lg:border-r lg:border-stone-300/90 lg:transition-[width] lg:duration-200 ${
           isCollapsed ? "lg:w-20" : "lg:w-64"
         }`}
       >
-        {renderSidebarInner(isCollapsed)}
+        {renderSidebarInner(isCollapsed, false)}
       </aside>
 
-      {/* Drawer mobile */}
-      {isOpenMobile && (
-        <div
-          className="fixed inset-0 z-50 lg:hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Menu navigasi mobile"
-        >
-          <div
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity"
-            onClick={onCloseMobile}
-            aria-hidden="true"
-          />
-          <aside className="fixed inset-y-0 left-0 z-10 flex w-72 max-w-[85vw] flex-col shadow-2xl">
-            {renderSidebarInner(false)}
-          </aside>
+      {/* Drawer Mobile menggunakan native modal <dialog> */}
+      <dialog
+        id="mobile-navigation-drawer"
+        ref={mobileDialogRef}
+        aria-label="Menu navigasi mobile"
+        onClose={onCloseMobile}
+        onClick={(event) => {
+          if (event.target === mobileDialogRef.current) {
+            onCloseMobile();
+          }
+        }}
+        className="otium-mobile-drawer lg:hidden"
+      >
+        <div className="flex h-full w-72 max-w-[85vw] flex-col border-r border-stone-300 shadow-2xl">
+          {renderSidebarInner(false, true)}
         </div>
-      )}
+      </dialog>
     </>
   );
 }

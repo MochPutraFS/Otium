@@ -3,71 +3,63 @@
 import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import TopNavbar from "@/components/layout/TopNavbar";
-import { ROLE_PRESETS } from "@/lib/mock-dashboard-data";
 
-function mapRoleToKey(role) {
-  switch (role) {
-    case "Admin":
-      return "admin";
-    case "Ketua Divisi":
-      return "ketua-divisi";
-    case "HRD":
-      return "hrd";
-    case "Karyawan":
-    default:
-      return "karyawan";
-  }
-}
-
-export default function AppShellClient({ sessionUser, children }) {
+/**
+ * Kontainer App Shell sisi klien untuk seluruh rute terproteksi (/(dashboard)/*).
+ * Mengelola state collapse sidebar desktop, drawer mobile native <dialog>,
+ * dan meneruskan data realtime dari PostgreSQL ke Sidebar & TopNavbar.
+ */
+export default function AppShellClient({ sessionUser, shellData, children }) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  const roleKey = mapRoleToKey(sessionUser?.role);
-  const fallbackPreset = ROLE_PRESETS[roleKey] || ROLE_PRESETS.karyawan;
-
-  const activeUser = sessionUser
-    ? {
-        ...fallbackPreset,
-        id: sessionUser.id,
-        username: sessionUser.username,
-        fullName: sessionUser.fullName,
-        email: sessionUser.email,
-        role: sessionUser.role,
-        divisionId: sessionUser.divisionId,
-        divisionName: sessionUser.divisionName,
-        initials: sessionUser.initials,
-        remainingLeaveQuota: sessionUser.remainingLeaveQuota,
-        initialLeaveQuota: sessionUser.initialLeaveQuota,
-      }
-    : fallbackPreset;
+  const pendingCount = shellData?.pendingCount ?? 0;
+  const initialNotifications = shellData?.notifications ?? [];
+  const initialUnreadCount = shellData?.unreadNotificationCount ?? 0;
+  const todayLabel = shellData?.todayLabel || "";
+  const upcomingHoliday = shellData?.upcomingHoliday || null;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#F4F2EC] text-[#0F172A]">
+      {/* Skip Link untuk pengguna keyboard & pembaca layar */}
+      <a
+        href="#main-content"
+        className="visually-hidden fixed left-4 top-4 z-50 rounded-lg border border-stone-300 bg-[#0F172A] px-4 py-2 text-xs font-semibold text-white shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1D4ED8]"
+      >
+        Langsung ke konten utama
+      </a>
+
       <Sidebar
-        user={activeUser}
-        userRole={activeUser.role}
-        pendingCount={activeUser.pendingBadgeCount}
-        previewRoleKey={roleKey}
+        user={sessionUser}
+        userRole={sessionUser.role}
+        pendingCount={pendingCount}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
 
-      {/* Konten utama, padding kiri ikut menyesuaikan lebar sidebar */}
+      {/* Konten utama: offset kiri mengikuti lebar sidebar desktop */}
       <div
-        className={`flex min-h-screen flex-col transition-all duration-200 ${
+        className={`flex min-h-screen flex-col transition-[padding] duration-200 ${
           isSidebarCollapsed ? "lg:pl-20" : "lg:pl-64"
         }`}
       >
         <TopNavbar
-          user={activeUser}
-          previewRoleKey={roleKey}
+          user={sessionUser}
+          todayLabel={todayLabel}
+          upcomingHoliday={upcomingHoliday}
+          initialNotifications={initialNotifications}
+          initialUnreadCount={initialUnreadCount}
+          isMobileMenuOpen={isMobileSidebarOpen}
           onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
         />
 
-        <main className="flex-1 p-4 sm:p-6">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="flex-1 px-4 py-5 outline-none sm:px-6 sm:py-6"
+        >
           <div className="mx-auto max-w-7xl">{children}</div>
         </main>
       </div>

@@ -6,57 +6,63 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import StatusBadge from "@/components/ui/StatusBadge";
-import { ROLE_ACCESS_SUMMARIES } from "@/lib/mock-dashboard-data";
+import { ROLE_ACCESS_METADATA } from "@/lib/role-metadata";
 
-// Kartu pengganti QuotaOverviewCard khusus untuk Role Admin & HRD
+/**
+ * Kartu pengganti QuotaOverviewCard khusus untuk Role Admin & HRD.
+ */
 export default function RoleAccessSummaryCard({
   role,
   joinDate,
   tenureLabel,
   isActive = true,
 }) {
-  const summary = ROLE_ACCESS_SUMMARIES[role] || ROLE_ACCESS_SUMMARIES.Admin;
+  const summary = ROLE_ACCESS_METADATA[role] || ROLE_ACCESS_METADATA.Admin;
 
   return (
-    <section className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="flex flex-col justify-between rounded-xl border border-stone-200 bg-white p-5">
       <div>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">
+            <h3 className="text-sm font-semibold text-[#0F172A]">
               {summary.title}
             </h3>
-            <p className="mt-0.5 text-xs text-slate-500">{summary.subtitle}</p>
+            <p className="mt-0.5 text-xs text-slate-600">{summary.subtitle}</p>
           </div>
           <StatusBadge status={isActive ? "Aktif" : "Nonaktif"} />
         </div>
 
         {/* Metadata tanggal bergabung & masa kerja */}
-        <dl className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-xs">
+        <dl className="mt-4 grid grid-cols-2 gap-3 rounded-lg border border-stone-200 bg-[#F4F2EC]/60 p-3 text-xs">
           <div>
-            <dt className="flex items-center gap-1.5 font-medium text-slate-500">
+            <dt className="flex items-center gap-1.5 font-medium text-slate-600">
               <CalendarCheck2
-                className="h-3.5 w-3.5 text-slate-400"
+                className="h-3.5 w-3.5 text-slate-500"
                 aria-hidden="true"
               />
               Tanggal Bergabung
             </dt>
-            <dd className="mt-1 font-semibold text-slate-800">{joinDate}</dd>
+            <dd className="mt-1 font-semibold tabular-nums text-[#0F172A]">
+              {joinDate}
+            </dd>
           </div>
           <div>
-            <dt className="flex items-center gap-1.5 font-medium text-slate-500">
+            <dt className="flex items-center gap-1.5 font-medium text-slate-600">
               <Clock
-                className="h-3.5 w-3.5 text-slate-400"
+                className="h-3.5 w-3.5 text-slate-500"
                 aria-hidden="true"
               />
               Masa Kerja
             </dt>
-            <dd className="mt-1 font-semibold text-slate-800">{tenureLabel}</dd>
+            <dd className="mt-1 font-semibold tabular-nums text-[#0F172A]">
+              {tenureLabel}
+            </dd>
           </div>
         </dl>
 
         {/* Daftar wewenang utama */}
         <div className="mt-4">
-          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
             <Shield className="h-3.5 w-3.5" aria-hidden="true" />
             Hak Akses Utama ({role})
           </p>
@@ -64,7 +70,7 @@ export default function RoleAccessSummaryCard({
             {summary.permissions.map((item) => (
               <li key={item} className="flex items-start gap-2 leading-relaxed">
                 <CheckCircle2
-                  className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600"
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-700"
                   aria-hidden="true"
                 />
                 <span>{item}</span>
@@ -75,9 +81,9 @@ export default function RoleAccessSummaryCard({
       </div>
 
       {/* Catatan proteksi akun Admin/HRD */}
-      <div className="mt-4 flex items-start gap-2 rounded-xl border border-blue-200/80 bg-blue-50/70 px-3 py-2.5 text-xs text-blue-800">
+      <div className="mt-4 flex items-start gap-2 rounded-lg border border-stone-200 bg-[#F4F2EC]/80 px-3 py-2.5 text-xs text-slate-700">
         <ShieldCheck
-          className="mt-0.5 h-4 w-4 shrink-0 text-blue-600"
+          className="mt-0.5 h-4 w-4 shrink-0 text-[#0F172A]"
           aria-hidden="true"
         />
         <p className="leading-relaxed">{summary.protectionNote}</p>

@@ -1,0 +1,28 @@
+<svg viewBox="0 0 64 64" width="64" height="64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Logo Otium — Solarium">
+  <!-- Busur utama 270 derajat: waktu kerja (negotium) -->
+  <path
+    d="M52 32C52 43.0457 43.0457 52 32 52C20.9543 52 12 43.0457 12 32C12 20.9543 20.9543 12 32 12"
+    stroke="#0F172A"
+    stroke-width="6.5"
+    stroke-linecap="butt"
+  />
+  <!-- Kuadran istirahat & kuota cuti (otium) -->
+  <path
+    d="M36.5 12.5C44.2 14.3 49.9 20.1 51.6 27.8"
+    stroke="#1D4ED8"
+    stroke-width="6.5"
+    stroke-linecap="butt"
+  />
+  <!-- Jarum jam matahari (gnomon): presisi perhitungan hari kerja -->
+  <line
+    x1="32"
+    y1="32"
+    x2="43"
+    y2="21"
+    stroke="#0F172A"
+    stroke-width="3.2"
+    stroke-linecap="round"
+  />
+  <!-- Titik pusat kalender -->
+  <circle cx="32" cy="32" r="3.8" fill="#0F172A" />
+</svg>

@@ -34,7 +34,7 @@ export default function LoginBrandPanel() {
       <div className="flex items-center justify-between gap-4 border-b border-stone-300/80 pb-6">
         <div className="flex items-center gap-3">
           <img
-            src="/images/otium-logo.png"
+            src="/images/otium-logo.svg"
             alt="Logo Otium"
             className="h-9 w-9 shrink-0 object-contain"
           />

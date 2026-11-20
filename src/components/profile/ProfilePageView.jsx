@@ -1,114 +1,215 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { CheckCircle2, KeyRound, UserPen, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { AlertCircle, CheckCircle2, KeyRound, UserPen, X } from "lucide-react";
 import QuotaOverviewCard from "@/components/ui/QuotaOverviewCard";
 import ProfileIdentityCard from "@/components/profile/ProfileIdentityCard";
 import RoleAccessSummaryCard from "@/components/profile/RoleAccessSummaryCard";
 import ProfileEditForm from "@/components/profile/ProfileEditForm";
 import PasswordSecurityForm from "@/components/profile/PasswordSecurityForm";
+import {
+  changePasswordAction,
+  updateAvatarAction,
+  updateProfileAction,
+} from "@/actions/profile-actions";
 
 const PROFILE_TABS = [
   {
     key: "personal",
+    id: "profile-tab-personal",
+    panelId: "profile-panel-personal",
     label: "Informasi Pribadi",
     icon: UserPen,
   },
   {
     key: "security",
+    id: "profile-tab-security",
+    panelId: "profile-panel-security",
     label: "Keamanan Password",
     icon: KeyRound,
   },
 ];
 
-// Kontainer utama Halaman Profil (2 Kolom + Tab di Kanan, adaptif 4 Role RBAC)
-export default function ProfilePageView({ initialUser, roleKey }) {
-  const [profile, setProfile] = useState(initialUser);
-  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(
-    initialUser.avatarUrl || null
-  );
+/**
+ * Kontainer utama Halaman Profil (2 Kolom + Tabbed Workspace, adaptif 4 Role RBAC).
+ * Terhubung ke Server Actions (profile-actions.js) & Route Handler (/api/upload).
+ */
+export default function ProfilePageView({ initialProfile, divisions = [] }) {
+  const router = useRouter();
+  const [profile, setProfile] = useState(initialProfile);
   const [activeTab, setActiveTab] = useState("personal");
-  const [toastMessage, setToastMessage] = useState("");
+  const [banner, setBanner] = useState(null); // { type: "success" | "error", text: string }
+  const [isAvatarBusy, setIsAvatarBusy] = useState(false);
+  const tabRefs = useRef([]);
 
-  // Reset state profil lokal saat role diganti lewat PreviewRoleDock
   useEffect(() => {
-    setProfile(initialUser);
-    setAvatarPreviewUrl((prev) => {
-      if (prev && prev.startsWith("blob:")) {
-        URL.revokeObjectURL(prev);
-      }
-      return initialUser.avatarUrl || null;
-    });
-    setActiveTab("personal");
-    setToastMessage("");
-  }, [initialUser, roleKey]);
+    setProfile(initialProfile);
+  }, [initialProfile]);
 
-  // Bersihkan blob URL saat unmount agar tidak terjadi memory leak
   useEffect(() => {
-    return () => {
-      if (avatarPreviewUrl && avatarPreviewUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(avatarPreviewUrl);
-      }
-    };
-  }, [avatarPreviewUrl]);
-
-  // Sembunyikan toast otomatis setelah 4 detik
-  useEffect(() => {
-    if (!toastMessage) return undefined;
-    const timer = setTimeout(() => setToastMessage(""), 4000);
+    if (!banner || banner.type !== "success") return undefined;
+    const timer = setTimeout(() => setBanner(null), 5000);
     return () => clearTimeout(timer);
-  }, [toastMessage]);
+  }, [banner]);
 
   const isAdmin = profile.role === "Admin";
   const hasLeaveQuotaAccess =
     profile.role === "Karyawan" || profile.role === "Ketua Divisi";
 
-  function handleAvatarChange(file) {
-    const objectUrl = URL.createObjectURL(file);
-    setAvatarPreviewUrl((prev) => {
-      if (prev && prev.startsWith("blob:")) {
-        URL.revokeObjectURL(prev);
+  function handleTabKeyDown(event, currentIndex) {
+    let nextIndex = null;
+
+    if (event.key === "ArrowRight") {
+      nextIndex = (currentIndex + 1) % PROFILE_TABS.length;
+    } else if (event.key === "ArrowLeft") {
+      nextIndex = (currentIndex - 1 + PROFILE_TABS.length) % PROFILE_TABS.length;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = PROFILE_TABS.length - 1;
+    }
+
+    if (nextIndex !== null) {
+      event.preventDefault();
+      setActiveTab(PROFILE_TABS[nextIndex].key);
+      tabRefs.current[nextIndex]?.focus();
+    }
+  }
+
+  async function handleAvatarUpload(file) {
+    setIsAvatarBusy(true);
+    setBanner(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "avatars");
+
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok || !uploadData.success || !uploadData.url) {
+        setBanner({
+          type: "error",
+          text: uploadData.error || "Gagal mengunggah foto profil.",
+        });
+        return;
       }
-      return objectUrl;
-    });
-    setToastMessage(
-      `Pratinjau foto profil "${file.name}" berhasil diterapkan.`
-    );
-  }
 
-  function handleAvatarRemove() {
-    setAvatarPreviewUrl((prev) => {
-      if (prev && prev.startsWith("blob:")) {
-        URL.revokeObjectURL(prev);
+      const saveRes = await updateAvatarAction(uploadData.url);
+      if (!saveRes.ok) {
+        setBanner({
+          type: "error",
+          text: saveRes.error || "Gagal menyimpan foto profil ke database.",
+        });
+        return;
       }
-      return null;
+
+      setProfile((prev) => ({
+        ...prev,
+        avatarUrl: saveRes.avatarUrl,
+      }));
+      setBanner({
+        type: "success",
+        text: saveRes.message || "Foto profil berhasil diperbarui.",
+      });
+      router.refresh();
+    } catch {
+      setBanner({
+        type: "error",
+        text: "Terjadi kendala jaringan saat mengunggah foto profil.",
+      });
+    } finally {
+      setIsAvatarBusy(false);
+    }
+  }
+
+  async function handleAvatarRemove() {
+    setIsAvatarBusy(true);
+    setBanner(null);
+    try {
+      const saveRes = await updateAvatarAction(null);
+      if (!saveRes.ok) {
+        setBanner({
+          type: "error",
+          text: saveRes.error || "Gagal menghapus foto profil.",
+        });
+        return;
+      }
+
+      setProfile((prev) => ({
+        ...prev,
+        avatarUrl: null,
+      }));
+      setBanner({
+        type: "success",
+        text: saveRes.message || "Foto profil berhasil dihapus.",
+      });
+      router.refresh();
+    } catch {
+      setBanner({
+        type: "error",
+        text: "Terjadi kesalahan saat menghapus foto profil.",
+      });
+    } finally {
+      setIsAvatarBusy(false);
+    }
+  }
+
+  async function handleSaveProfile(payload) {
+    setBanner(null);
+    const result = await updateProfileAction(payload);
+
+    if (!result.ok) {
+      setBanner({
+        type: "error",
+        text: result.error || "Gagal menyimpan perubahan profil.",
+      });
+      return result;
+    }
+
+    if (result.profile) {
+      setProfile(result.profile);
+    }
+    setBanner({
+      type: "success",
+      text: result.message || "Perubahan profil berhasil disimpan.",
     });
-    setToastMessage("Foto profil dihapus dan dikembalikan ke avatar inisial.");
+    router.refresh();
+    return result;
   }
 
-  function handleSaveProfile(updatedFields) {
-    setProfile((prev) => ({
-      ...prev,
-      ...updatedFields,
-    }));
-    setToastMessage(
-      "Perubahan profil berhasil disimpan pada pratinjau lokal."
-    );
-  }
+  async function handleChangePassword(payload) {
+    setBanner(null);
+    const result = await changePasswordAction(payload);
 
-  function handlePasswordSaved() {
-    setToastMessage("Password akun Anda berhasil diperbarui.");
+    if (!result.ok) {
+      setBanner({
+        type: "error",
+        text: result.error || "Gagal memperbarui password akun.",
+      });
+      return result;
+    }
+
+    setBanner({
+      type: "success",
+      text: result.message || "Password akun Anda berhasil diperbarui.",
+    });
+    return result;
   }
 
   return (
     <div className="space-y-5">
-      {/* Header Halaman */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+      {/* Deskripsi Ringkas Halaman */}
+      <div className="flex flex-col gap-1 border-b border-stone-300/80 pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-900">
-            Profil &amp; Pengaturan Akun
+          <h2 className="text-xl font-semibold tracking-tight text-[#0F172A]">
+            Pengaturan Akun &amp; Identitas
           </h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-600">
             Kelola informasi pribadi, foto profil,{" "}
             {hasLeaveQuotaAccess
               ? "pantau sisa kuota cuti tahunan realtime, "
@@ -118,27 +219,38 @@ export default function ProfilePageView({ initialUser, roleKey }) {
         </div>
       </div>
 
-      {/* Toast / Banner Notifikasi Sukses */}
-      {toastMessage && (
+      {/* Status / Error Banner dengan aria-live */}
+      {banner && (
         <div
-          role="status"
-          aria-live="polite"
-          className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 shadow-sm"
+          role={banner.type === "error" ? "alert" : "status"}
+          aria-live={banner.type === "error" ? "assertive" : "polite"}
+          className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
+            banner.type === "error"
+              ? "border-rose-200 bg-rose-50 text-rose-800"
+              : "border-emerald-200 bg-emerald-50 text-emerald-900"
+          }`}
         >
           <div className="flex items-center gap-2.5">
-            <CheckCircle2
-              className="h-4 w-4 shrink-0 text-emerald-600"
-              aria-hidden="true"
-            />
-            <span className="font-medium">{toastMessage}</span>
+            {banner.type === "error" ? (
+              <AlertCircle
+                className="h-4 w-4 shrink-0 text-rose-600"
+                aria-hidden="true"
+              />
+            ) : (
+              <CheckCircle2
+                className="h-4 w-4 shrink-0 text-emerald-700"
+                aria-hidden="true"
+              />
+            )}
+            <span className="font-medium">{banner.text}</span>
           </div>
           <button
             type="button"
-            onClick={() => setToastMessage("")}
-            aria-label="Tutup notifikasi"
-            className="rounded-lg p-1 text-emerald-600 transition hover:bg-emerald-100 hover:text-emerald-800"
+            onClick={() => setBanner(null)}
+            aria-label="Tutup pemberitahuan"
+            className="cursor-pointer rounded-lg p-1 text-current opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A]"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       )}
@@ -149,8 +261,8 @@ export default function ProfilePageView({ initialUser, roleKey }) {
         <div className="space-y-5 lg:sticky lg:top-20 lg:col-span-4">
           <ProfileIdentityCard
             profile={profile}
-            avatarPreviewUrl={avatarPreviewUrl}
-            onAvatarChange={handleAvatarChange}
+            isBusy={isAvatarBusy}
+            onAvatarChange={handleAvatarUpload}
             onAvatarRemove={handleAvatarRemove}
           />
 
@@ -173,27 +285,34 @@ export default function ProfilePageView({ initialUser, roleKey }) {
         </div>
 
         {/* Kolom Kanan: Tabbed Workspace */}
-        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm lg:col-span-8">
-          {/* Bar Navigasi Tab */}
+        <section className="overflow-hidden rounded-xl border border-stone-200 bg-white lg:col-span-8">
+          {/* Bar Navigasi Tab (WAI-ARIA Tablist + Keyboard Arrows) */}
           <div
             role="tablist"
             aria-label="Pengaturan profil"
-            className="flex items-center gap-1 border-b border-slate-200 px-4 pt-3 sm:px-6"
+            className="flex items-center gap-1 overflow-x-auto border-b border-stone-200 bg-[#F4F2EC]/40 px-4 pt-2 sm:px-6"
           >
-            {PROFILE_TABS.map((tab) => {
+            {PROFILE_TABS.map((tab, index) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.key;
+
               return (
                 <button
                   key={tab.key}
+                  ref={(el) => {
+                    tabRefs.current[index] = el;
+                  }}
+                  id={tab.id}
                   type="button"
                   role="tab"
                   aria-selected={isActive}
+                  tabIndex={isActive ? 0 : -1}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`inline-flex items-center gap-2 border-b-2 px-3.5 py-3 text-sm font-semibold transition ${
+                  onKeyDown={(e) => handleTabKeyDown(e, index)}
+                  className={`otium-tab inline-flex shrink-0 cursor-pointer items-center gap-2 px-3.5 py-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#0F172A] ${
                     isActive
-                      ? "border-blue-600 text-blue-600"
-                      : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
+                      ? "text-[#0F172A]"
+                      : "text-slate-600 hover:text-[#0F172A]"
                   }`}
                 >
                   <Icon className="h-4 w-4" aria-hidden="true" />
@@ -203,17 +322,33 @@ export default function ProfilePageView({ initialUser, roleKey }) {
             })}
           </div>
 
-          {/* Konten Tab Aktif */}
-          <div className="p-5 sm:p-6">
-            {activeTab === "personal" ? (
+          {/* Panel Tab 1: Informasi Pribadi */}
+          <div
+            id="profile-panel-personal"
+            role="tabpanel"
+            aria-labelledby="profile-tab-personal"
+            hidden={activeTab !== "personal"}
+          >
+            <div className="p-5 sm:p-6">
               <ProfileEditForm
                 profile={profile}
                 isAdmin={isAdmin}
+                divisions={divisions}
                 onSaveProfile={handleSaveProfile}
               />
-            ) : (
-              <PasswordSecurityForm onPasswordSaved={handlePasswordSaved} />
-            )}
+            </div>
+          </div>
+
+          {/* Panel Tab 2: Keamanan Password */}
+          <div
+            id="profile-panel-security"
+            role="tabpanel"
+            aria-labelledby="profile-tab-security"
+            hidden={activeTab !== "security"}
+          >
+            <div className="p-5 sm:p-6">
+              <PasswordSecurityForm onChangePassword={handleChangePassword} />
+            </div>
           </div>
         </section>
       </div>

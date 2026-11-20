@@ -128,3 +128,158 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Native <dialog> mobile navigation drawer reset (top-layer modal + backdrop) */
+.otium-mobile-drawer {
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  width: 100dvw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.otium-mobile-drawer::backdrop {
+  background: rgba(15, 23, 42, 0.6);
+}
+
+/* Indikator tab aktif berbasis border pseudo-element (tahan forced-colors mode, tanpa layout shift) */
+.otium-tab {
+  position: relative;
+}
+
+.otium-tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px 0;
+  border-block-end: 2px solid var(--otium-ink);
+}
+
+/* Native <dialog> modal Otium: top-layer, anti scroll-chaining, tanpa unconditional display */
+dialog.otium-modal {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  overflow: visible;
+}
+
+dialog.otium-modal[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+dialog.otium-modal:modal {
+  overscroll-behavior: contain;
+}
+
+dialog.otium-modal::backdrop {
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(2px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+/* Validasi input pasca-interaksi (:user-invalid + sinkronisasi aria-invalid) */
+.otium-field-input:is(:user-invalid, [aria-invalid="true"]) {
+  border-color: #be123c;
+  background-color: #fff1f2;
+}
+
+.otium-field-input:is(:user-invalid, [aria-invalid="true"]):focus-visible {
+  outline: 2px solid #be123c;
+  outline-offset: 1px;
+}
+
+/* Tabel responsif berbasis Container Query (@container) agar bebas scroll horizontal di 375px */
+.otium-responsive-table-wrap {
+  container-type: inline-size;
+  overflow-x: auto;
+  max-inline-size: 100%;
+}
+
+.otium-responsive-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+.otium-responsive-table thead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+}
+
+@container (width < 640px) {
+  .otium-responsive-table,
+  .otium-responsive-table thead,
+  .otium-responsive-table tbody,
+  .otium-responsive-table tr,
+  .otium-responsive-table th,
+  .otium-responsive-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .otium-responsive-table thead {
+    display: none;
+  }
+
+  .otium-responsive-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background-color: var(--otium-alabaster);
+  }
+
+  .otium-responsive-table tbody tr {
+    border: 1px solid #e7e5e4;
+    border-radius: 0.875rem;
+    background-color: #ffffff;
+    overflow: hidden;
+  }
+
+  .otium-responsive-table tbody th[scope="row"] {
+    padding: 0.875rem 1rem 0.625rem;
+    border-bottom: 1px solid #f5f5f4;
+    background-color: #faf9f6;
+    text-align: left;
+  }
+
+  .otium-responsive-table tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #f5f5f4;
+    white-space: normal;
+    text-align: right;
+  }
+
+  .otium-responsive-table tbody td:last-child {
+    border-bottom: 0;
+    padding-top: 0.75rem;
+    padding-bottom: 0.875rem;
+    justify-content: flex-end;
+  }
+
+  .otium-responsive-table tbody td[data-label]::before {
+    content: attr(data-label);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #475569;
+    text-align: left;
+    flex-shrink: 0;
+  }
+}
