@@ -1,29 +1,53 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
-import { AlertCircle, Building2, Save, X } from "lucide-react";
+import { AlertCircle, Building2, Loader2, Save, X } from "lucide-react";
 
-// Modal Tambah / Edit Divisi (CMS Modul 2)
-// Menegakkan aturan 1 Ketua Divisi maksimal memimpin 1 Divisi aktif.
+/**
+ * Modal Tambah / Edit Divisi (CMS Modul 2) — Native <dialog className="otium-modal">.
+ * Memuat kandidat Ketua Divisi secara live dari GET /api/divisions/available-leaders
+ * untuk menegakkan aturan 1 Ketua Divisi maksimal memimpin 1 divisi aktif.
+ */
 export default function DivisionFormModal({
   isOpen,
   mode = "create",
   initialDivision = null,
   divisions = [],
-  users = [],
+  initialAvailableLeaders = [],
+  isSubmitting = false,
+  serverError = "",
+  serverFieldErrors = null,
   onClose,
   onSubmit,
 }) {
   const isEdit = mode === "edit" && Boolean(initialDivision);
+  const dialogRef = useRef(null);
+  const nameInputRef = useRef(null);
+  const titleId = useId();
+  const nameId = useId();
+  const nameErrorId = useId();
+  const descId = useId();
+  const descErrorId = useId();
+  const leaderIdField = useId();
+  const leaderErrorId = useId();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [leaderId, setLeaderId] = useState("");
-  const [errors, setErrors] = useState({});
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
+  const [availableLeaders, setAvailableLeaders] = useState(
+    initialAvailableLeaders
+  );
+  const [isLoadingLeaders, setIsLoadingLeaders] = useState(false);
+  const [leadersLoadError, setLeadersLoadError] = useState("");
+
+  // Reset form & fetch live kandidat Ketua Divisi saat modal dibuka
   useEffect(() => {
     if (!isOpen) return;
+
     if (isEdit && initialDivision) {
       setName(initialDivision.name || "");
       setDescription(initialDivision.description || "");
@@ -35,231 +59,499 @@ export default function DivisionFormModal({
       setDescription("");
       setLeaderId("");
     }
-    setErrors({});
+    setFieldErrors({});
+    setTouched({});
+    setLeadersLoadError("");
+
+    let cancelled = false;
+    async function fetchAvailableLeaders() {
+      setIsLoadingLeaders(true);
+      try {
+        const querySuffix =
+          isEdit && initialDivision?.id
+            ? `?currentDivisionId=${encodeURIComponent(initialDivision.id)}`
+            : "";
+        const res = await fetch(
+          `/api/divisions/available-leaders${querySuffix}`,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
+        const data = await res.json();
+        if (cancelled) return;
+        if (!res.ok || !data.ok) {
+          setLeadersLoadError(
+            data.error || "Gagal memuat daftar kandidat Ketua Divisi."
+          );
+          return;
+        }
+        setAvailableLeaders(data.leaders || []);
+      } catch {
+        if (!cancelled) {
+          setLeadersLoadError(
+            "Koneksi bermasalah saat memuat kandidat Ketua Divisi."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingLeaders(false);
+        }
+      }
+    }
+
+    fetchAvailableLeaders();
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen, isEdit, initialDivision]);
 
+  // Sinkronkan fieldErrors dari server bila ada
   useEffect(() => {
-    if (!isOpen) return;
-    function handleKeyDown(event) {
-      if (event.key === "Escape") onClose?.();
+    if (serverFieldErrors && typeof serverFieldErrors === "object") {
+      setFieldErrors((prev) => ({ ...prev, ...serverFieldErrors }));
     }
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [serverFieldErrors]);
 
-  // Hanya memuat pengguna aktif ber-role 'Ketua Divisi' yang belum memimpin divisi lain
-  const availableLeaders = useMemo(() => {
-    const busyLeaderIds = new Set(
-      divisions
-        .filter(
-          (d) =>
-            d.leaderId !== null &&
-            (!isEdit || d.id !== initialDivision?.id)
-        )
-        .map((d) => d.leaderId)
-    );
+  // Sinkronisasi native <dialog> top-layer
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
 
-    return users.filter(
-      (u) =>
-        u.role === "Ketua Divisi" &&
-        u.isActive &&
-        !busyLeaderIds.has(u.id)
-    );
-  }, [divisions, users, isEdit, initialDivision]);
+    if (isOpen) {
+      if (!dialog.open) {
+        dialog.showModal();
+      }
+    } else if (dialog.open) {
+      dialog.close();
+      dialog.returnValue = "";
+    }
+  }, [isOpen]);
 
-  if (!isOpen) return null;
+  // Event cancel/close & Safari light-dismiss fallback (pointerdown + pointerup)
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog || !isOpen) return undefined;
 
-  function validateForm() {
+    function handleCancel(event) {
+      if (isSubmitting) {
+        event.preventDefault();
+      }
+    }
+
+    function handleClose() {
+      dialog.returnValue = "";
+      if (!isSubmitting) {
+        onClose?.();
+      }
+    }
+
+    dialog.addEventListener("cancel", handleCancel);
+    dialog.addEventListener("close", handleClose);
+
+    let cleanupPointer = null;
+    if (
+      typeof HTMLDialogElement !== "undefined" &&
+      !("closedBy" in HTMLDialogElement.prototype)
+    ) {
+      let pressedOutside = false;
+      const isOutside = (e) => {
+        const rect = dialog.getBoundingClientRect();
+        return (
+          e.clientX < rect.left ||
+          e.clientX > rect.right ||
+          e.clientY < rect.top ||
+          e.clientY > rect.bottom
+        );
+      };
+      const onPointerDown = (e) => {
+        pressedOutside = isOutside(e);
+      };
+      const onPointerUp = (e) => {
+        if (!isSubmitting && pressedOutside && isOutside(e)) {
+          dialog.close();
+        }
+        pressedOutside = false;
+      };
+      dialog.addEventListener("pointerdown", onPointerDown);
+      dialog.addEventListener("pointerup", onPointerUp);
+      cleanupPointer = () => {
+        dialog.removeEventListener("pointerdown", onPointerDown);
+        dialog.removeEventListener("pointerup", onPointerUp);
+      };
+    }
+
+    return () => {
+      dialog.removeEventListener("cancel", handleCancel);
+      dialog.removeEventListener("close", handleClose);
+      cleanupPointer?.();
+    };
+  }, [isOpen, isSubmitting, onClose]);
+
+  function validateClientFields(values = { name, description, leaderId }) {
     const nextErrors = {};
-    const trimmedName = name.trim();
+    const trimmedName = values.name.trim();
 
     if (trimmedName.length < 2) {
       nextErrors.name = "Nama divisi wajib diisi (minimal 2 karakter).";
+    } else if (trimmedName.length > 100) {
+      nextErrors.name = "Nama divisi maksimal 100 karakter.";
     } else {
       const duplicate = divisions.some(
         (d) =>
           d.name.toLowerCase() === trimmedName.toLowerCase() &&
-          (!isEdit || d.id !== initialDivision.id)
+          (!isEdit || d.id !== initialDivision?.id)
       );
       if (duplicate) {
         nextErrors.name = "Nama divisi sudah digunakan. Pilih nama lain.";
       }
     }
 
-    if (!leaderId) {
+    if (values.description.trim().length > 500) {
+      nextErrors.description = "Deskripsi divisi maksimal 500 karakter.";
+    }
+
+    if (!values.leaderId) {
       nextErrors.leaderId =
         "Ketua Divisi wajib dipilih dari kandidat yang tersedia.";
     }
 
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
+    return nextErrors;
+  }
+
+  function handleBlurField(fieldName) {
+    setTouched((prev) => ({ ...prev, [fieldName]: true }));
+    const nextErrors = validateClientFields();
+    setFieldErrors((prev) => ({
+      ...prev,
+      [fieldName]: nextErrors[fieldName] || "",
+    }));
   }
 
   function handleSubmit(event) {
     event.preventDefault();
-    if (!validateForm()) return;
+    const nextErrors = validateClientFields();
+    setTouched({ name: true, description: true, leaderId: true });
+    setFieldErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      if (nextErrors.name) {
+        nameInputRef.current?.focus();
+      }
+      return;
+    }
 
     onSubmit?.({
       id: isEdit ? initialDivision.id : undefined,
       name: name.trim(),
       description: description.trim(),
-      leaderId: leaderId ? Number(leaderId) : null,
+      leaderId: Number(leaderId),
     });
   }
 
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="division-form-modal-title"
-    >
-      <div
-        className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+  const nameError = fieldErrors.name || "";
+  const descError = fieldErrors.description || "";
+  const leaderError = fieldErrors.leaderId || "";
 
-      <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/70 px-5 py-4">
+  return (
+    <dialog
+      ref={dialogRef}
+      closedby={isSubmitting ? "none" : "any"}
+      aria-labelledby={titleId}
+      className="otium-modal w-full max-w-lg"
+    >
+      <div className="flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-xl border border-stone-300 bg-white shadow-2xl">
+        {/* Header Editorial */}
+        <div className="flex items-start justify-between gap-3 border-b border-stone-200 bg-[#F4F2EC] px-5 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-200">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-stone-300 bg-white text-slate-900">
               <Building2 className="h-5 w-5" aria-hidden="true" />
             </div>
             <div>
-              <h3
-                id="division-form-modal-title"
-                className="text-base font-bold text-slate-900"
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">
+                {isEdit ? "Perbarui Master Divisi" : "Registrasi Divisi Baru"}
+              </p>
+              <h2
+                id={titleId}
+                className="text-base font-bold tracking-tight text-slate-900"
               >
                 {isEdit ? "Edit Data Divisi" : "Buat Divisi Baru"}
-              </h3>
-              <p className="text-xs text-slate-500">
-                1 Ketua Divisi hanya dapat memimpin maksimal 1 divisi aktif.
-              </p>
+              </h2>
             </div>
           </div>
 
           <button
             type="button"
-            onClick={onClose}
-            aria-label="Tutup modal"
-            className="cursor-pointer rounded-lg p-1.5 text-slate-400 transition-colors duration-200 hover:bg-slate-200/70 hover:text-slate-700"
+            disabled={isSubmitting}
+            onClick={() => onClose?.()}
+            aria-label="Tutup modal form divisi"
+            className="cursor-pointer rounded-lg p-1.5 text-slate-600 transition-colors duration-150 hover:bg-stone-200/80 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
-          <div>
-            <label
-              htmlFor="division-name"
-              className="block text-xs font-semibold text-slate-700"
-            >
-              Nama Divisi <span className="text-rose-600">*</span>
-            </label>
-            <input
-              id="division-name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Contoh: Finance & Accounting"
-              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            />
-            {errors.name && (
-              <p className="mt-1 text-xs text-rose-600">{errors.name}</p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="division-desc"
-              className="block text-xs font-semibold text-slate-700"
-            >
-              Deskripsi Singkat{" "}
-              <span className="font-normal text-slate-400">(Opsional)</span>
-            </label>
-            <textarea
-              id="division-desc"
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Uraikan tanggung jawab utama divisi ini..."
-              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="division-leader"
-              className="block text-xs font-semibold text-slate-700"
-            >
-              Ketua Divisi <span className="text-rose-600">*</span>
-            </label>
-            <select
-              id="division-leader"
-              value={leaderId}
-              onChange={(e) => setLeaderId(e.target.value)}
-              className="mt-1.5 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            >
-              <option value="">-- Pilih Kandidat Ketua Divisi --</option>
-              {availableLeaders.map((leader) => (
-                <option key={leader.id} value={String(leader.id)}>
-                  {leader.fullName} ({leader.email})
-                  {isEdit && initialDivision?.leaderId === leader.id
-                    ? " — Ketua Saat Ini"
-                    : " — Tersedia"}
-                </option>
-              ))}
-            </select>
-            {errors.leaderId && (
-              <p className="mt-1 text-xs text-rose-600">{errors.leaderId}</p>
-            )}
-
-            {availableLeaders.length === 0 && (
-              <div className="mt-2.5 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+        {/* Form Body */}
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          className="flex flex-1 flex-col overflow-y-auto"
+        >
+          <div className="space-y-4 px-5 py-5">
+            {serverError && (
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 rounded-lg border border-rose-300 bg-rose-50 px-3.5 py-3 text-xs font-medium text-rose-950"
+              >
                 <AlertCircle
-                  className="mt-0.5 h-4 w-4 shrink-0 text-amber-600"
+                  className="mt-0.5 h-4 w-4 shrink-0 text-rose-700"
                   aria-hidden="true"
                 />
-                <div>
-                  <p className="font-semibold">
-                    Belum ada kandidat Ketua Divisi yang bebas tugas.
-                  </p>
-                  <p className="mt-0.5">
-                    Tambahkan akun baru ber-role <em>Ketua Divisi</em> di{" "}
-                    <Link
-                      href="/admin/users?role=admin"
-                      className="font-semibold text-blue-700 underline hover:text-blue-800"
-                    >
-                      Modul 1 (Manajemen Pengguna)
-                    </Link>{" "}
-                    terlebih dahulu.
-                  </p>
-                </div>
+                <span>{serverError}</span>
               </div>
             )}
+
+            {/* Nama Divisi */}
+            <div>
+              <label
+                htmlFor={nameId}
+                className="block text-xs font-semibold text-slate-800"
+              >
+                Nama Divisi <span className="text-rose-700">*</span>
+              </label>
+              <input
+                ref={nameInputRef}
+                id={nameId}
+                type="text"
+                required
+                minLength={2}
+                maxLength={100}
+                autoFocus
+                value={name}
+                onChange={(e) => {
+                  const nextVal = e.target.value;
+                  setName(nextVal);
+                  if (touched.name || fieldErrors.name) {
+                    const errs = validateClientFields({
+                      name: nextVal,
+                      description,
+                      leaderId,
+                    });
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      name: errs.name || "",
+                    }));
+                  }
+                }}
+                onBlur={() => handleBlurField("name")}
+                aria-invalid={nameError ? "true" : "false"}
+                aria-describedby={nameError ? nameErrorId : undefined}
+                placeholder="Contoh: Finance & Accounting"
+                className="otium-field-input mt-1.5 w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 transition-colors duration-150 focus-visible:border-slate-900 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-slate-900"
+              />
+              {nameError && (
+                <p
+                  id={nameErrorId}
+                  className="mt-1.5 flex items-center gap-1 text-xs font-medium text-rose-700"
+                >
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>{nameError}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Deskripsi Singkat */}
+            <div>
+              <label
+                htmlFor={descId}
+                className="block text-xs font-semibold text-slate-800"
+              >
+                Deskripsi Singkat{" "}
+                <span className="font-normal text-slate-600">(Opsional)</span>
+              </label>
+              <textarea
+                id={descId}
+                rows={3}
+                maxLength={500}
+                value={description}
+                onChange={(e) => {
+                  const nextVal = e.target.value;
+                  setDescription(nextVal);
+                  if (touched.description || fieldErrors.description) {
+                    const errs = validateClientFields({
+                      name,
+                      description: nextVal,
+                      leaderId,
+                    });
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      description: errs.description || "",
+                    }));
+                  }
+                }}
+                onBlur={() => handleBlurField("description")}
+                aria-invalid={descError ? "true" : "false"}
+                aria-describedby={descError ? descErrorId : undefined}
+                placeholder="Uraikan ruang lingkup dan tanggung jawab utama divisi ini..."
+                className="otium-field-input mt-1.5 w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 transition-colors duration-150 focus-visible:border-slate-900 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-slate-900"
+              />
+              {descError && (
+                <p
+                  id={descErrorId}
+                  className="mt-1.5 flex items-center gap-1 text-xs font-medium text-rose-700"
+                >
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>{descError}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Dropdown Kandidat Ketua Divisi */}
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <label
+                  htmlFor={leaderIdField}
+                  className="block text-xs font-semibold text-slate-800"
+                >
+                  Ketua Divisi <span className="text-rose-700">*</span>
+                </label>
+                {isLoadingLeaders && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600">
+                    <Loader2
+                      className="h-3 w-3 animate-spin"
+                      aria-hidden="true"
+                    />
+                    Memuat kandidat...
+                  </span>
+                )}
+              </div>
+
+              <select
+                id={leaderIdField}
+                required
+                disabled={isLoadingLeaders || isSubmitting}
+                value={leaderId}
+                onChange={(e) => {
+                  const nextVal = e.target.value;
+                  setLeaderId(nextVal);
+                  setTouched((prev) => ({ ...prev, leaderId: true }));
+                  const errs = validateClientFields({
+                    name,
+                    description,
+                    leaderId: nextVal,
+                  });
+                  setFieldErrors((prev) => ({
+                    ...prev,
+                    leaderId: errs.leaderId || "",
+                  }));
+                }}
+                onBlur={() => handleBlurField("leaderId")}
+                aria-invalid={leaderError ? "true" : "false"}
+                aria-describedby={leaderError ? leaderErrorId : undefined}
+                className="otium-field-input mt-1.5 w-full cursor-pointer rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors duration-150 focus-visible:border-slate-900 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:bg-stone-100"
+              >
+                <option value="" disabled>
+                  -- Pilih Kandidat Ketua Divisi --
+                </option>
+                {availableLeaders.map((leader) => (
+                  <option key={leader.id} value={String(leader.id)}>
+                    {leader.fullName} ({leader.email})
+                    {leader.isCurrentLeader
+                      ? " — Ketua Saat Ini"
+                      : " — Tersedia"}
+                  </option>
+                ))}
+              </select>
+
+              <p className="mt-1.5 text-[11px] text-slate-600">
+                Aturan kepemimpinan tunggal: 1 Ketua Divisi hanya dapat memimpin
+                maksimal 1 divisi aktif.
+                {isEdit
+                  ? " Mengganti ketua akan otomatis melepas division_id ketua lama."
+                  : ""}
+              </p>
+
+              {leaderError && (
+                <p
+                  id={leaderErrorId}
+                  className="mt-1.5 flex items-center gap-1 text-xs font-medium text-rose-700"
+                >
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>{leaderError}</span>
+                </p>
+              )}
+
+              {leadersLoadError && (
+                <p
+                  role="alert"
+                  className="mt-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800"
+                >
+                  {leadersLoadError}
+                </p>
+              )}
+
+              {!isLoadingLeaders &&
+                !leadersLoadError &&
+                availableLeaders.length === 0 && (
+                  <div className="mt-2.5 flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+                    <AlertCircle
+                      className="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <p className="font-semibold">
+                        Belum ada kandidat Ketua Divisi yang bebas tugas.
+                      </p>
+                      <p className="mt-0.5 leading-relaxed">
+                        Tambahkan akun aktif ber-role <em>Ketua Divisi</em> di{" "}
+                        <Link
+                          href="/admin/users"
+                          onClick={() => onClose?.()}
+                          className="font-semibold text-slate-900 underline decoration-slate-900/40 underline-offset-2 hover:decoration-slate-900"
+                        >
+                          Modul 1 (Manajemen Pengguna)
+                        </Link>{" "}
+                        terlebih dahulu.
+                      </p>
+                    </div>
+                  </div>
+                )}
+            </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2.5 border-t border-slate-100 pt-4">
+          {/* Footer */}
+          <div className="flex items-center justify-end gap-2.5 border-t border-stone-200 bg-[#F4F2EC]/70 px-5 py-3.5">
             <button
               type="button"
-              onClick={onClose}
-              className="cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-100"
+              disabled={isSubmitting}
+              onClick={() => onClose?.()}
+              className="cursor-pointer rounded-lg border border-stone-300 bg-white px-4 py-2 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Batal
             </button>
             <button
               type="submit"
-              disabled={availableLeaders.length === 0}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition-colors duration-200 hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+              disabled={
+                isSubmitting ||
+                isLoadingLeaders ||
+                availableLeaders.length === 0
+              }
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:bg-slate-400"
             >
-              <Save className="h-3.5 w-3.5" aria-hidden="true" />
-              {isEdit ? "Simpan Perubahan" : "Buat Divisi"}
+              {isSubmitting ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <Save className="h-3.5 w-3.5" aria-hidden="true" />
+              )}
+              {isSubmitting
+                ? "Menyimpan..."
+                : isEdit
+                  ? "Simpan Perubahan"
+                  : "Buat Divisi"}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </dialog>
   );
 }

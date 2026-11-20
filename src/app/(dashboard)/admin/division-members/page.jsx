@@ -1,34 +1,37 @@
+import { redirect } from "next/navigation";
 import AdminDivisionMembersClient from "@/components/admin/AdminDivisionMembersClient";
-import AdminRoleGuardNotice from "@/components/admin/AdminRoleGuardNotice";
-import {
-  ROLE_PRESETS,
-  resolvePreviewRole,
-} from "@/lib/mock-dashboard-data";
+import { getCurrentUser } from "@/lib/auth";
+import { getAdminDivisionMembersWorkspaceData } from "@/lib/admin-divisions-data";
 
 export const metadata = {
   title: "Anggota Divisi — Otium Sistem Manajemen Cuti Karyawan",
 };
 
-// Halaman CMS Modul 3: Manajemen Anggota Divisi — Khusus Admin (/admin/division-members)
+/**
+ * Halaman CMS Modul 3: Manajemen Anggota Divisi (/admin/division-members) — Pure Production.
+ * Layer 2 RBAC: memverifikasi sesi aktif & role 'Admin' di PostgreSQL,
+ * mendukung deep-link ?divisionId=<id> dari Modal Detail Divisi Modul 2.
+ */
 export default async function AdminDivisionMembersPage({ searchParams }) {
-  const resolvedParams = (await searchParams) || {};
-  const previewRoleKey = resolvePreviewRole(resolvedParams.role);
-  const activeUser = ROLE_PRESETS[previewRoleKey] || ROLE_PRESETS.karyawan;
-
-  if (activeUser.role !== "Admin") {
-    return (
-      <AdminRoleGuardNotice
-        currentRoleName={activeUser.role}
-        currentRoleKey={previewRoleKey}
-        targetPath="/admin/division-members"
-        moduleTitle="Manajemen Anggota Divisi"
-      />
-    );
+  const currentUser = await getCurrentUser();
+  if (!currentUser) {
+    redirect("/login?reason=inactive");
   }
+
+  if (currentUser.role !== "Admin") {
+    redirect("/dashboard?error=unauthorized_role");
+  }
+
+  const resolvedParams = (await searchParams) || {};
+  const workspaceData = await getAdminDivisionMembersWorkspaceData(
+    resolvedParams.divisionId || null
+  );
 
   return (
     <AdminDivisionMembersClient
-      initialDivisionId={resolvedParams.divisionId || null}
+      initialDivisions={workspaceData.divisions}
+      initialUsers={workspaceData.users}
+      initialSelectedDivisionId={workspaceData.initialSelectedDivisionId}
     />
   );
 }

@@ -414,3 +414,182 @@ export function validateAdminUserPayload(payload = {}, { mode = "create" } = {})
     },
   };
 }
+
+/**
+ * Validasi & sanitasi payload Create / Update Divisi pada CMS Modul 2 (/admin/divisions).
+ * Menegakkan nama divisi 2–100 karakter, deskripsi opsional maks 500 karakter,
+ * serta leaderId wajib berupa bilangan bulat positif.
+ * @param {object} payload
+ */
+export function validateAdminDivisionPayload(payload = {}) {
+  const name = sanitizeText(payload.name);
+  const rawDescription =
+    typeof payload.description === "string" ? payload.description.trim() : "";
+  const description = rawDescription.length > 0 ? rawDescription : null;
+  const rawLeaderId = payload.leaderId;
+
+  const fieldErrors = {};
+
+  if (!name || name.length < 2) {
+    fieldErrors.name = "Nama divisi wajib diisi (minimal 2 karakter).";
+  } else if (name.length > 100) {
+    fieldErrors.name = "Nama divisi maksimal 100 karakter.";
+  }
+
+  if (description && description.length > 500) {
+    fieldErrors.description = "Deskripsi divisi maksimal 500 karakter.";
+  }
+
+  let leaderId = null;
+  if (
+    rawLeaderId === null ||
+    rawLeaderId === undefined ||
+    String(rawLeaderId).trim() === ""
+  ) {
+    fieldErrors.leaderId =
+      "Ketua Divisi wajib dipilih dari kandidat yang tersedia.";
+  } else if (!isPositiveInt(rawLeaderId)) {
+    fieldErrors.leaderId = "Pilihan Ketua Divisi tidak valid.";
+  } else {
+    leaderId = Number(rawLeaderId);
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Periksa kembali data divisi yang dimasukkan.",
+      fieldErrors,
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      name,
+      description,
+      leaderId,
+    },
+  };
+}
+
+/**
+ * Validasi payload penghapusan Divisi pada CMS Modul 2 (/admin/divisions).
+ * Mewajibkan ID divisi valid serta flag isDoubleConfirmed === true (Konfirmasi 2 Tahap).
+ * @param {number | string} divisionId
+ * @param {{ isDoubleConfirmed?: boolean }} [payload]
+ */
+export function validateDeleteDivisionPayload(divisionId, payload = {}) {
+  if (!isPositiveInt(divisionId)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "ID divisi tidak valid.",
+    };
+  }
+
+  if (payload?.isDoubleConfirmed !== true) {
+    return {
+      ok: false,
+      status: 400,
+      error:
+        "Penghapusan divisi memerlukan persetujuan Konfirmasi 2 Tahap (Double Confirmation).",
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      divisionId: Number(divisionId),
+      isDoubleConfirmed: true,
+    },
+  };
+}
+
+/**
+ * Validasi payload Assign Anggota Divisi (Bulk) pada CMS Modul 3 (/admin/division-members).
+ * Membersihkan duplikat ID dan memastikan seluruh ID berupa bilangan bulat positif.
+ * @param {number | string} divisionId
+ * @param {Array<number | string>} userIds
+ */
+export function validateAssignMembersPayload(divisionId, userIds) {
+  if (!isPositiveInt(divisionId)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Divisi tujuan tidak valid.",
+    };
+  }
+
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Pilih minimal 1 karyawan untuk ditempatkan ke divisi.",
+    };
+  }
+
+  const uniqueIds = [];
+  const seen = new Set();
+  for (const rawId of userIds) {
+    if (!isPositiveInt(rawId)) {
+      return {
+        ok: false,
+        status: 400,
+        error: "Terdapat ID karyawan yang tidak valid dalam daftar pilihan.",
+      };
+    }
+    const parsed = Number(rawId);
+    if (!seen.has(parsed)) {
+      seen.add(parsed);
+      uniqueIds.push(parsed);
+    }
+  }
+
+  if (uniqueIds.length > 100) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Maksimal 100 karyawan dapat di-assign dalam satu transaksi.",
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      divisionId: Number(divisionId),
+      userIds: uniqueIds,
+    },
+  };
+}
+
+/**
+ * Validasi payload Remove Anggota dari Divisi pada CMS Modul 3 (/admin/division-members).
+ * @param {number | string} divisionId
+ * @param {number | string} userId
+ */
+export function validateRemoveMemberPayload(divisionId, userId) {
+  if (!isPositiveInt(divisionId)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "ID divisi tidak valid.",
+    };
+  }
+
+  if (!isPositiveInt(userId)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "ID anggota tidak valid.",
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      divisionId: Number(divisionId),
+      userId: Number(userId),
+    },
+  };
+}
