@@ -145,8 +145,9 @@ export default function Sidebar({
   }
 
   function buildHref(href) {
-    if (href === "/dashboard" && previewRoleKey) {
-      return `/dashboard?role=${previewRoleKey}`;
+    if (previewRoleKey && href.startsWith("/") && !href.startsWith("/login")) {
+      const separator = href.includes("?") ? "&" : "?";
+      return `${href}${separator}role=${previewRoleKey}`;
     }
     return href;
   }

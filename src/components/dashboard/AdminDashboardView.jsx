@@ -52,14 +52,14 @@ export default function AdminDashboardView({ data }) {
 
         <div className="flex flex-wrap items-center gap-2.5">
           <Link
-            href="/admin/divisions"
+            href="/admin/divisions?role=admin"
             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
             <Building2 className="h-4 w-4 text-slate-500" aria-hidden="true" />
             Kelola Divisi
           </Link>
           <Link
-            href="/admin/users"
+            href="/admin/users?role=admin"
             className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700"
           >
             <UserPlus className="h-4 w-4" aria-hidden="true" />
@@ -76,7 +76,7 @@ export default function AdminDashboardView({ data }) {
           subtitle={`${stats.inactiveUsers} akun berstatus Nonaktif`}
           icon={<Users className="h-5 w-5" aria-hidden="true" />}
           variant="blue"
-          href="/admin/users"
+          href="/admin/users?role=admin"
           actionLabel="Kelola Pengguna"
         />
         <StatsCard
@@ -99,7 +99,7 @@ export default function AdminDashboardView({ data }) {
           subtitle="Unit kerja terdaftar di sistem"
           icon={<Building2 className="h-5 w-5" aria-hidden="true" />}
           variant="purple"
-          href="/admin/divisions"
+          href="/admin/divisions?role=admin"
           actionLabel="Lihat Semua Divisi"
         />
       </div>
