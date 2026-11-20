@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
+  ArrowRight,
   CheckCircle2,
   Eye,
   EyeOff,
-  Info,
   Loader2,
   Lock,
-  LogIn,
   Mail,
 } from "lucide-react";
+import { loginAction } from "@/actions/auth-actions";
 
 const REASON_BANNERS = {
   session_expired: {
@@ -28,10 +28,20 @@ const REASON_BANNERS = {
   },
 };
 
+function validateIdentifier(value) {
+  return value.trim() ? "" : "Email atau Username wajib diisi.";
+}
+
+function validatePassword(value) {
+  return value ? "" : "Password wajib diisi.";
+}
+
 /**
- * Kartu Form Login terpusat untuk portal Otium (4 role: Admin, Karyawan, Ketua Divisi, HRD).
- * Mode UI murni: menjalankan validasi client-side per-field dan siap dihubungkan
- * ke Server Action / Route Handler melalui prop `onSubmit` di tahap integrasi backend.
+ * Form Login terpusat untuk portal Otium (4 role: Admin, Karyawan, Ketua Divisi, HRD).
+ * Terhubung ke Server Action `loginAction`, menerapkan praktik terbaik modern-web-guidance:
+ * - autofill-sign-in-form (autocomplete, spellCheck, autoCorrect, autoCapitalize, enterKeyHint)
+ * - validate-input-after-interaction & accessible-error-announcement (blur validation, focus-first-invalid, polite live region)
+ * - brand-consistent-forms (native checkbox dengan accent-color + fallback @supports not)
  */
 export default function LoginFormCard({
   onSubmit,
@@ -42,47 +52,105 @@ export default function LoginFormCard({
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [touched, setTouched] = useState({
+    identifier: false,
+    password: false,
+  });
   const [fieldErrors, setFieldErrors] = useState({
     identifier: "",
     password: "",
   });
   const [errorMsg, setErrorMsg] = useState("");
-  const [previewMsg, setPreviewMsg] = useState("");
+  const [announcement, setAnnouncement] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const identifierRef = useRef(null);
+  const passwordRef = useRef(null);
+  const announceTimerRef = useRef(null);
 
   const statusBanner = REASON_BANNERS[reason] || null;
 
+  useEffect(() => {
+    return () => {
+      if (announceTimerRef.current) {
+        clearTimeout(announceTimerRef.current);
+      }
+    };
+  }, []);
+
+  function announceFieldError(label, message) {
+    if (announceTimerRef.current) {
+      clearTimeout(announceTimerRef.current);
+    }
+    setAnnouncement("");
+    if (!message) return;
+
+    announceTimerRef.current = setTimeout(() => {
+      setAnnouncement(`${label}: ${message}`);
+    }, 350);
+  }
+
   function handleIdentifierChange(e) {
-    setIdentifier(e.target.value);
-    if (fieldErrors.identifier) {
-      setFieldErrors((prev) => ({ ...prev, identifier: "" }));
+    const nextValue = e.target.value;
+    setIdentifier(nextValue);
+    if (touched.identifier || fieldErrors.identifier) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        identifier: validateIdentifier(nextValue),
+      }));
     }
     if (errorMsg) setErrorMsg("");
-    if (previewMsg) setPreviewMsg("");
+  }
+
+  function handleIdentifierBlur() {
+    setTouched((prev) => ({ ...prev, identifier: true }));
+    const err = validateIdentifier(identifier);
+    setFieldErrors((prev) => ({ ...prev, identifier: err }));
+    if (err) {
+      announceFieldError("Email atau Username", err);
+    }
   }
 
   function handlePasswordChange(e) {
-    setPassword(e.target.value);
-    if (fieldErrors.password) {
-      setFieldErrors((prev) => ({ ...prev, password: "" }));
+    const nextValue = e.target.value;
+    setPassword(nextValue);
+    if (touched.password || fieldErrors.password) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        password: validatePassword(nextValue),
+      }));
     }
     if (errorMsg) setErrorMsg("");
-    if (previewMsg) setPreviewMsg("");
+  }
+
+  function handlePasswordBlur() {
+    setTouched((prev) => ({ ...prev, password: true }));
+    const err = validatePassword(password);
+    setFieldErrors((prev) => ({ ...prev, password: err }));
+    if (err) {
+      announceFieldError("Password", err);
+    }
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setErrorMsg("");
-    setPreviewMsg("");
 
-    const trimmedIdentifier = identifier.trim();
     const nextFieldErrors = {
-      identifier: trimmedIdentifier ? "" : "Email atau Username wajib diisi.",
-      password: password ? "" : "Password wajib diisi.",
+      identifier: validateIdentifier(identifier),
+      password: validatePassword(password),
     };
 
     if (nextFieldErrors.identifier || nextFieldErrors.password) {
+      setTouched({ identifier: true, password: true });
       setFieldErrors(nextFieldErrors);
+
+      // Pindahkan fokus ke input invalid pertama (accessible-error-announcement)
+      if (nextFieldErrors.identifier) {
+        identifierRef.current?.focus();
+      } else if (nextFieldErrors.password) {
+        passwordRef.current?.focus();
+      }
       return;
     }
 
@@ -90,28 +158,28 @@ export default function LoginFormCard({
     setIsLoading(true);
 
     try {
-      if (typeof onSubmit === "function") {
-        const result = await onSubmit({
-          identifier: trimmedIdentifier,
-          password,
-          rememberMe,
-          callbackUrl,
-        });
+      const payload = {
+        identifier: identifier.trim(),
+        password,
+        rememberMe,
+        callbackUrl,
+      };
 
-        if (result?.error) {
-          setErrorMsg(result.error);
-        }
-        return;
+      const submitHandler =
+        typeof onSubmit === "function" ? onSubmit : loginAction;
+      const result = await submitHandler(payload);
+
+      if (result?.fieldErrors) {
+        setFieldErrors((prev) => ({ ...prev, ...result.fieldErrors }));
       }
-
-      // Simulasi feedback UI murni (tanpa request backend)
-      await new Promise((resolve) => setTimeout(resolve, 450));
-      setPreviewMsg(
-        `Validasi form berhasil untuk "${trimmedIdentifier}" (${
-          rememberMe ? "Remember Me: 7 hari" : "Sesi standar: 1 hari"
-        }). Autentikasi backend belum diaktifkan.`
-      );
-    } catch {
+      if (result?.error) {
+        setErrorMsg(result.error);
+      }
+    } catch (error) {
+      // Biarkan redirect bawaan Next.js Server Action berjalan normal
+      if (error?.digest?.startsWith("NEXT_REDIRECT")) {
+        throw error;
+      }
       setErrorMsg("Terjadi kesalahan tak terduga. Silakan coba kembali.");
     } finally {
       setIsLoading(false);
@@ -119,59 +187,65 @@ export default function LoginFormCard({
   }
 
   return (
-    <div className="w-full max-w-md rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm shadow-slate-200/60 sm:p-8">
-      {/* Header Brand (Logo tampil di Mobile/Tablet, ringkas di Desktop) */}
-      <div className="text-center lg:text-left">
-        <div className="mx-auto mb-4 flex items-center justify-center gap-3 lg:hidden">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center">
-            <img
-              src="/images/otium-logo.png"
-              alt="Logo Otium"
-              className="h-11 w-11 object-contain"
-            />
-          </div>
-          <div className="text-left">
-            <span className="block text-xl font-bold tracking-tight text-slate-900">
-              Otium
-            </span>
-            <span className="block text-xs font-medium text-slate-500">
-              Sistem Manajemen Cuti Karyawan
-            </span>
-          </div>
-        </div>
+    <div className="w-full max-w-[400px] rounded-2xl border border-stone-200/90 bg-white p-6 shadow-sm sm:p-8 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
+      {/* Live region sopan untuk pengumuman error blur bagi screen reader */}
+      <div role="status" aria-live="polite" className="visually-hidden">
+        {announcement}
+      </div>
 
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Masuk ke Otium
+      {/* Header Identitas Mobile/Tablet */}
+      <div className="mb-7 flex items-center gap-3 lg:hidden">
+        <img
+          src="/images/otium-logo.png"
+          alt="Logo Otium"
+          className="h-9 w-9 shrink-0 object-contain"
+        />
+        <div>
+          <span className="block text-lg font-bold leading-none tracking-tight text-slate-950">
+            Otium
+          </span>
+          <span className="mt-1 block text-[11px] font-medium uppercase tracking-[0.12em] text-slate-600">
+            Sistem Manajemen Cuti
+          </span>
+        </div>
+      </div>
+
+      {/* Heading Form */}
+      <div>
+        <p className="hidden text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 lg:block">
+          Portal Internal &middot; Otium
+        </p>
+        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-slate-950 lg:mt-2 lg:text-[1.75rem]">
+          Masuk ke ruang kerja
         </h1>
-        <p className="mt-1.5 text-sm text-slate-600">
-          Gunakan email atau username dari Administrator untuk mengakses portal
-          sesuai peran Anda.
+        <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+          Masukkan email atau username perusahaan beserta kata sandi Anda.
         </p>
       </div>
 
-      {/* Banner Status dari Query Param (mis. sesi habis / berhasil logout) */}
-      {statusBanner && !errorMsg && !previewMsg && (
+      {/* Banner Status dari Query Param (session_expired / logged_out / inactive) */}
+      {statusBanner && !errorMsg && (
         <div
           role="status"
-          className={`mt-5 flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-sm ${
+          className={`mt-5 flex items-start gap-2.5 rounded-lg border px-3.5 py-3 text-sm ${
             statusBanner.tone === "amber"
-              ? "border-amber-200 bg-amber-50 text-amber-800"
+              ? "border-amber-200 bg-amber-50 text-amber-900"
               : statusBanner.tone === "emerald"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : "border-rose-200 bg-rose-50 text-rose-700"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                : "border-rose-200 bg-rose-50 text-rose-800"
           }`}
         >
           {statusBanner.tone === "emerald" ? (
             <CheckCircle2
-              className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600"
+              className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700"
               aria-hidden="true"
             />
           ) : (
             <AlertCircle
               className={`mt-0.5 h-4 w-4 shrink-0 ${
                 statusBanner.tone === "amber"
-                  ? "text-amber-600"
-                  : "text-rose-600"
+                  ? "text-amber-700"
+                  : "text-rose-700"
               }`}
               aria-hidden="true"
             />
@@ -180,76 +254,68 @@ export default function LoginFormCard({
         </div>
       )}
 
-      {/* Alert Error Kondisional */}
+      {/* Alert Error Kredensial / Akun Nonaktif */}
       {errorMsg && (
         <div
           role="alert"
-          className="mt-5 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700"
+          className="mt-5 flex items-start gap-2.5 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800"
         >
           <AlertCircle
-            className="mt-0.5 h-4 w-4 shrink-0 text-rose-600"
+            className="mt-0.5 h-4 w-4 shrink-0 text-rose-700"
             aria-hidden="true"
           />
           <span>{errorMsg}</span>
         </div>
       )}
 
-      {/* Alert Info Mode Pratinjau UI (saat backend belum dihubungkan) */}
-      {previewMsg && (
-        <div
-          role="status"
-          className="mt-5 flex items-start gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-sm text-emerald-800"
-        >
-          <CheckCircle2
-            className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600"
-            aria-hidden="true"
-          />
-          <span>{previewMsg}</span>
-        </div>
-      )}
-
       {/* Form Kredensial */}
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate>
+      <form onSubmit={handleSubmit} className="mt-7 space-y-5" noValidate>
         {/* Field Email atau Username */}
         <div>
           <label
             htmlFor="identifier"
-            className="block text-sm font-medium text-slate-700"
+            className="block text-sm font-medium text-slate-800"
           >
-            Email atau Username <span className="text-rose-600">*</span>
+            Email atau Username
           </label>
           <div className="relative mt-1.5">
             <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
               <Mail className="h-4 w-4" aria-hidden="true" />
             </span>
             <input
+              ref={identifierRef}
               id="identifier"
               name="identifier"
               type="text"
               autoComplete="username"
-              autoFocus
+              spellCheck={false}
+              autoCorrect="off"
+              autoCapitalize="none"
+              enterKeyHint="next"
               required
               disabled={isLoading}
-              aria-invalid={Boolean(fieldErrors.identifier)}
+              aria-invalid={fieldErrors.identifier ? "true" : "false"}
               aria-describedby={
                 fieldErrors.identifier ? "identifier-error" : undefined
               }
               value={identifier}
               onChange={handleIdentifierChange}
+              onBlur={handleIdentifierBlur}
               placeholder="nama@perusahaan.com atau username"
-              className={`block w-full rounded-xl border bg-white py-2.5 pl-10 pr-3.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 ${
+              className={`block w-full rounded-lg border bg-white py-2.5 pl-10 pr-3.5 text-sm text-slate-950 placeholder:text-slate-400 transition-colors duration-150 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 ${
                 fieldErrors.identifier
-                  ? "border-rose-400 focus:border-rose-500 focus:ring-rose-500/20"
-                  : "border-slate-300 focus:border-blue-600 focus:ring-blue-600/20"
+                  ? "border-rose-500 bg-rose-50/40 focus-visible:border-rose-600 focus-visible:ring-rose-500/20"
+                  : "border-slate-300 hover:border-slate-400 focus-visible:border-slate-900 focus-visible:ring-slate-900/15"
               }`}
             />
           </div>
           {fieldErrors.identifier && (
             <p
               id="identifier-error"
-              className="mt-1.5 text-xs font-medium text-rose-600"
+              className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-rose-700"
             >
-              {fieldErrors.identifier}
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span>{fieldErrors.identifier}</span>
             </p>
           )}
         </div>
@@ -258,42 +324,46 @@ export default function LoginFormCard({
         <div>
           <label
             htmlFor="password"
-            className="block text-sm font-medium text-slate-700"
+            className="block text-sm font-medium text-slate-800"
           >
-            Password <span className="text-rose-600">*</span>
+            Password
           </label>
           <div className="relative mt-1.5">
             <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
               <Lock className="h-4 w-4" aria-hidden="true" />
             </span>
             <input
+              ref={passwordRef}
               id="password"
               name="password"
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
+              enterKeyHint="done"
               required
               disabled={isLoading}
-              aria-invalid={Boolean(fieldErrors.password)}
+              aria-invalid={fieldErrors.password ? "true" : "false"}
               aria-describedby={
                 fieldErrors.password ? "password-error" : undefined
               }
               value={password}
               onChange={handlePasswordChange}
+              onBlur={handlePasswordBlur}
               placeholder="Masukkan password Anda"
-              className={`block w-full rounded-xl border bg-white py-2.5 pl-10 pr-11 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 ${
+              className={`block w-full rounded-lg border bg-white py-2.5 pl-10 pr-11 text-sm text-slate-950 placeholder:text-slate-400 transition-colors duration-150 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 ${
                 fieldErrors.password
-                  ? "border-rose-400 focus:border-rose-500 focus:ring-rose-500/20"
-                  : "border-slate-300 focus:border-blue-600 focus:ring-blue-600/20"
+                  ? "border-rose-500 bg-rose-50/40 focus-visible:border-rose-600 focus-visible:ring-rose-500/20"
+                  : "border-slate-300 hover:border-slate-400 focus-visible:border-slate-900 focus-visible:ring-slate-900/15"
               }`}
             />
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               disabled={isLoading}
+              aria-pressed={showPassword}
               aria-label={
                 showPassword ? "Sembunyikan password" : "Tampilkan password"
               }
-              className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 transition-colors hover:text-slate-600 focus:text-blue-600 focus:outline-none disabled:cursor-not-allowed"
+              className="absolute inset-y-0 right-1 my-1 flex w-9 cursor-pointer items-center justify-center rounded-md text-slate-500 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 disabled:cursor-not-allowed"
             >
               {showPassword ? (
                 <EyeOff className="h-4 w-4" aria-hidden="true" />
@@ -305,18 +375,19 @@ export default function LoginFormCard({
           {fieldErrors.password && (
             <p
               id="password-error"
-              className="mt-1.5 text-xs font-medium text-rose-600"
+              className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-rose-700"
             >
-              {fieldErrors.password}
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span>{fieldErrors.password}</span>
             </p>
           )}
         </div>
 
-        {/* Checkbox Remember Me */}
-        <div className="pt-0.5">
+        {/* Checkbox Remember Me (accent-color + fallback @supports not) */}
+        <div className="flex items-center justify-between pt-0.5">
           <label
             htmlFor="rememberMe"
-            className="inline-flex cursor-pointer select-none items-center gap-2.5 text-sm text-slate-600"
+            className="otium-checkbox-label inline-flex cursor-pointer select-none items-center gap-2.5 text-sm text-slate-700"
           >
             <input
               id="rememberMe"
@@ -325,13 +396,11 @@ export default function LoginFormCard({
               disabled={isLoading}
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 disabled:cursor-not-allowed"
+              className="otium-checkbox h-4 w-4 cursor-pointer rounded border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
             />
             <span>
-              Remember Me{" "}
-              <span className="text-xs text-slate-400">
-                (Simpan sesi masuk 7 hari)
-              </span>
+              Tetap masuk selama{" "}
+              <strong className="font-medium text-slate-900">7 hari</strong>
             </span>
           </label>
         </div>
@@ -340,7 +409,7 @@ export default function LoginFormCard({
         <button
           type="submit"
           disabled={isLoading}
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isLoading ? (
             <>
@@ -349,33 +418,18 @@ export default function LoginFormCard({
             </>
           ) : (
             <>
-              <LogIn className="h-4 w-4" aria-hidden="true" />
-              <span>MASUK KE SISTEM</span>
+              <span>Masuk ke Portal</span>
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </>
           )}
         </button>
       </form>
 
-      {/* Info Deteksi Role Otomatis & Tanpa Registrasi Publik */}
-      <div className="mt-6 rounded-xl border border-sky-200 bg-sky-50/80 p-3.5 text-xs leading-relaxed text-sky-900">
-        <div className="flex items-start gap-2.5">
-          <Info
-            className="mt-0.5 h-4 w-4 shrink-0 text-sky-600"
-            aria-hidden="true"
-          />
-          <div>
-            <p className="font-semibold text-sky-950">
-              Deteksi Role Otomatis &amp; Provisioning Akun
-            </p>
-            <p className="mt-1 text-sky-800">
-              Sistem otomatis mendeteksi peran (<strong>Admin</strong>,{" "}
-              <strong>Karyawan</strong>, <strong>Ketua Divisi</strong>, atau{" "}
-              <strong>HRD</strong>) setelah masuk. Pendaftaran akun publik tidak
-              tersedia &mdash; hubungi Administrator jika belum memiliki akun.
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Catatan Colophon Ringkas (Tanpa Registrasi Publik) */}
+      <p className="mt-7 border-t border-stone-200 pt-5 text-xs leading-relaxed text-slate-500">
+        Akses akun dikelola oleh Administrator &middot; Peran pengguna
+        terdeteksi otomatis setelah masuk.
+      </p>
     </div>
   );
 }

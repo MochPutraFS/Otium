@@ -1,135 +1,125 @@
-import {
-  CalendarClock,
-  CheckCircle2,
-  ShieldCheck,
-  Users,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
-const FEATURE_HIGHLIGHTS = [
+const WORKFLOW_STEPS = [
   {
-    icon: CalendarClock,
-    title: "Kalkulasi Hari Kerja & Cuti 0.5 Hari",
-    description:
-      "Otomatis mengecualikan akhir pekan serta hari libur nasional dengan dukungan kuota desimal realtime.",
+    step: "01",
+    title: "Pengajuan & Handover",
+    detail: "Dukungan cuti 0.5 hari kerja, bebas akhir pekan & libur nasional, serta pelimpahan tugas rekan satu divisi.",
   },
   {
-    icon: CheckCircle2,
-    title: "Persetujuan Berjenjang 2 Tahap",
-    description:
-      "Alur verifikasi transparan dari Ketua Divisi ke HRD lengkap dengan catatan keputusan & auto-refund kuota.",
+    step: "02",
+    title: "Verifikasi Ketua Divisi",
+    detail: "Peninjauan beban kerja tim oleh atasan langsung lengkap dengan catatan verifikasi terstruktur.",
   },
   {
-    icon: Users,
-    title: "Serah Terima Rekan Pengganti",
-    description:
-      "Penunjukan rekan handover satu divisi beserta notifikasi internal otomatis agar pekerjaan tetap lancar.",
+    step: "03",
+    title: "Persetujuan Final HRD",
+    detail: "Keputusan akhir terpusat dengan pemotongan saldo atomik serta auto-refund kuota bila ditolak atau dibatalkan.",
   },
 ];
 
 const SYSTEM_ROLES = ["Admin", "Karyawan", "Ketua Divisi", "HRD"];
 
 /**
- * Panel branding sisi kiri pada layout split-screen halaman Login (Desktop lg+).
- * Menampilkan logo Otium (Variasi 3C), filosofi singkat, keunggulan sistem, dan 4 peran otomatis.
+ * Panel branding editorial sisi kiri (Opsi A — Warm Alabaster & Ink Editorial).
+ * Menggantikan pola gradient gelap generik dengan grid arsitektural tenang dan diagram alur domain Otium.
  */
 export default function LoginBrandPanel() {
   return (
-    <section
+    <aside
       aria-label="Informasi Portal Otium"
-      className="relative hidden overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-blue-800 p-10 text-white lg:col-span-5 lg:flex lg:flex-col lg:justify-between xl:col-span-5 xl:p-12"
+      className="otium-architectural-grid relative hidden flex-col justify-between border-r border-stone-300/80 p-10 text-slate-900 lg:col-span-5 lg:flex xl:p-14"
     >
-      {/* Aksen cahaya latar belakang yang lembut dan tenang */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-sky-400/15 blur-3xl"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -bottom-28 -left-24 h-80 w-80 rounded-full bg-indigo-400/20 blur-3xl"
-      />
-
-      {/* Header Logo & Identitas Otium */}
-      <div className="relative z-10">
-        <div className="flex items-center gap-3.5">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center">
-            <img
-              src="/images/otium-logo.png"
-              alt="Logo Otium"
-              className="h-11 w-11 object-contain drop-shadow-sm"
-            />
-          </div>
+      {/* Baris Identitas Brand */}
+      <div className="flex items-center justify-between gap-4 border-b border-stone-300/80 pb-6">
+        <div className="flex items-center gap-3">
+          <img
+            src="/images/otium-logo.png"
+            alt="Logo Otium"
+            className="h-9 w-9 shrink-0 object-contain"
+          />
           <div>
-            <span className="block text-2xl font-bold tracking-tight text-white">
+            <span className="block text-lg font-bold leading-none tracking-tight text-slate-950">
               Otium
             </span>
-            <span className="block text-xs font-medium tracking-wide text-sky-200/90">
-              Sistem Manajemen Cuti Karyawan
+            <span className="mt-1 block text-[11px] font-medium uppercase tracking-[0.14em] text-slate-600">
+              Leave Management Portal
             </span>
           </div>
         </div>
 
-        {/* Tagline & Deskripsi Filosofis */}
-        <div className="mt-10">
-          <p className="inline-flex items-center gap-1.5 rounded-full border border-sky-300/25 bg-sky-400/10 px-3 py-1 text-xs font-medium text-sky-200">
-            <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-            Portal Internal Perusahaan
-          </p>
-          <h2 className="mt-4 text-3xl font-bold leading-tight tracking-tight text-white">
-            Kelola waktu istirahat dengan tenang dan terukur.
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-stone-300 bg-white/80 px-2.5 py-1 text-[11px] font-medium text-slate-700">
+          <span
+            className="h-1.5 w-1.5 rounded-full bg-emerald-600"
+            aria-hidden="true"
+          />
+          Portal Internal
+        </span>
+      </div>
+
+      {/* Pernyataan Editorial & Diagram Alur Persetujuan 2-Tahap */}
+      <div className="my-10 space-y-8">
+        <div className="max-w-md">
+          <h2 className="text-[2rem] font-semibold leading-[1.16] tracking-[-0.025em] text-slate-950">
+            Waktu istirahat yang terencana, alur kerja yang tetap terjaga.
           </h2>
-          <p className="mt-3 text-sm leading-relaxed text-slate-300">
-            Terinspirasi dari istilah Latin <em>otium</em> — waktu luang dan
-            ketenangan diri — portal ini menyederhanakan pengajuan, verifikasi,
-            serta pemantauan kuota cuti seluruh divisi dalam satu pintu.
+          <p className="mt-4 text-sm leading-relaxed text-slate-600">
+            Terinspirasi dari konsep Latin{" "}
+            <em className="font-medium text-slate-800">otium</em> — ketenangan
+            dan waktu luang yang bermakna — seluruh proses pengajuan,
+            verifikasi, dan kuota cuti terhimpun dalam satu pintu.
           </p>
         </div>
 
-        {/* Daftar Keunggulan Sistem */}
-        <ul className="mt-8 space-y-4">
-          {FEATURE_HIGHLIGHTS.map((item) => {
-            const Icon = item.icon;
-            return (
-              <li
-                key={item.title}
-                className="flex items-start gap-3.5 rounded-xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-sm"
-              >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-400/15 text-sky-300">
-                  <Icon className="h-4 w-4" aria-hidden="true" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-white">
+        {/* Kartu Ledger Alur Persetujuan (Domain-Authentic, Swiss Hairline Grid) */}
+        <div className="overflow-hidden rounded-xl border border-stone-300/90 bg-white/90">
+          <div className="flex items-center justify-between border-b border-stone-200 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+            <span>Alur Persetujuan Berjenjang</span>
+            <span className="font-mono text-slate-500">2-STAGE</span>
+          </div>
+
+          <ol className="divide-y divide-stone-200/90">
+            {WORKFLOW_STEPS.map((item) => (
+              <li key={item.step} className="flex items-start gap-3.5 px-4 py-3.5">
+                <span className="mt-0.5 font-mono text-xs font-semibold text-blue-700">
+                  {item.step}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900">
                     {item.title}
-                  </h3>
-                  <p className="mt-0.5 text-xs leading-relaxed text-slate-300">
-                    {item.description}
+                  </p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-slate-600">
+                    {item.detail}
                   </p>
                 </div>
               </li>
-            );
-          })}
-        </ul>
+            ))}
+          </ol>
+        </div>
       </div>
 
-      {/* Footer Panel: Badge 4 Role & Copyright */}
-      <div className="relative z-10 mt-10 border-t border-white/10 pt-6">
-        <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
-          Deteksi Akses Otomatis 4 Peran
-        </p>
-        <div className="mt-2.5 flex flex-wrap gap-2">
-          {SYSTEM_ROLES.map((role) => (
-            <span
-              key={role}
-              className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-slate-100"
-            >
-              {role}
+      {/* Colophon Footer: 4 Peran Otomatis & Copyright */}
+      <div className="border-t border-stone-300/80 pt-5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-slate-700">
+          <span className="text-slate-500">Deteksi peran otomatis</span>
+          <ArrowRight className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+          {SYSTEM_ROLES.map((role, index) => (
+            <span key={role} className="inline-flex items-center gap-2">
+              <span>{role}</span>
+              {index < SYSTEM_ROLES.length - 1 && (
+                <span className="text-stone-400" aria-hidden="true">
+                  /
+                </span>
+              )}
             </span>
           ))}
         </div>
-        <p className="mt-5 text-xs text-slate-400">
+
+        <p className="mt-3 text-xs text-slate-500">
           &copy; {new Date().getFullYear()} Otium &mdash; Sistem Manajemen Cuti
           Karyawan.
         </p>
       </div>
-    </section>
+    </aside>
   );
 }

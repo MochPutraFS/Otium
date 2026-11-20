@@ -1,3 +1,111 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --otium-ink: #0f172a;
+  --otium-alabaster: #f4f2ec;
+  --otium-accent: #1d4ed8;
+}
+
+/* Pola grid arsitektural halus untuk panel editorial Otium */
+.otium-architectural-grid {
+  background-color: var(--otium-alabaster);
+  background-image:
+    linear-gradient(to right, rgba(15, 23, 42, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.045) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Utilitas aksesibilitas kanonis (tetap terbaca screen reader, tersembunyi visual) */
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* Brand-consistent native checkbox menggunakan accent-color modern */
+.otium-checkbox {
+  accent-color: var(--otium-ink);
+  color-scheme: light;
+}
+
+/* Fallback progresif untuk browser lama tanpa dukungan accent-color */
+@supports not (accent-color: #0f172a) {
+  .otium-checkbox-label {
+    position: relative;
+    padding-left: 1.75rem;
+  }
+
+  .otium-checkbox-label input[type="checkbox"].otium-checkbox {
+    position: absolute !important;
+    clip-path: inset(50%) !important;
+    overflow: hidden !important;
+    width: 1px !important;
+    height: 1px !important;
+    margin: -1px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  .otium-checkbox-label input[type="checkbox"].otium-checkbox + span::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1rem;
+    height: 1rem;
+    border: 1.5px solid #94a3b8;
+    background: #ffffff;
+    border-radius: 4px;
+    box-sizing: border-box;
+    transition: background-color 150ms ease, border-color 150ms ease;
+  }
+
+  .otium-checkbox-label
+    input[type="checkbox"].otium-checkbox:focus-visible
+    + span::before {
+    outline: 2px solid var(--otium-ink);
+    outline-offset: 2px;
+  }
+
+  .otium-checkbox-label
+    input[type="checkbox"].otium-checkbox:checked
+    + span::before {
+    background-color: var(--otium-ink);
+    border-color: var(--otium-ink);
+  }
+
+  .otium-checkbox-label
+    input[type="checkbox"].otium-checkbox:checked
+    + span::after {
+    content: "✓";
+    position: absolute;
+    left: 0.2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #ffffff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

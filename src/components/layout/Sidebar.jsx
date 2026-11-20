@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { logoutAction } from "@/actions/auth-actions";
 import {
   Building2,
   CalendarPlus,
@@ -351,17 +352,19 @@ export default function Sidebar({
             </Link>
           )}
 
-          <Link
-            href="/login?reason=logged_out"
-            onClick={onCloseMobile}
-            title={compact ? "Keluar (Logout)" : undefined}
-            className={`flex w-full items-center rounded-xl text-sm font-medium text-rose-300 transition hover:bg-rose-500/15 hover:text-rose-200 ${
-              compact ? "justify-center p-2.5" : "gap-3 px-3 py-2"
-            }`}
-          >
-            <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
-            {!compact && <span>Keluar (Logout)</span>}
-          </Link>
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              onClick={onCloseMobile}
+              title={compact ? "Keluar (Logout)" : undefined}
+              className={`flex w-full cursor-pointer items-center rounded-xl text-sm font-medium text-rose-300 transition hover:bg-rose-500/15 hover:text-rose-200 ${
+                compact ? "justify-center p-2.5" : "gap-3 px-3 py-2"
+              }`}
+            >
+              <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
+              {!compact && <span>Keluar (Logout)</span>}
+            </button>
+          </form>
         </div>
       </div>
     );

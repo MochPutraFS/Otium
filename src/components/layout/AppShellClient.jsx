@@ -1,22 +1,46 @@
 "use client";
 
-import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import TopNavbar from "@/components/layout/TopNavbar";
-import PreviewRoleDock from "@/components/layout/PreviewRoleDock";
-import {
-  ROLE_PRESETS,
-  resolvePreviewRole,
-} from "@/lib/mock-dashboard-data";
+import { ROLE_PRESETS } from "@/lib/mock-dashboard-data";
 
-function AppShellInner({ children }) {
-  const searchParams = useSearchParams();
+function mapRoleToKey(role) {
+  switch (role) {
+    case "Admin":
+      return "admin";
+    case "Ketua Divisi":
+      return "ketua-divisi";
+    case "HRD":
+      return "hrd";
+    case "Karyawan":
+    default:
+      return "karyawan";
+  }
+}
+
+export default function AppShellClient({ sessionUser, children }) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  const previewRoleKey = resolvePreviewRole(searchParams.get("role"));
-  const activeUser = ROLE_PRESETS[previewRoleKey] || ROLE_PRESETS.karyawan;
+  const roleKey = mapRoleToKey(sessionUser?.role);
+  const fallbackPreset = ROLE_PRESETS[roleKey] || ROLE_PRESETS.karyawan;
+
+  const activeUser = sessionUser
+    ? {
+        ...fallbackPreset,
+        id: sessionUser.id,
+        username: sessionUser.username,
+        fullName: sessionUser.fullName,
+        email: sessionUser.email,
+        role: sessionUser.role,
+        divisionId: sessionUser.divisionId,
+        divisionName: sessionUser.divisionName,
+        initials: sessionUser.initials,
+        remainingLeaveQuota: sessionUser.remainingLeaveQuota,
+        initialLeaveQuota: sessionUser.initialLeaveQuota,
+      }
+    : fallbackPreset;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -24,7 +48,7 @@ function AppShellInner({ children }) {
         user={activeUser}
         userRole={activeUser.role}
         pendingCount={activeUser.pendingBadgeCount}
-        previewRoleKey={previewRoleKey}
+        previewRoleKey={roleKey}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
         isOpenMobile={isMobileSidebarOpen}
@@ -39,33 +63,14 @@ function AppShellInner({ children }) {
       >
         <TopNavbar
           user={activeUser}
-          previewRoleKey={previewRoleKey}
+          previewRoleKey={roleKey}
           onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
         />
 
-        <main className="flex-1 p-4 pb-20 sm:p-6 sm:pb-20">
+        <main className="flex-1 p-4 sm:p-6">
           <div className="mx-auto max-w-7xl">{children}</div>
         </main>
       </div>
-
-      {/* Tombol ganti role sementara untuk pratinjau UI */}
-      <PreviewRoleDock previewRoleKey={previewRoleKey} />
     </div>
-  );
-}
-
-// Dibungkus Suspense karena memakai useSearchParams di Next.js App Router.
-// Nanti saat backend siap, data user bisa langsung dikirim dari Server Layout.
-export default function AppShellClient({ children }) {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm text-slate-500">
-          Memuat ruang kerja Otium...
-        </div>
-      }
-    >
-      <AppShellInner>{children}</AppShellInner>
-    </Suspense>
   );
 }

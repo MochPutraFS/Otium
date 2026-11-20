@@ -1,29 +1,36 @@
+import { redirect } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import AdminDashboardView from "@/components/dashboard/AdminDashboardView";
 import EmployeeDashboardView from "@/components/dashboard/EmployeeDashboardView";
 import LeaderDashboardView from "@/components/dashboard/LeaderDashboardView";
 import HrdDashboardView from "@/components/dashboard/HrdDashboardView";
+import { getCurrentUser, mapRoleToUiKey } from "@/lib/auth";
 import {
   ADMIN_DASHBOARD_MOCK,
   EMPLOYEE_DASHBOARD_MOCK,
   HRD_DASHBOARD_MOCK,
   LEADER_DASHBOARD_MOCK,
-  resolvePreviewRole,
 } from "@/lib/mock-dashboard-data";
 
 export const metadata = {
   title: "Dashboard — Otium Sistem Manajemen Cuti Karyawan",
 };
 
-// Menampilkan tampilan dashboard sesuai role yang aktif.
-// Sementara role dibaca dari query ?role= di URL, nanti diganti sesi login dari server.
+/**
+ * Menampilkan tampilan dashboard otomatis sesuai role akun yang sedang login (deteksi role otomatis).
+ */
 export default async function DashboardPage({ searchParams }) {
+  const currentUser = await getCurrentUser();
+  if (!currentUser) {
+    redirect("/login?reason=inactive");
+  }
+
   const resolvedParams = (await searchParams) || {};
-  const previewRoleKey = resolvePreviewRole(resolvedParams.role);
   const errorCode = resolvedParams.error || "";
+  const activeRoleKey = mapRoleToUiKey(currentUser.role);
 
   function renderRoleDashboard() {
-    switch (previewRoleKey) {
+    switch (activeRoleKey) {
       case "admin":
         return <AdminDashboardView data={ADMIN_DASHBOARD_MOCK} />;
       case "ketua-divisi":
