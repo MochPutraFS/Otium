@@ -18,8 +18,9 @@ dist/
 *.key
 *.secret
 
-# Docs PDF, AI Agent Config & Local Tooling (dikecualikan dari repo)
-docs/TUGAS FINAL PRAKTIKUM PEMROGRAMAN WEB 2026.pdf
+# Private Docs, Internal Notes, AI Agent Config & Local Tooling (dikecualikan dari repo)
+docs/
+modulNameandRoute.md
 ANTIGRAVITY_RULES.md
 AGENTS.md
 CLAUDE.md
