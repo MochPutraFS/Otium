@@ -246,6 +246,14 @@ progress.otium-progress.otium-progress--ok {
   --otium-progress-fill: #059669;
 }
 
+progress.otium-progress.otium-progress--amber {
+  --otium-progress-fill: #d97706;
+}
+
+progress.otium-progress.otium-progress--sky {
+  --otium-progress-fill: #0284c7;
+}
+
 progress.otium-progress.otium-progress--danger {
   --otium-progress-fill: #be123c;
 }
