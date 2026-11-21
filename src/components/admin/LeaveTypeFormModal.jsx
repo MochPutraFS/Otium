@@ -1,19 +1,68 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Save, SlidersHorizontal, Sparkles, X } from "lucide-react";
-import { buildLeaveTypeRuleSummary } from "@/lib/mock-admin-data";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  AlertCircle,
+  Loader2,
+  Lock,
+  Save,
+  SlidersHorizontal,
+  Sparkles,
+  X,
+} from "lucide-react";
+import {
+  buildLeaveTypeRuleSummary,
+  isCoreLeaveTypeCode,
+} from "@/lib/leave-type-utils";
 
-// Modal Tambah / Edit Jenis Cuti Dinamis (CMS Modul 4)
+const CODE_REGEX = /^[A-Z0-9_]{2,30}$/;
+
+/**
+ * Modal Tambah / Edit Jenis Cuti Dinamis (CMS Modul 4) — Native <dialog className="otium-modal">.
+ * Mendukung validasi pasca-interaksi (blur-validate, input-clear), fokus ke field invalid pertama,
+ * penguncian kode inti (ANNUAL / SICK) saat mode Edit, dan sinkronisasi error server.
+ */
 export default function LeaveTypeFormModal({
   isOpen,
   mode = "create",
   initialLeaveType = null,
   existingLeaveTypes = [],
+  isSubmitting = false,
+  serverError = "",
+  serverFieldErrors = null,
   onClose,
   onSubmit,
 }) {
   const isEdit = mode === "edit" && Boolean(initialLeaveType);
+  const isCoreLocked =
+    isEdit && isCoreLeaveTypeCode(initialLeaveType?.code);
+
+  const dialogRef = useRef(null);
+  const codeInputRef = useRef(null);
+  const nameInputRef = useRef(null);
+  const maxQuotaInputRef = useRef(null);
+  const leadTimeInputRef = useRef(null);
+  const descriptionInputRef = useRef(null);
+
+  const formId = useId();
+  const titleId = useId();
+  const codeId = useId();
+  const codeHelpId = useId();
+  const codeErrorId = useId();
+  const nameId = useId();
+  const nameErrorId = useId();
+  const quotaId = useId();
+  const quotaHelpId = useId();
+  const quotaErrorId = useId();
+  const leadId = useId();
+  const leadHelpId = useId();
+  const leadErrorId = useId();
+  const descId = useId();
+  const descErrorId = useId();
+  const toggleAttachmentId = useId();
+  const toggleDeductId = useId();
+  const toggleTenureId = useId();
+  const toggleActiveId = useId();
 
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
@@ -25,10 +74,12 @@ export default function LeaveTypeFormModal({
     useState(false);
   const [isActive, setIsActive] = useState(true);
   const [description, setDescription] = useState("");
-  const [errors, setErrors] = useState({});
+  const [fieldErrors, setFieldErrors] = useState({});
 
+  // Reset nilai form setiap kali modal dibuka
   useEffect(() => {
     if (!isOpen) return;
+
     if (isEdit && initialLeaveType) {
       setCode(initialLeaveType.code || "");
       setName(initialLeaveType.name || "");
@@ -52,27 +103,106 @@ export default function LeaveTypeFormModal({
       setIsActive(true);
       setDescription("");
     }
-    setErrors({});
+    setFieldErrors({});
   }, [isOpen, isEdit, initialLeaveType]);
 
+  // Sinkronisasi fieldErrors dari Server Action
   useEffect(() => {
-    if (!isOpen) return;
-    function handleKeyDown(event) {
-      if (event.key === "Escape") onClose?.();
+    if (serverFieldErrors && typeof serverFieldErrors === "object") {
+      setFieldErrors((prev) => ({ ...prev, ...serverFieldErrors }));
     }
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [serverFieldErrors]);
+
+  // Sinkronisasi native <dialog> top-layer
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (isOpen) {
+      if (!dialog.open) {
+        dialog.showModal();
+      }
+      const focusTarget = isCoreLocked
+        ? nameInputRef.current
+        : codeInputRef.current;
+      focusTarget?.focus();
+    } else if (dialog.open) {
+      dialog.close();
+      dialog.returnValue = "";
+    }
+  }, [isOpen, isCoreLocked]);
+
+  // Event cancel/close & Safari light-dismiss fallback (pointerdown + pointerup)
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog || !isOpen) return undefined;
+
+    function handleCancel(event) {
+      if (isSubmitting) {
+        event.preventDefault();
+      }
+    }
+
+    function handleClose() {
+      dialog.returnValue = "";
+      if (!isSubmitting) {
+        onClose?.();
+      }
+    }
+
+    dialog.addEventListener("cancel", handleCancel);
+    dialog.addEventListener("close", handleClose);
+
+    let cleanupPointer = null;
+    if (
+      typeof HTMLDialogElement !== "undefined" &&
+      !("closedBy" in HTMLDialogElement.prototype)
+    ) {
+      let pressedOutside = false;
+      const isOutside = (e) => {
+        const rect = dialog.getBoundingClientRect();
+        return (
+          e.clientX < rect.left ||
+          e.clientX > rect.right ||
+          e.clientY < rect.top ||
+          e.clientY > rect.bottom
+        );
+      };
+      const onPointerDown = (e) => {
+        pressedOutside = isOutside(e);
+      };
+      const onPointerUp = (e) => {
+        if (!isSubmitting && pressedOutside && isOutside(e)) {
+          dialog.close();
+        }
+        pressedOutside = false;
+      };
+      dialog.addEventListener("pointerdown", onPointerDown);
+      dialog.addEventListener("pointerup", onPointerUp);
+      cleanupPointer = () => {
+        dialog.removeEventListener("pointerdown", onPointerDown);
+        dialog.removeEventListener("pointerup", onPointerUp);
+      };
+    }
+
+    return () => {
+      dialog.removeEventListener("cancel", handleCancel);
+      dialog.removeEventListener("close", handleClose);
+      cleanupPointer?.();
+    };
+  }, [isOpen, isSubmitting, onClose]);
 
   const rulePreview = useMemo(
     () =>
       buildLeaveTypeRuleSummary({
-        minSubmissionDays: Number(minSubmissionDays || 0),
+        maxQuota,
+        minSubmissionDays,
         requiresAttachment,
         deductsAnnualQuota,
         requiresMinOneYearTenure,
       }),
     [
+      maxQuota,
       minSubmissionDays,
       requiresAttachment,
       deductsAnnualQuota,
@@ -80,21 +210,23 @@ export default function LeaveTypeFormModal({
     ]
   );
 
-  if (!isOpen) return null;
-
-  function validateForm() {
+  function validateClientFields(
+    values = { code, name, maxQuota, minSubmissionDays, description }
+  ) {
     const nextErrors = {};
-    const normalizedCode = code.trim().toUpperCase();
-    const trimmedName = name.trim();
+    const normalizedCode = String(values.code || "")
+      .trim()
+      .toUpperCase();
+    const trimmedName = String(values.name || "").trim();
 
-    if (!normalizedCode || !/^[A-Z0-9_]{2,24}$/.test(normalizedCode)) {
+    if (!normalizedCode || !CODE_REGEX.test(normalizedCode)) {
       nextErrors.code =
-        "Kode wajib 2–24 karakter huruf kapital, angka, atau underscore (mis. MARRIAGE).";
+        "Kode wajib 2–30 karakter huruf kapital, angka, atau underscore (mis. MARRIAGE).";
     } else {
       const dupCode = existingLeaveTypes.some(
         (lt) =>
           lt.code.toUpperCase() === normalizedCode &&
-          (!isEdit || lt.id !== initialLeaveType.id)
+          (!isEdit || lt.id !== initialLeaveType?.id)
       );
       if (dupCode) {
         nextErrors.code = "Kode jenis cuti sudah digunakan.";
@@ -103,28 +235,35 @@ export default function LeaveTypeFormModal({
 
     if (trimmedName.length < 3) {
       nextErrors.name = "Nama jenis cuti minimal 3 karakter.";
+    } else if (trimmedName.length > 100) {
+      nextErrors.name = "Nama jenis cuti maksimal 100 karakter.";
     } else {
       const dupName = existingLeaveTypes.some(
         (lt) =>
           lt.name.toLowerCase() === trimmedName.toLowerCase() &&
-          (!isEdit || lt.id !== initialLeaveType.id)
+          (!isEdit || lt.id !== initialLeaveType?.id)
       );
       if (dupName) {
         nextErrors.name = "Nama jenis cuti sudah terdaftar.";
       }
     }
 
-    const parsedQuota = Number(maxQuota);
-    if (Number.isNaN(parsedQuota) || parsedQuota <= 0 || parsedQuota > 365) {
-      nextErrors.maxQuota = "Kuota maksimal harus > 0 (kelipatan 0.5).";
+    const parsedQuota = Number(values.maxQuota);
+    if (
+      values.maxQuota === "" ||
+      !Number.isFinite(parsedQuota) ||
+      parsedQuota <= 0 ||
+      parsedQuota > 365
+    ) {
+      nextErrors.maxQuota = "Kuota maksimal harus > 0 dan <= 365 hari.";
     } else if (Math.round(parsedQuota * 2) !== parsedQuota * 2) {
-      nextErrors.maxQuota = "Kuota harus kelipatan 0.5 hari.";
+      nextErrors.maxQuota = "Kuota maksimal harus kelipatan 0.5 hari.";
     }
 
-    const parsedLead = Number(minSubmissionDays);
+    const parsedLead = Number(values.minSubmissionDays);
     if (
-      minSubmissionDays === "" ||
-      Number.isNaN(parsedLead) ||
+      values.minSubmissionDays === "" ||
+      !Number.isFinite(parsedLead) ||
       !Number.isInteger(parsedLead) ||
       parsedLead < -30 ||
       parsedLead > 90
@@ -133,19 +272,59 @@ export default function LeaveTypeFormModal({
         "Batas waktu pengajuan harus bilangan bulat (-30 s.d. 90).";
     }
 
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
+    if (String(values.description || "").trim().length > 500) {
+      nextErrors.description = "Deskripsi maksimal 500 karakter.";
+    }
+
+    return nextErrors;
+  }
+
+  function handleBlurField(fieldName) {
+    const nextErrors = validateClientFields();
+    setFieldErrors((prev) => ({
+      ...prev,
+      [fieldName]: nextErrors[fieldName] || "",
+    }));
+  }
+
+  function clearFieldError(fieldName) {
+    setFieldErrors((prev) =>
+      prev[fieldName] ? { ...prev, [fieldName]: "" } : prev
+    );
+  }
+
+  function focusFirstInvalidField(errorsMap) {
+    const fieldOrder = [
+      { key: "code", ref: codeInputRef },
+      { key: "name", ref: nameInputRef },
+      { key: "maxQuota", ref: maxQuotaInputRef },
+      { key: "minSubmissionDays", ref: leadTimeInputRef },
+      { key: "description", ref: descriptionInputRef },
+    ];
+    for (const item of fieldOrder) {
+      if (errorsMap[item.key] && item.ref.current) {
+        item.ref.current.focus();
+        return;
+      }
+    }
   }
 
   function handleSubmit(event) {
     event.preventDefault();
-    if (!validateForm()) return;
+    if (isSubmitting) return;
+
+    const nextErrors = validateClientFields();
+    setFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      focusFirstInvalidField(nextErrors);
+      return;
+    }
 
     onSubmit?.({
       id: isEdit ? initialLeaveType.id : undefined,
-      code: code.trim().toUpperCase(),
+      code: isCoreLocked ? initialLeaveType.code : code.trim().toUpperCase(),
       name: name.trim(),
-      maxQuota: Number(maxQuota),
+      maxQuota: Number(Number(maxQuota).toFixed(1)),
       minSubmissionDays: Number(minSubmissionDays),
       requiresAttachment,
       deductsAnnualQuota,
@@ -157,75 +336,76 @@ export default function LeaveTypeFormModal({
 
   const toggleItems = [
     {
-      id: "toggle-attachment",
+      id: toggleAttachmentId,
+      name: "requires_attachment",
       checked: requiresAttachment,
       onChange: setRequiresAttachment,
       title: "Wajib Upload Lampiran Dokumen / Surat Bukti",
-      subtitle: "Kolom requires_attachment — wajib unggah PDF/JPG/PNG saat pengajuan.",
+      subtitle:
+        "Memaksa pemohon mengunggah PDF/JPG/PNG saat pengajuan (mis. Surat Dokter).",
     },
     {
-      id: "toggle-deduct",
+      id: toggleDeductId,
+      name: "deducts_annual_quota",
       checked: deductsAnnualQuota,
       onChange: setDeductsAnnualQuota,
       title: "Memotong Saldo Kuota Cuti Tahunan Utama (12 Hari)",
-      subtitle: "Kolom deducts_annual_quota — mengurangi remaining_leave_quota saat submit.",
+      subtitle:
+        "Mengurangi remaining_leave_quota saat submit & auto-refund saat batal/ditolak.",
     },
     {
-      id: "toggle-tenure",
+      id: toggleTenureId,
+      name: "requires_min_one_year_tenure",
       checked: requiresMinOneYearTenure,
       onChange: setRequiresMinOneYearTenure,
       title: "Wajib Masa Kerja Minimal 1 Tahun",
       subtitle:
-        "Kolom requires_min_one_year_tenure — memblokir karyawan masa kerja < 1 tahun.",
+        "Memblokir karyawan dengan masa kerja < 1 tahun dari pengajuan kategori ini.",
     },
     {
-      id: "toggle-active",
+      id: toggleActiveId,
+      name: "is_active",
       checked: isActive,
       onChange: setIsActive,
       title: "Status Jenis Cuti Aktif",
-      subtitle: "Jika nonaktif, jenis cuti disembunyikan dari dropdown Form Pengajuan.",
+      subtitle:
+        "Jika nonaktif, disembunyikan dari dropdown Form Pengajuan tanpa menghapus riwayat.",
     },
   ];
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="leave-type-form-modal-title"
+    <dialog
+      ref={dialogRef}
+      className="otium-modal"
+      aria-labelledby={titleId}
+      closedby={isSubmitting ? "none" : "any"}
     >
-      <div
-        className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      <div className="relative z-10 flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/70 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-200">
+      <div className="flex max-h-[calc(100dvh-2rem)] w-[min(42rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-stone-300 bg-white shadow-2xl">
+        {/* Header Editorial */}
+        <div className="flex items-start justify-between gap-4 border-b border-stone-200 bg-[#F4F2EC] px-6 py-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-stone-300 bg-white text-slate-900">
               <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
             </div>
             <div>
-              <h3
-                id="leave-type-form-modal-title"
-                className="text-base font-bold text-slate-900"
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600">
+                {isEdit ? "Perbarui Konfigurasi" : "Kategori Baru"} · leave_types
+              </p>
+              <h2
+                id={titleId}
+                className="mt-0.5 text-base font-bold tracking-tight text-slate-900"
               >
                 {isEdit ? "Ubah Jenis Cuti Dinamis" : "Tambah Jenis Cuti Baru"}
-              </h3>
-              <p className="text-xs text-slate-500">
-                Konfigurasi aturan jenis cuti tersimpan dinamis di tabel{" "}
-                <code>leave_types</code> tanpa hardcode.
-              </p>
+              </h2>
             </div>
           </div>
 
           <button
             type="button"
-            onClick={onClose}
-            aria-label="Tutup modal"
-            className="cursor-pointer rounded-lg p-1.5 text-slate-400 transition-colors duration-200 hover:bg-slate-200/70 hover:text-slate-700"
+            disabled={isSubmitting}
+            onClick={() => onClose?.()}
+            aria-label="Tutup dialog"
+            className="cursor-pointer rounded-lg p-1.5 text-slate-500 transition-colors duration-150 hover:bg-stone-200/70 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -233,187 +413,359 @@ export default function LeaveTypeFormModal({
 
         {/* Form Body */}
         <form
-          id="admin-leave-type-form"
+          id={formId}
+          method="post"
+          noValidate
+          aria-labelledby={titleId}
           onSubmit={handleSubmit}
-          className="flex-1 space-y-4 overflow-y-auto px-5 py-5"
+          className="flex-1 space-y-5 overflow-y-auto px-6 py-5"
         >
+          {serverError && (
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 rounded-lg border border-rose-300 bg-rose-50 px-3.5 py-3 text-xs font-medium text-rose-900"
+            >
+              <AlertCircle
+                className="mt-0.5 h-4 w-4 shrink-0 text-rose-700"
+                aria-hidden="true"
+              />
+              <span>{serverError}</span>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Kode Unik */}
             <div>
               <label
-                htmlFor="lt-code"
-                className="block text-xs font-semibold text-slate-700"
+                htmlFor={codeId}
+                className="flex items-center justify-between text-xs font-semibold text-slate-800"
               >
-                Kode Unik Jenis Cuti <span className="text-rose-600">*</span>
+                <span>
+                  Kode Unik Jenis Cuti{" "}
+                  <span className="text-rose-700" aria-hidden="true">
+                    *
+                  </span>
+                </span>
+                {isCoreLocked && (
+                  <span className="inline-flex items-center gap-1 rounded border border-stone-300 bg-[#F4F2EC] px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">
+                    <Lock className="h-2.5 w-2.5" aria-hidden="true" />
+                    Kode Inti
+                  </span>
+                )}
               </label>
               <input
-                id="lt-code"
+                ref={codeInputRef}
+                id={codeId}
+                name="code"
                 type="text"
+                required
+                readOnly={isCoreLocked}
+                maxLength={30}
+                autoCorrect="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                enterKeyHint="next"
                 value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                onChange={(e) => {
+                  if (isCoreLocked) return;
+                  setCode(e.target.value.toUpperCase());
+                  clearFieldError("code");
+                }}
+                onBlur={() => {
+                  if (!isCoreLocked) handleBlurField("code");
+                }}
+                aria-invalid={fieldErrors.code ? "true" : undefined}
+                aria-describedby={
+                  fieldErrors.code ? `${codeHelpId} ${codeErrorId}` : codeHelpId
+                }
                 placeholder="Contoh: MARRIAGE"
-                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 font-mono text-sm uppercase text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className={`otium-field-input mt-1.5 w-full rounded-lg border px-3.5 py-2.5 font-mono text-sm uppercase text-slate-900 transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900 ${
+                  isCoreLocked
+                    ? "cursor-not-allowed border-stone-200 bg-[#F4F2EC] text-slate-600"
+                    : "border-stone-300 bg-white hover:border-stone-400"
+                }`}
               />
-              {errors.code && (
-                <p className="mt-1 text-xs text-rose-600">{errors.code}</p>
+              <p id={codeHelpId} className="mt-1 text-[11px] text-slate-600">
+                {isCoreLocked
+                  ? "Kode inti dikunci agar aturan sistem (H-3 / H+3) tetap konsisten."
+                  : "Huruf kapital, angka, atau underscore (2–30 karakter)."}
+              </p>
+              {fieldErrors.code && (
+                <p
+                  id={codeErrorId}
+                  role="alert"
+                  className="mt-1 text-xs font-medium text-rose-700"
+                >
+                  {fieldErrors.code}
+                </p>
               )}
             </div>
 
+            {/* Nama Jenis Cuti */}
             <div>
               <label
-                htmlFor="lt-name"
-                className="block text-xs font-semibold text-slate-700"
+                htmlFor={nameId}
+                className="block text-xs font-semibold text-slate-800"
               >
-                Nama Jenis Cuti <span className="text-rose-600">*</span>
+                Nama Jenis Cuti{" "}
+                <span className="text-rose-700" aria-hidden="true">
+                  *
+                </span>
               </label>
               <input
-                id="lt-name"
+                ref={nameInputRef}
+                id={nameId}
+                name="name"
                 type="text"
+                required
+                minLength={3}
+                maxLength={100}
+                enterKeyHint="next"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  clearFieldError("name");
+                }}
+                onBlur={() => handleBlurField("name")}
+                aria-invalid={fieldErrors.name ? "true" : undefined}
+                aria-describedby={fieldErrors.name ? nameErrorId : undefined}
                 placeholder="Contoh: Cuti Menikah"
-                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="otium-field-input mt-1.5 w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors hover:border-stone-400 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
               />
-              {errors.name && (
-                <p className="mt-1 text-xs text-rose-600">{errors.name}</p>
+              {fieldErrors.name && (
+                <p
+                  id={nameErrorId}
+                  role="alert"
+                  className="mt-1 text-xs font-medium text-rose-700"
+                >
+                  {fieldErrors.name}
+                </p>
               )}
             </div>
 
+            {/* Kuota Maksimal */}
             <div>
               <label
-                htmlFor="lt-quota"
-                className="block text-xs font-semibold text-slate-700"
+                htmlFor={quotaId}
+                className="block text-xs font-semibold text-slate-800"
               >
-                Jumlah Kuota Maksimal (Hari){" "}
-                <span className="text-rose-600">*</span>
+                Kuota Maksimal (Hari){" "}
+                <span className="text-rose-700" aria-hidden="true">
+                  *
+                </span>
               </label>
               <input
-                id="lt-quota"
+                ref={maxQuotaInputRef}
+                id={quotaId}
+                name="max_quota"
                 type="number"
+                required
                 step="0.5"
                 min="0.5"
                 max="365"
+                inputMode="decimal"
+                enterKeyHint="next"
                 value={maxQuota}
-                onChange={(e) => setMaxQuota(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                onChange={(e) => {
+                  setMaxQuota(e.target.value);
+                  clearFieldError("maxQuota");
+                }}
+                onBlur={() => handleBlurField("maxQuota")}
+                aria-invalid={fieldErrors.maxQuota ? "true" : undefined}
+                aria-describedby={
+                  fieldErrors.maxQuota
+                    ? `${quotaHelpId} ${quotaErrorId}`
+                    : quotaHelpId
+                }
+                className="otium-field-input mt-1.5 w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm tabular-nums text-slate-900 transition-colors hover:border-stone-400 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
               />
-              {errors.maxQuota && (
-                <p className="mt-1 text-xs text-rose-600">{errors.maxQuota}</p>
+              <p id={quotaHelpId} className="mt-1 text-[11px] text-slate-600">
+                Mendukung pecahan kelipatan <code>0.5</code> hari (maks. 365).
+              </p>
+              {fieldErrors.maxQuota && (
+                <p
+                  id={quotaErrorId}
+                  role="alert"
+                  className="mt-1 text-xs font-medium text-rose-700"
+                >
+                  {fieldErrors.maxQuota}
+                </p>
               )}
             </div>
 
+            {/* Batas Waktu Pengajuan */}
             <div>
               <label
-                htmlFor="lt-leadtime"
-                className="block text-xs font-semibold text-slate-700"
+                htmlFor={leadId}
+                className="block text-xs font-semibold text-slate-800"
               >
                 Batas Waktu Pengajuan (Hari Kalender){" "}
-                <span className="text-rose-600">*</span>
+                <span className="text-rose-700" aria-hidden="true">
+                  *
+                </span>
               </label>
               <input
-                id="lt-leadtime"
+                ref={leadTimeInputRef}
+                id={leadId}
+                name="min_submission_days"
                 type="number"
+                required
                 step="1"
                 min="-30"
                 max="90"
+                inputMode="numeric"
+                enterKeyHint="next"
                 value={minSubmissionDays}
-                onChange={(e) => setMinSubmissionDays(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                onChange={(e) => {
+                  setMinSubmissionDays(e.target.value);
+                  clearFieldError("minSubmissionDays");
+                }}
+                onBlur={() => handleBlurField("minSubmissionDays")}
+                aria-invalid={fieldErrors.minSubmissionDays ? "true" : undefined}
+                aria-describedby={
+                  fieldErrors.minSubmissionDays
+                    ? `${leadHelpId} ${leadErrorId}`
+                    : leadHelpId
+                }
+                className="otium-field-input mt-1.5 w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm tabular-nums text-slate-900 transition-colors hover:border-stone-400 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
               />
-              <p className="mt-1 text-[11px] text-slate-500">
+              <p id={leadHelpId} className="mt-1 text-[11px] text-slate-600">
                 Positif = Min. H-n (mis. <code>3</code>), <code>0</code> = H-0,
                 Negatif = Maks. H+n (mis. <code>-3</code>).
               </p>
-              {errors.minSubmissionDays && (
-                <p className="mt-1 text-xs text-rose-600">
-                  {errors.minSubmissionDays}
+              {fieldErrors.minSubmissionDays && (
+                <p
+                  id={leadErrorId}
+                  role="alert"
+                  className="mt-1 text-xs font-medium text-rose-700"
+                >
+                  {fieldErrors.minSubmissionDays}
                 </p>
               )}
             </div>
           </div>
 
-          {/* Business Rules Toggles */}
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-600">
+          {/* Business Rules Toggles dalam <fieldset> + <legend> semantik */}
+          <fieldset className="space-y-2.5">
+            <legend className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">
               Pengaturan Aturan Bisnis (Business Rules)
-            </p>
-            <div className="mt-2 space-y-2">
+            </legend>
+            <div className="space-y-2">
               {toggleItems.map((item) => (
                 <label
                   key={item.id}
                   htmlFor={item.id}
-                  className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 transition-colors duration-150 hover:bg-slate-100/70"
+                  className="otium-checkbox-label flex cursor-pointer items-start gap-3 rounded-lg border border-stone-200 bg-[#FAF9F6] px-3.5 py-3 transition-colors duration-150 hover:border-stone-300 hover:bg-[#F4F2EC]"
                 >
                   <input
                     id={item.id}
+                    name={item.name}
                     type="checkbox"
                     checked={item.checked}
                     onChange={(e) => item.onChange(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 cursor-pointer rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    className="otium-checkbox mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-stone-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
                   />
-                  <div>
-                    <p className="text-xs font-semibold text-slate-900">
+                  <span className="block">
+                    <span className="block text-xs font-semibold text-slate-900">
                       {item.title}
-                    </p>
-                    <p className="text-[11px] text-slate-500">{item.subtitle}</p>
-                  </div>
+                    </span>
+                    <span className="mt-0.5 block text-[11px] leading-relaxed text-slate-600">
+                      {item.subtitle}
+                    </span>
+                  </span>
                 </label>
               ))}
             </div>
-          </div>
+          </fieldset>
 
-          {/* Live Rule Summary Preview */}
-          <div className="flex items-start gap-2.5 rounded-xl border border-sky-200 bg-sky-50/80 p-3 text-xs text-sky-900">
+          {/* Pratinjau Ringkasan Aturan */}
+          <div className="flex items-start gap-2.5 rounded-lg border border-stone-300 bg-[#F4F2EC] px-3.5 py-3 text-xs text-slate-800">
             <Sparkles
-              className="mt-0.5 h-4 w-4 shrink-0 text-sky-600"
+              className="mt-0.5 h-4 w-4 shrink-0 text-slate-700"
               aria-hidden="true"
             />
             <div>
-              <p className="font-semibold">
-                Pratinjau Ringkasan Aturan di Form Pemohon:
+              <p className="font-semibold text-slate-900">
+                Pratinjau Ringkasan Aturan di Form Pemohon
               </p>
-              <p className="mt-0.5 font-medium text-sky-800">{rulePreview}</p>
+              <p className="mt-0.5 leading-relaxed text-slate-700">
+                {rulePreview}
+              </p>
             </div>
           </div>
 
-          {/* Deskripsi */}
+          {/* Deskripsi / Panduan Pemohon */}
           <div>
-            <label
-              htmlFor="lt-description"
-              className="block text-xs font-semibold text-slate-700"
-            >
-              Deskripsi / Panduan Pemohon{" "}
-              <span className="font-normal text-slate-400">(Opsional)</span>
-            </label>
+            <div className="flex items-center justify-between">
+              <label
+                htmlFor={descId}
+                className="block text-xs font-semibold text-slate-800"
+              >
+                Deskripsi / Panduan Pemohon{" "}
+                <span className="font-normal text-slate-500">(Opsional)</span>
+              </label>
+              <span className="text-[11px] tabular-nums text-slate-500">
+                {description.length}/500
+              </span>
+            </div>
             <textarea
-              id="lt-description"
+              ref={descriptionInputRef}
+              id={descId}
+              name="description"
               rows={3}
+              maxLength={500}
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                clearFieldError("description");
+              }}
+              onBlur={() => handleBlurField("description")}
+              aria-invalid={fieldErrors.description ? "true" : undefined}
+              aria-describedby={fieldErrors.description ? descErrorId : undefined}
               placeholder="Tuliskan persyaratan dokumen atau panduan pengajuan jenis cuti ini..."
-              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              className="otium-field-input mt-1.5 w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors hover:border-stone-400 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
             />
+            {fieldErrors.description && (
+              <p
+                id={descErrorId}
+                role="alert"
+                className="mt-1 text-xs font-medium text-rose-700"
+              >
+                {fieldErrors.description}
+              </p>
+            )}
           </div>
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2.5 border-t border-slate-200 bg-slate-50/70 px-5 py-3.5">
+        <div className="flex items-center justify-end gap-2.5 border-t border-stone-200 bg-[#FAF9F6] px-6 py-3.5">
           <button
             type="button"
-            onClick={onClose}
-            className="cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-100"
+            disabled={isSubmitting}
+            onClick={() => onClose?.()}
+            className="cursor-pointer rounded-lg border border-stone-300 bg-white px-4 py-2 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:bg-[#F4F2EC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Batal
           </button>
           <button
             type="submit"
-            form="admin-leave-type-form"
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition-colors duration-200 hover:bg-blue-700"
+            form={formId}
+            disabled={isSubmitting}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Save className="h-3.5 w-3.5" aria-hidden="true" />
-            {isEdit ? "Simpan Perubahan" : "Simpan Jenis Cuti"}
+            {isSubmitting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+            ) : (
+              <Save className="h-3.5 w-3.5" aria-hidden="true" />
+            )}
+            {isSubmitting
+              ? "Menyimpan..."
+              : isEdit
+                ? "Simpan Perubahan"
+                : "Simpan Jenis Cuti"}
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

@@ -60,7 +60,7 @@ export default function AdminDashboardView({ data }) {
           </Link>
           <Link
             href="/admin/users?role=admin"
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700"
+            className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
           >
             <UserPlus className="h-4 w-4" aria-hidden="true" />
             Tambah Pengguna

@@ -593,3 +593,132 @@ export function validateRemoveMemberPayload(divisionId, userId) {
     },
   };
 }
+
+const LEAVE_TYPE_CODE_PATTERN = /^[A-Z0-9_]{2,30}$/;
+
+/**
+ * Validasi payload Create / Update Jenis Cuti Dinamis pada CMS Modul 4 (/admin/leave-types).
+ * Menegakkan aturan kolom tabel `leave_types` di PostgreSQL (`code`, `name`, `max_quota NUMERIC(4,1) > 0`,
+ * `min_submission_days INTEGER`, flag aturan bisnis boolean, dan `description`).
+ * @param {object} payload
+ * @param {{ mode?: "create" | "edit" }} [options]
+ */
+export function validateLeaveTypePayload(payload, { mode = "create" } = {}) {
+  const fieldErrors = {};
+
+  if (mode === "edit" && !isPositiveInt(payload?.id)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "ID jenis cuti tidak valid.",
+    };
+  }
+
+  const normalizedCode = sanitizeText(payload?.code, 30).toUpperCase();
+  if (!normalizedCode || !LEAVE_TYPE_CODE_PATTERN.test(normalizedCode)) {
+    fieldErrors.code =
+      "Kode wajib 2–30 karakter huruf kapital, angka, atau underscore (mis. MARRIAGE).";
+  }
+
+  const name = sanitizeText(payload?.name, 100);
+  if (name.length < 3) {
+    fieldErrors.name = "Nama jenis cuti wajib diisi (minimal 3 karakter).";
+  } else if (name.length > 100) {
+    fieldErrors.name = "Nama jenis cuti maksimal 100 karakter.";
+  }
+
+  const rawMaxQuota = payload?.maxQuota;
+  const parsedMaxQuota = Number(rawMaxQuota);
+  if (
+    rawMaxQuota === "" ||
+    rawMaxQuota === null ||
+    rawMaxQuota === undefined ||
+    !Number.isFinite(parsedMaxQuota) ||
+    parsedMaxQuota <= 0 ||
+    parsedMaxQuota > 365
+  ) {
+    fieldErrors.maxQuota = "Kuota maksimal harus > 0 dan <= 365 hari.";
+  } else if (Math.round(parsedMaxQuota * 2) !== parsedMaxQuota * 2) {
+    fieldErrors.maxQuota = "Kuota maksimal harus kelipatan 0.5 hari.";
+  }
+
+  const rawLeadTime = payload?.minSubmissionDays;
+  const parsedLeadTime = Number(rawLeadTime);
+  if (
+    rawLeadTime === "" ||
+    rawLeadTime === null ||
+    rawLeadTime === undefined ||
+    !Number.isFinite(parsedLeadTime) ||
+    !Number.isInteger(parsedLeadTime) ||
+    parsedLeadTime < -30 ||
+    parsedLeadTime > 90
+  ) {
+    fieldErrors.minSubmissionDays =
+      "Batas waktu pengajuan harus bilangan bulat antara -30 s.d. 90 hari.";
+  }
+
+  const rawDescription =
+    payload?.description === undefined || payload?.description === null
+      ? ""
+      : String(payload.description).trim();
+  if (rawDescription.length > 500) {
+    fieldErrors.description = "Deskripsi / panduan pemohon maksimal 500 karakter.";
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Periksa kembali data jenis cuti yang masih belum valid.",
+      fieldErrors,
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      id: mode === "edit" ? Number(payload.id) : null,
+      code: normalizedCode,
+      name,
+      maxQuota: Number(parsedMaxQuota.toFixed(1)),
+      minSubmissionDays: parsedLeadTime,
+      requiresAttachment: Boolean(payload?.requiresAttachment),
+      deductsAnnualQuota: Boolean(payload?.deductsAnnualQuota),
+      requiresMinOneYearTenure: Boolean(payload?.requiresMinOneYearTenure),
+      isActive:
+        payload?.isActive === undefined ? true : Boolean(payload.isActive),
+      description: rawDescription ? sanitizeText(rawDescription, 500) : null,
+    },
+  };
+}
+
+/**
+ * Validasi payload Toggle Status Aktif/Nonaktif Jenis Cuti pada CMS Modul 4.
+ * @param {number | string} leaveTypeId
+ * @param {boolean} isActive
+ */
+export function validateToggleLeaveTypeStatusPayload(leaveTypeId, isActive) {
+  if (!isPositiveInt(leaveTypeId)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "ID jenis cuti tidak valid.",
+    };
+  }
+
+  if (typeof isActive !== "boolean") {
+    return {
+      ok: false,
+      status: 400,
+      error: "Nilai status aktif jenis cuti tidak valid.",
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      leaveTypeId: Number(leaveTypeId),
+      isActive,
+    },
+  };
+}

@@ -1,30 +1,33 @@
+import { redirect } from "next/navigation";
 import AdminLeaveTypesClient from "@/components/admin/AdminLeaveTypesClient";
-import AdminRoleGuardNotice from "@/components/admin/AdminRoleGuardNotice";
-import {
-  ROLE_PRESETS,
-  resolvePreviewRole,
-} from "@/lib/mock-dashboard-data";
+import { getCurrentUser } from "@/lib/auth";
+import { getAdminLeaveTypesWorkspaceData } from "@/lib/admin-leave-types-data";
 
 export const metadata = {
   title: "Jenis Cuti Dinamis — Otium Sistem Manajemen Cuti Karyawan",
 };
 
-// Halaman CMS Modul 4: Manajemen Jenis Cuti Dinamis — Khusus Admin (/admin/leave-types)
-export default async function AdminLeaveTypesPage({ searchParams }) {
-  const resolvedParams = (await searchParams) || {};
-  const previewRoleKey = resolvePreviewRole(resolvedParams.role);
-  const activeUser = ROLE_PRESETS[previewRoleKey] || ROLE_PRESETS.karyawan;
-
-  if (activeUser.role !== "Admin") {
-    return (
-      <AdminRoleGuardNotice
-        currentRoleName={activeUser.role}
-        currentRoleKey={previewRoleKey}
-        targetPath="/admin/leave-types"
-        moduleTitle="Manajemen Jenis Cuti Dinamis"
-      />
-    );
+/**
+ * Halaman CMS Modul 4: Manajemen Jenis Cuti Dinamis (/admin/leave-types) — Pure Production.
+ * Layer 2 RBAC: memverifikasi sesi aktif & role 'Admin' di PostgreSQL,
+ * lalu memuat seluruh kategori jenis cuti beserta statistik & jumlah pemakaian.
+ */
+export default async function AdminLeaveTypesPage() {
+  const currentUser = await getCurrentUser();
+  if (!currentUser) {
+    redirect("/login?reason=inactive");
   }
 
-  return <AdminLeaveTypesClient />;
+  if (currentUser.role !== "Admin") {
+    redirect("/dashboard?error=unauthorized_role");
+  }
+
+  const workspaceData = await getAdminLeaveTypesWorkspaceData();
+
+  return (
+    <AdminLeaveTypesClient
+      initialLeaveTypes={workspaceData.leaveTypes}
+      initialStats={workspaceData.stats}
+    />
+  );
 }
