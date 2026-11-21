@@ -1,13 +1,7 @@
+import { redirect } from "next/navigation";
 import LeaveRequestForm from "@/components/leaves/LeaveRequestForm";
-import LeaveRoleGuardNotice from "@/components/leaves/LeaveRoleGuardNotice";
-import {
-  ROLE_PRESETS,
-  resolvePreviewRole,
-} from "@/lib/mock-dashboard-data";
-import {
-  COLLEAGUES_BY_DIVISION_MOCK,
-  LEAVE_TYPES_MOCK,
-} from "@/lib/mock-leaves-data";
+import { getCurrentUser } from "@/lib/auth";
+import { getNewLeaveWorkspaceData } from "@/lib/leave-request-data";
 
 export const metadata = {
   title: "Ajukan Cuti Baru — Otium Sistem Manajemen Cuti Karyawan",
@@ -15,31 +9,34 @@ export const metadata = {
 
 const ALLOWED_ROLES = ["Karyawan", "Ketua Divisi"];
 
-// Halaman Form Pengajuan Cuti (/leaves/new)
-export default async function NewLeavePage({ searchParams }) {
-  const resolvedParams = (await searchParams) || {};
-  const previewRoleKey = resolvePreviewRole(resolvedParams.role);
-  const activeUser = ROLE_PRESETS[previewRoleKey] || ROLE_PRESETS.karyawan;
-
-  if (!ALLOWED_ROLES.includes(activeUser.role)) {
-    return (
-      <LeaveRoleGuardNotice
-        roleName={activeUser.role}
-        targetPath="/leaves/new"
-      />
-    );
+/**
+ * Halaman Form Pengajuan Cuti Baru (/leaves/new) — Pure Production.
+ * Layer 2 RBAC: memverifikasi sesi aktif & role Karyawan / Ketua Divisi di PostgreSQL,
+ * lalu memuat jenis cuti aktif, rekan satu divisi, hari libur, dan jadwal cuti aktif.
+ */
+export default async function NewLeavePage() {
+  const currentUser = await getCurrentUser();
+  if (!currentUser) {
+    redirect("/login?reason=inactive");
   }
 
-  const divisionColleagues = (
-    COLLEAGUES_BY_DIVISION_MOCK[activeUser.divisionName] || []
-  ).filter((colleague) => colleague.id !== activeUser.id);
+  if (!ALLOWED_ROLES.includes(currentUser.role)) {
+    redirect("/dashboard?error=unauthorized_role");
+  }
+
+  const workspaceData = await getNewLeaveWorkspaceData(currentUser.id);
+  if (!workspaceData) {
+    redirect("/login?reason=inactive");
+  }
 
   return (
     <LeaveRequestForm
-      userProfile={activeUser}
-      roleKey={previewRoleKey}
-      leaveTypes={LEAVE_TYPES_MOCK.filter((lt) => lt.isActive)}
-      colleagues={divisionColleagues}
+      serverToday={workspaceData.serverToday}
+      userProfile={workspaceData.userProfile}
+      leaveTypes={workspaceData.leaveTypes}
+      colleagues={workspaceData.colleagues}
+      holidays={workspaceData.holidays}
+      activeLeaveRanges={workspaceData.activeLeaveRanges}
     />
   );
 }

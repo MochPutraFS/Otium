@@ -722,3 +722,171 @@ export function validateToggleLeaveTypeStatusPayload(leaveTypeId, isActive) {
     },
   };
 }
+
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const ATTACHMENT_URL_PATTERN = /^\/uploads\/attachments\/[a-zA-Z0-9._-]+$/;
+
+/**
+ * Mengecek apakah string YYYY-MM-DD adalah tanggal kalender yang valid.
+ * @param {string} value
+ */
+function isValidCalendarIsoDate(value) {
+  if (!value || typeof value !== "string" || !ISO_DATE_REGEX.test(value)) {
+    return false;
+  }
+  const [y, m, d] = value.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+}
+
+/**
+ * Validasi path lampiran hasil unggahan /api/upload (mencegah path traversal & URL eksternal).
+ * @param {string | null | undefined} url
+ */
+export function isValidAttachmentUrl(url) {
+  if (!url) return true;
+  if (typeof url !== "string") return false;
+  const trimmed = url.trim();
+  if (!trimmed) return true;
+  if (trimmed.includes("..")) return false;
+  return ATTACHMENT_URL_PATTERN.test(trimmed) && trimmed.length <= 255;
+}
+
+/**
+ * Validasi payload endpoint `POST /api/leaves/check-availability` (Modul 5).
+ * @param {object} payload
+ */
+export function validateAvailabilityPayload(payload) {
+  const fieldErrors = {};
+
+  if (!isPositiveInt(payload?.leaveTypeId)) {
+    fieldErrors.leaveTypeId = "Jenis cuti wajib dipilih.";
+  }
+
+  const isHalfDay = Boolean(payload?.isHalfDay);
+  const startDate = String(payload?.startDate || "").trim();
+  const rawEndDate = isHalfDay
+    ? startDate
+    : String(payload?.endDate || "").trim();
+
+  if (!isValidCalendarIsoDate(startDate)) {
+    fieldErrors.startDate = "Tanggal mulai cuti tidak valid (YYYY-MM-DD).";
+  }
+
+  if (!isValidCalendarIsoDate(rawEndDate)) {
+    fieldErrors.endDate = "Tanggal selesai cuti tidak valid (YYYY-MM-DD).";
+  } else if (isValidCalendarIsoDate(startDate) && rawEndDate < startDate) {
+    fieldErrors.endDate =
+      "Tanggal selesai tidak boleh lebih awal dari tanggal mulai.";
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Parameter pengecekan ketersediaan cuti tidak valid.",
+      fieldErrors,
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      leaveTypeId: Number(payload.leaveTypeId),
+      isHalfDay,
+      startDate,
+      endDate: rawEndDate,
+    },
+  };
+}
+
+/**
+ * Validasi payload dasar Server Action `submitLeaveRequestAction` (Modul 5 — Garda 2).
+ * Validasi bisnis lanjutan (hari kerja, masa kerja 1 tahun, lead time, lampiran wajib,
+ * anti-overlap, dan kecukupan kuota) dilanjutkan terhadap data PostgreSQL di dalam transaksi.
+ * @param {object} payload
+ */
+export function validateLeaveRequestPayload(payload) {
+  const fieldErrors = {};
+
+  if (!isPositiveInt(payload?.leaveTypeId)) {
+    fieldErrors.leaveTypeId = "Jenis cuti wajib dipilih.";
+  }
+
+  const isHalfDay = Boolean(payload?.isHalfDay);
+  const startDate = String(payload?.startDate || "").trim();
+  const endDate = isHalfDay
+    ? startDate
+    : String(payload?.endDate || "").trim();
+
+  if (!isValidCalendarIsoDate(startDate)) {
+    fieldErrors.startDate = "Tanggal mulai cuti wajib diisi dengan format valid.";
+  }
+
+  if (!isValidCalendarIsoDate(endDate)) {
+    fieldErrors.endDate = "Tanggal selesai cuti wajib diisi dengan format valid.";
+  } else if (isValidCalendarIsoDate(startDate) && endDate < startDate) {
+    fieldErrors.endDate =
+      "Tanggal selesai tidak boleh lebih awal dari tanggal mulai.";
+  }
+
+  const reason = sanitizeText(payload?.reason, 1000);
+  if (reason.length < 5) {
+    fieldErrors.reason = "Alasan cuti wajib diisi minimal 5 karakter.";
+  }
+
+  if (!isPositiveInt(payload?.handoverUserId)) {
+    fieldErrors.handoverUserId = "Rekan pengganti satu divisi wajib dipilih.";
+  }
+
+  const handoverNotes = sanitizeText(payload?.handoverNotes, 1000);
+  if (handoverNotes.length < 5) {
+    fieldErrors.handoverNotes =
+      "Catatan serah terima tugas wajib diisi minimal 5 karakter.";
+  }
+
+  const leaveAddress = sanitizeText(payload?.leaveAddress, 500);
+  if (leaveAddress.length < 5) {
+    fieldErrors.leaveAddress =
+      "Alamat selama cuti wajib diisi minimal 5 karakter.";
+  }
+
+  const emergencyPhone = sanitizeText(payload?.emergencyPhone, 30);
+  if (!emergencyPhone) {
+    fieldErrors.emergencyPhone = "Nomor telepon darurat wajib diisi.";
+  } else if (!/^[0-9+\-\s()]{8,20}$/.test(emergencyPhone)) {
+    fieldErrors.emergencyPhone =
+      "Format nomor darurat tidak valid (8–20 karakter angka, +, atau -).";
+  }
+
+  const rawAttachmentUrl = String(payload?.attachmentUrl || "").trim();
+  if (rawAttachmentUrl && !isValidAttachmentUrl(rawAttachmentUrl)) {
+    fieldErrors.attachmentUrl =
+      "Path lampiran tidak valid. Unggah ulang dokumen melalui tombol unggah.";
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Mohon lengkapi seluruh kolom wajib pada formulir pengajuan cuti.",
+      fieldErrors,
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      leaveTypeId: Number(payload.leaveTypeId),
+      isHalfDay,
+      startDate,
+      endDate,
+      reason,
+      handoverUserId: Number(payload.handoverUserId),
+      handoverNotes,
+      leaveAddress,
+      emergencyPhone,
+      attachmentUrl: rawAttachmentUrl || null,
+    },
+  };
+}
