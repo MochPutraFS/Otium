@@ -1,4 +1,5 @@
 import { query } from "@/lib/db";
+import { buildUserInitials } from "@/lib/auth";
 import { buildLeaveTypeRuleSummary } from "@/lib/leave-type-utils";
 
 /**
@@ -572,6 +573,8 @@ export async function getLeaveRequestDetailById(requestId, currentUser) {
       u.email AS applicant_email,
       u.username AS applicant_username,
       u.role AS applicant_role,
+      u.avatar_url AS applicant_avatar,
+      u.remaining_leave_quota,
       u.division_id AS applicant_division_id,
       d.name AS division_name,
       d.leader_id AS division_leader_id,
@@ -579,6 +582,7 @@ export async function getLeaveRequestDetailById(requestId, currentUser) {
       lr.leave_type_id,
       lt.code AS leave_type_code,
       lt.name AS leave_type_name,
+      lt.deducts_annual_quota,
       lr.is_half_day,
       TO_CHAR(lr.submission_date, 'YYYY-MM-DD') AS submission_date,
       TO_CHAR(lr.start_date, 'YYYY-MM-DD') AS start_date,
@@ -597,12 +601,12 @@ export async function getLeaveRequestDetailById(requestId, currentUser) {
       lr.rejection_reason,
       lr.cancellation_reason,
       lr.cancelled_at,
-      lr.leader_approved_at,
-      lr.leader_notes,
-      la_u.full_name AS leader_approver_name,
-      lr.hrd_approved_at,
-      lr.hrd_notes,
-      hr_u.full_name AS hrd_approver_name,
+      COALESCE(lr.leader_approved_at, la_s1.acted_at) AS leader_approved_at,
+      COALESCE(lr.leader_notes, la_s1.notes) AS leader_notes,
+      COALESCE(la_u.full_name, la_s1.approver_name_snapshot) AS leader_approver_name,
+      COALESCE(lr.hrd_approved_at, la_s2.acted_at) AS hrd_approved_at,
+      COALESCE(lr.hrd_notes, la_s2.notes) AS hrd_notes,
+      COALESCE(hr_u.full_name, la_s2.approver_name_snapshot) AS hrd_approver_name,
       lr.created_at
     FROM leave_requests lr
     JOIN users u ON lr.user_id = u.id
@@ -612,6 +616,10 @@ export async function getLeaveRequestDetailById(requestId, currentUser) {
     LEFT JOIN users hu ON lr.handover_user_id = hu.id
     LEFT JOIN users la_u ON lr.leader_approver_id = la_u.id
     LEFT JOIN users hr_u ON lr.hrd_approver_id = hr_u.id
+    LEFT JOIN leave_approvals la_s1
+           ON la_s1.leave_request_id = lr.id AND la_s1.approval_stage = 1
+    LEFT JOIN leave_approvals la_s2
+           ON la_s2.leave_request_id = lr.id AND la_s2.approval_stage = 2
     WHERE lr.id = $1
     LIMIT 1;
   `;
@@ -663,6 +671,10 @@ export async function getLeaveRequestDetailById(requestId, currentUser) {
       ...mapLeaveRequestRow(row, approvalsRes.rows),
       applicantEmail: row.applicant_email || "",
       applicantUsername: row.applicant_username || "",
+      applicantAvatar: row.applicant_avatar || null,
+      applicantInitials: buildUserInitials(row.applicant_name),
+      remainingQuota: Number(row.remaining_leave_quota ?? 0),
+      deductsAnnualQuota: Boolean(row.deducts_annual_quota),
       approvals: approvalsRes.rows.map((a) => ({
         id: a.id,
         approverName: a.approver_name_snapshot,

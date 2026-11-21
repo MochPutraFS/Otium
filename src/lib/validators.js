@@ -1022,3 +1022,113 @@ export function validateLeaveListQueryParams(params) {
     },
   };
 }
+
+const ALLOWED_APPROVAL_ACTIONS = new Set(["Approve", "Reject"]);
+const ALLOWED_LEADER_HISTORY_STATUSES = new Set([
+  "ALL",
+  "Approved by Leader",
+  "Approved",
+  "Rejected",
+  "Cancelled",
+]);
+const ALLOWED_LEADER_TABS = new Set(["all", "queue", "history"]);
+
+/**
+ * Validasi payload Server Action `verifyByLeaderAction` (Modul 6A — Verifikasi Tahap 1).
+ * - Mode `Approve`: catatan bersifat opsional (maks 500 karakter).
+ * - Mode `Reject`: alasan penolakan WAJIB diisi minimal 5 karakter (maks 500 karakter).
+ * @param {number|string} requestId
+ * @param {string} action
+ * @param {string} notes
+ */
+export function validateLeaderVerificationPayload(requestId, action, notes) {
+  const fieldErrors = {};
+
+  if (!isPositiveInt(requestId)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "ID pengajuan cuti tidak valid.",
+      fieldErrors: { requestId: "ID pengajuan cuti tidak valid." },
+    };
+  }
+
+  const normalizedAction = String(action || "").trim();
+  if (!ALLOWED_APPROVAL_ACTIONS.has(normalizedAction)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Tindakan verifikasi tidak valid (hanya Approve atau Reject).",
+      fieldErrors: { action: "Tindakan verifikasi tidak valid." },
+    };
+  }
+
+  const trimmedNotes = sanitizeText(notes, 500);
+  if (normalizedAction === "Reject" && trimmedNotes.length < 5) {
+    fieldErrors.notes =
+      "Alasan penolakan wajib diisi minimal 5 karakter agar pemohon memahami dasar keputusan.";
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return {
+      ok: false,
+      status: 400,
+      error: fieldErrors.notes,
+      fieldErrors,
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      requestId: Number(requestId),
+      action: normalizedAction,
+      notes: trimmedNotes,
+    },
+  };
+}
+
+/**
+ * Validasi & sanitasi query parameter untuk `GET /api/approvals/leader`.
+ * @param {URLSearchParams|object} params
+ */
+export function validateLeaderApprovalQueryParams(params) {
+  const getParam = (key) => {
+    if (!params) return "";
+    if (typeof params.get === "function") return params.get(key) || "";
+    return params[key] || "";
+  };
+
+  const rawTab = String(getParam("tab") || "all").trim().toLowerCase();
+  const tab = ALLOWED_LEADER_TABS.has(rawTab) ? rawTab : "all";
+
+  const rawLeaveTypeId = String(getParam("leaveTypeId") || "ALL").trim();
+  let leaveTypeId = null;
+  if (rawLeaveTypeId && rawLeaveTypeId !== "ALL") {
+    if (!isPositiveInt(rawLeaveTypeId)) {
+      return {
+        ok: false,
+        status: 400,
+        error: "Parameter filter jenis cuti tidak valid.",
+      };
+    }
+    leaveTypeId = Number(rawLeaveTypeId);
+  }
+
+  const rawStatus = String(getParam("status") || "ALL").trim();
+  const status = ALLOWED_LEADER_HISTORY_STATUSES.has(rawStatus)
+    ? rawStatus
+    : "ALL";
+
+  const search = sanitizeText(getParam("search"), 100);
+
+  return {
+    ok: true,
+    data: {
+      tab,
+      leaveTypeId,
+      status,
+      search,
+    },
+  };
+}
