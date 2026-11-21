@@ -308,3 +308,222 @@ export async function getLeaderApprovalWorkspaceData(leaderId, filters = {}) {
     requests: requestsRes.rows.map(mapLeaderApprovalRow),
   };
 }
+
+/**
+ * Memuat seluruh data workspace Modul 6B: Persetujuan Final & Multi-Approve HRD (/approvals/hrd)
+ * secara langsung dari PostgreSQL dengan Raw SQL terparameterisasi.
+ *
+ * Cakupan Antrean Final HRD (2 Jalur Resmi PRD):
+ * - Jalur 1: Pemohon `role = 'Karyawan'` dengan `status = 'Approved by Leader'`
+ * - Jalur 2: Pemohon `role = 'Ketua Divisi'` dengan `status = 'Pending'`
+ * - Tab 2 (Perusahaan): Seluruh pengajuan cuti karyawan di semua divisi & 5 status resmi.
+ *
+ * @param {number} hrdId
+ * @param {{ tab?: string, jalur?: string, divisionId?: number|null, leaveTypeId?: number|null, status?: string, search?: string }} [filters]
+ */
+export async function getHrdApprovalWorkspaceData(hrdId, filters = {}) {
+  const hrdSql = `
+    SELECT
+      u.id,
+      u.full_name,
+      u.role,
+      u.avatar_url
+    FROM users u
+    WHERE u.id = $1
+      AND u.is_active = TRUE
+    LIMIT 1;
+  `;
+
+  const divisionsSql = `
+    SELECT id, name
+    FROM divisions
+    ORDER BY name ASC;
+  `;
+
+  const leaveTypesSql = `
+    SELECT
+      id,
+      code,
+      name,
+      is_active
+    FROM leave_types
+    WHERE is_active = TRUE
+    ORDER BY
+      CASE code
+        WHEN 'ANNUAL' THEN 1
+        WHEN 'SICK' THEN 2
+        ELSE 3
+      END,
+      name ASC;
+  `;
+
+  const countsSql = `
+    SELECT
+      COUNT(*) FILTER (
+        WHERE (u.role = 'Karyawan' AND lr.status = 'Approved by Leader')
+           OR (u.role = 'Ketua Divisi' AND lr.status = 'Pending')
+      )::int AS pending_final_count,
+      COUNT(*) FILTER (
+        WHERE u.role = 'Karyawan' AND lr.status = 'Approved by Leader'
+      )::int AS jalur1_count,
+      COUNT(*) FILTER (
+        WHERE u.role = 'Ketua Divisi' AND lr.status = 'Pending'
+      )::int AS jalur2_count,
+      COUNT(*) FILTER (WHERE lr.status = 'Approved')::int AS approved_count,
+      COUNT(*)::int AS total_count
+    FROM leave_requests lr
+    JOIN users u ON lr.user_id = u.id;
+  `;
+
+  // Bangun klausa WHERE dinamis terparameterisasi
+  const whereClauses = ["1 = 1"];
+  const params = [];
+
+  if (filters.tab === "queue") {
+    whereClauses.push(
+      "((u.role = 'Karyawan' AND lr.status = 'Approved by Leader') OR (u.role = 'Ketua Divisi' AND lr.status = 'Pending'))"
+    );
+  }
+
+  if (filters.jalur === "J1") {
+    whereClauses.push("u.role = 'Karyawan'");
+  } else if (filters.jalur === "J2") {
+    whereClauses.push("u.role = 'Ketua Divisi'");
+  }
+
+  if (filters.divisionId) {
+    params.push(filters.divisionId);
+    whereClauses.push(`u.division_id = $${params.length}`);
+  }
+
+  if (filters.leaveTypeId) {
+    params.push(filters.leaveTypeId);
+    whereClauses.push(`lr.leave_type_id = $${params.length}`);
+  }
+
+  if (filters.status && filters.status !== "ALL" && filters.tab !== "queue") {
+    params.push(filters.status);
+    whereClauses.push(`lr.status = $${params.length}`);
+  }
+
+  if (filters.search) {
+    params.push(`%${filters.search}%`);
+    const idx = params.length;
+    whereClauses.push(
+      `(u.full_name ILIKE $${idx} OR lr.reason ILIKE $${idx} OR COALESCE(d.name, '') ILIKE $${idx} OR COALESCE(hu.full_name, '') ILIKE $${idx})`
+    );
+  }
+
+  const requestsSql = `
+    SELECT
+      lr.id,
+      lr.user_id,
+      u.full_name AS applicant_name,
+      u.role AS applicant_role,
+      u.avatar_url AS applicant_avatar,
+      u.remaining_leave_quota,
+      u.division_id,
+      COALESCE(d.name, 'Tanpa Divisi') AS division_name,
+      lr.leave_type_id,
+      lt.code AS leave_type_code,
+      lt.name AS leave_type_name,
+      lt.deducts_annual_quota,
+      lr.is_half_day,
+      TO_CHAR(lr.submission_date, 'YYYY-MM-DD') AS submission_date,
+      TO_CHAR(lr.start_date, 'YYYY-MM-DD') AS start_date,
+      TO_CHAR(lr.end_date, 'YYYY-MM-DD') AS end_date,
+      lr.total_days,
+      lr.reason,
+      lr.handover_user_id,
+      hu.full_name AS handover_user_name,
+      lr.handover_notes,
+      lr.attachment_url,
+      lr.leave_address,
+      lr.emergency_phone,
+      lr.status,
+      lr.quota_deducted,
+      lr.rejected_by_role,
+      lr.rejection_reason,
+      lr.cancellation_reason,
+      lr.cancelled_at,
+      COALESCE(leader_u.full_name, la_s1.approver_name_snapshot) AS leader_approver_name,
+      COALESCE(lr.leader_approved_at, la_s1.acted_at) AS leader_approved_at,
+      COALESCE(lr.leader_notes, la_s1.notes) AS leader_notes,
+      COALESCE(hrd_u.full_name, la_s2.approver_name_snapshot) AS hrd_approver_name,
+      COALESCE(lr.hrd_approved_at, la_s2.acted_at) AS hrd_approved_at,
+      COALESCE(lr.hrd_notes, la_s2.notes) AS hrd_notes,
+      lr.created_at
+    FROM leave_requests lr
+    JOIN users u ON lr.user_id = u.id
+    LEFT JOIN divisions d ON u.division_id = d.id
+    JOIN leave_types lt ON lr.leave_type_id = lt.id
+    LEFT JOIN users hu ON lr.handover_user_id = hu.id
+    LEFT JOIN users leader_u ON lr.leader_approver_id = leader_u.id
+    LEFT JOIN users hrd_u ON lr.hrd_approver_id = hrd_u.id
+    LEFT JOIN leave_approvals la_s1
+           ON la_s1.leave_request_id = lr.id AND la_s1.approval_stage = 1
+    LEFT JOIN leave_approvals la_s2
+           ON la_s2.leave_request_id = lr.id AND la_s2.approval_stage = 2
+    WHERE ${whereClauses.join(" AND ")}
+    ORDER BY
+      CASE
+        WHEN (u.role = 'Karyawan' AND lr.status = 'Approved by Leader')
+          OR (u.role = 'Ketua Divisi' AND lr.status = 'Pending')
+        THEN 0
+        ELSE 1
+      END ASC,
+      lr.created_at DESC;
+  `;
+
+  const [hrdRes, divisionsRes, leaveTypesRes, countsRes, requestsRes] =
+    await Promise.all([
+      query(hrdSql, [hrdId]),
+      query(divisionsSql),
+      query(leaveTypesSql),
+      query(countsSql),
+      query(requestsSql, params),
+    ]);
+
+  const hrdRow = hrdRes.rows[0];
+  if (!hrdRow) return null;
+
+  const hrdProfile = {
+    id: hrdRow.id,
+    fullName: hrdRow.full_name,
+    role: hrdRow.role,
+    avatarUrl: hrdRow.avatar_url || null,
+    initials: buildUserInitials(hrdRow.full_name),
+  };
+
+  const divisions = divisionsRes.rows.map((d) => ({
+    id: d.id,
+    name: d.name,
+  }));
+
+  const leaveTypes = leaveTypesRes.rows.map((lt) => ({
+    id: lt.id,
+    code: lt.code,
+    name: lt.name,
+    isActive: Boolean(lt.is_active),
+  }));
+
+  const countRow = countsRes.rows[0] || {};
+  const counts = {
+    pendingFinal: Number(countRow.pending_final_count || 0),
+    jalur1: Number(countRow.jalur1_count || 0),
+    jalur2: Number(countRow.jalur2_count || 0),
+    approved: Number(countRow.approved_count || 0),
+    total: Number(countRow.total_count || 0),
+  };
+
+  return {
+    hrdProfile,
+    divisions,
+    leaveTypes,
+    counts,
+    requests: requestsRes.rows.map((row) => ({
+      ...mapLeaderApprovalRow(row),
+      divisionId: row.division_id ?? null,
+    })),
+  };
+}

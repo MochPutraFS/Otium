@@ -85,7 +85,8 @@ export async function GET(_request, context) {
       );
     }
 
-    const docNumber = `OTM/CUTI/${new Date().getFullYear()}/${String(leave.id).padStart(4, "0")}`;
+    const docYear = String(leave.submissionDate || "").slice(0, 4) || String(new Date().getFullYear());
+    const docNumber = `OTM/CUTI/${docYear}/${String(leave.id).padStart(4, "0")}`;
     const periodLabel = formatIndonesianDateRange(
       leave.startDate,
       leave.endDate,
@@ -93,6 +94,9 @@ export async function GET(_request, context) {
     );
     const submissionDateLabel = formatIndonesianDate(leave.submissionDate);
     const isLeaderApplicant = leave.applicantRole === "Ketua Divisi";
+    const workflowLabel = isLeaderApplicant
+      ? "Jalur 2 — Langsung Ketua Divisi ke HRD"
+      : "Jalur 1 — Berjenjang 2 Tahap (Ketua Divisi → HRD)";
 
     const stage1 = leave.approvals.find((a) => a.stage === 1);
     const stage2 = leave.approvals.find((a) => a.stage === 2);
@@ -366,8 +370,12 @@ export async function GET(_request, context) {
           <td>${escapeHtml(leave.divisionName || "-")}</td>
         </tr>
         <tr>
-          <th>Email</th>
-          <td>${escapeHtml(leave.applicantEmail || "-")}</td>
+          <th>Email / Username</th>
+          <td>${escapeHtml(leave.applicantEmail || "-")}${leave.applicantUsername ? ` (${escapeHtml(leave.applicantUsername)})` : ""}</td>
+        </tr>
+        <tr>
+          <th>Jalur Persetujuan</th>
+          <td>${escapeHtml(workflowLabel)}</td>
         </tr>
       </table>
     </section>
@@ -445,6 +453,7 @@ export async function GET(_request, context) {
       headers: {
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (error) {

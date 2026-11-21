@@ -1132,3 +1132,192 @@ export function validateLeaderApprovalQueryParams(params) {
     },
   };
 }
+
+const ALLOWED_HRD_TABS = new Set(["all", "queue", "company"]);
+const ALLOWED_HRD_JALUR = new Set(["ALL", "J1", "J2"]);
+const ALLOWED_HRD_STATUSES = new Set([
+  "ALL",
+  "Pending",
+  "Approved by Leader",
+  "Approved",
+  "Rejected",
+  "Cancelled",
+]);
+const MAX_HRD_BULK_ITEMS = 50;
+
+/**
+ * Validasi payload Server Action `verifyByHrdAction` (Modul 6B — Persetujuan Final Tunggal HRD).
+ * - Mode `Approve`: catatan bersifat opsional (maks 500 karakter).
+ * - Mode `Reject`: alasan penolakan WAJIB diisi minimal 5 karakter (maks 500 karakter).
+ * @param {number|string} requestId
+ * @param {string} action
+ * @param {string} notes
+ */
+export function validateHrdDecisionPayload(requestId, action, notes) {
+  const fieldErrors = {};
+
+  if (!isPositiveInt(requestId)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "ID pengajuan cuti tidak valid.",
+      fieldErrors: { requestId: "ID pengajuan cuti tidak valid." },
+    };
+  }
+
+  const normalizedAction = String(action || "").trim();
+  if (!ALLOWED_APPROVAL_ACTIONS.has(normalizedAction)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Tindakan persetujuan HRD tidak valid (hanya Approve atau Reject).",
+      fieldErrors: { action: "Tindakan persetujuan tidak valid." },
+    };
+  }
+
+  const trimmedNotes = sanitizeText(notes, 500);
+  if (normalizedAction === "Reject" && trimmedNotes.length < 5) {
+    fieldErrors.notes =
+      "Alasan penolakan HRD wajib diisi minimal 5 karakter agar pemohon memahami dasar keputusan.";
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return {
+      ok: false,
+      status: 400,
+      error: fieldErrors.notes,
+      fieldErrors,
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      requestId: Number(requestId),
+      action: normalizedAction,
+      notes: trimmedNotes,
+    },
+  };
+}
+
+/**
+ * Validasi payload Server Action `bulkApproveByHrdAction` (Modul 6B — Multi-Approve Checkbox).
+ * - Wajib berupa array non-kosong berisi ID integer positif (1..50 item unik).
+ * - Catatan massal bersifat opsional (maks 500 karakter).
+ * @param {Array<number|string>} requestIds
+ * @param {string} notes
+ */
+export function validateHrdBulkApprovePayload(requestIds, notes = "") {
+  if (!Array.isArray(requestIds) || requestIds.length === 0) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Pilih minimal 1 pengajuan cuti untuk diproses melalui Multi-Approve.",
+      fieldErrors: {
+        requestIds: "Minimal 1 pengajuan harus dipilih.",
+      },
+    };
+  }
+
+  const uniqueIds = [];
+  const seen = new Set();
+  for (const rawId of requestIds) {
+    if (!isPositiveInt(rawId)) {
+      return {
+        ok: false,
+        status: 400,
+        error: "Terdapat ID pengajuan cuti yang tidak valid pada daftar pilihan.",
+        fieldErrors: {
+          requestIds: "Daftar ID pengajuan tidak valid.",
+        },
+      };
+    }
+    const numId = Number(rawId);
+    if (!seen.has(numId)) {
+      seen.add(numId);
+      uniqueIds.push(numId);
+    }
+  }
+
+  if (uniqueIds.length > MAX_HRD_BULK_ITEMS) {
+    return {
+      ok: false,
+      status: 400,
+      error: `Multi-Approve dibatasi maksimal ${MAX_HRD_BULK_ITEMS} pengajuan dalam satu transaksi.`,
+      fieldErrors: {
+        requestIds: `Maksimal ${MAX_HRD_BULK_ITEMS} pengajuan per batch.`,
+      },
+    };
+  }
+
+  const trimmedNotes = sanitizeText(notes, 500);
+
+  return {
+    ok: true,
+    data: {
+      requestIds: uniqueIds,
+      notes: trimmedNotes,
+    },
+  };
+}
+
+/**
+ * Validasi & sanitasi query parameter untuk `GET /api/approvals/hrd`.
+ * @param {URLSearchParams|object} params
+ */
+export function validateHrdApprovalQueryParams(params) {
+  const getParam = (key) => {
+    if (!params) return "";
+    if (typeof params.get === "function") return params.get(key) || "";
+    return params[key] || "";
+  };
+
+  const rawTab = String(getParam("tab") || "all").trim().toLowerCase();
+  const tab = ALLOWED_HRD_TABS.has(rawTab) ? rawTab : "all";
+
+  const rawJalur = String(getParam("jalur") || "ALL").trim().toUpperCase();
+  const jalur = ALLOWED_HRD_JALUR.has(rawJalur) ? rawJalur : "ALL";
+
+  const rawDivisionId = String(getParam("divisionId") || "ALL").trim();
+  let divisionId = null;
+  if (rawDivisionId && rawDivisionId !== "ALL") {
+    if (!isPositiveInt(rawDivisionId)) {
+      return {
+        ok: false,
+        status: 400,
+        error: "Parameter filter divisi tidak valid.",
+      };
+    }
+    divisionId = Number(rawDivisionId);
+  }
+
+  const rawLeaveTypeId = String(getParam("leaveTypeId") || "ALL").trim();
+  let leaveTypeId = null;
+  if (rawLeaveTypeId && rawLeaveTypeId !== "ALL") {
+    if (!isPositiveInt(rawLeaveTypeId)) {
+      return {
+        ok: false,
+        status: 400,
+        error: "Parameter filter jenis cuti tidak valid.",
+      };
+    }
+    leaveTypeId = Number(rawLeaveTypeId);
+  }
+
+  const rawStatus = String(getParam("status") || "ALL").trim();
+  const status = ALLOWED_HRD_STATUSES.has(rawStatus) ? rawStatus : "ALL";
+
+  const search = sanitizeText(getParam("search"), 100);
+
+  return {
+    ok: true,
+    data: {
+      tab,
+      jalur,
+      divisionId,
+      leaveTypeId,
+      status,
+      search,
+    },
+  };
+}
