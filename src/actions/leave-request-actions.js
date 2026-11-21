@@ -8,7 +8,10 @@ import {
   formatIndonesianDateRange,
   validateSubmissionLeadTime,
 } from "@/lib/date-utils";
-import { validateLeaveRequestPayload } from "@/lib/validators";
+import {
+  validateCancelLeavePayload,
+  validateLeaveRequestPayload,
+} from "@/lib/validators";
 
 /**
  * Menerjemahkan error constraint PostgreSQL pada tabel `leave_requests` / `notifications`
@@ -445,6 +448,152 @@ export async function submitLeaveRequestAction(payload) {
       ok: false,
       status: 500,
       error: "Terjadi kesalahan saat menyimpan pengajuan cuti. Silakan coba lagi.",
+    };
+  }
+}
+
+/**
+ * Modul 5 — Pembatalan Pengajuan Cuti oleh Pemohon (Karyawan & Ketua Divisi) + Auto-Refund Kuota.
+ * Hanya mengizinkan pembatalan milik sendiri (`user_id = auth.user.id`) saat status masih `'Pending'`.
+ * Alasan pembatalan wajib diisi. Jika `quota_deducted = TRUE`, kuota dikembalikan otomatis dalam
+ * transaksi atomik (`withTransaction` + `SELECT ... FOR UPDATE`).
+ * @param {number|string} requestId
+ * @param {string} cancellationReason
+ */
+export async function cancelLeaveRequestAction(requestId, cancellationReason) {
+  try {
+    // Layer 2 RBAC: hanya Karyawan & Ketua Divisi
+    const auth = await requireRole(["Karyawan", "Ketua Divisi"]);
+    if (!auth.ok) {
+      return { ok: false, status: auth.status, error: auth.error };
+    }
+
+    // Validasi payload server-side
+    const validation = validateCancelLeavePayload(requestId, cancellationReason);
+    if (!validation.ok) {
+      return {
+        ok: false,
+        status: validation.status,
+        error: validation.error,
+        fieldErrors: validation.fieldErrors,
+      };
+    }
+
+    const { requestId: targetId, cancellationReason: cleanReason } =
+      validation.data;
+
+    const txResult = await withTransaction(async (client) => {
+      // 1. Kunci baris pengajuan milik pemohon (`FOR UPDATE`) untuk mencegah race condition
+      const reqRes = await client.query(
+        `
+          SELECT
+            id,
+            user_id,
+            total_days,
+            status,
+            quota_deducted
+          FROM leave_requests
+          WHERE id = $1
+            AND user_id = $2
+          FOR UPDATE;
+        `,
+        [targetId, auth.user.id]
+      );
+
+      if (reqRes.rowCount === 0) {
+        return {
+          ok: false,
+          status: 404,
+          error:
+            "Pengajuan cuti tidak ditemukan atau bukan milik akun Anda.",
+        };
+      }
+
+      const leaveRow = reqRes.rows[0];
+
+      // State Guard: pembatalan hanya diperbolehkan saat status masih 'Pending'
+      if (leaveRow.status !== "Pending") {
+        return {
+          ok: false,
+          status: 409,
+          error: `Pengajuan berstatus "${leaveRow.status}" tidak dapat dibatalkan. Hanya pengajuan berstatus Pending yang dapat dibatalkan.`,
+        };
+      }
+
+      const totalDays = Number(leaveRow.total_days);
+      const shouldRefund = Boolean(leaveRow.quota_deducted);
+      let updatedRemainingQuota = null;
+
+      // 2. Auto-Refund kuota jika sebelumnya memotong kuota tahunan
+      if (shouldRefund) {
+        const refundRes = await client.query(
+          `
+            UPDATE users
+            SET remaining_leave_quota = remaining_leave_quota + $2,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $1
+            RETURNING remaining_leave_quota;
+          `,
+          [auth.user.id, totalDays]
+        );
+        updatedRemainingQuota = Number(
+          refundRes.rows[0]?.remaining_leave_quota ?? 0
+        );
+      } else {
+        const quotaRes = await client.query(
+          `SELECT remaining_leave_quota FROM users WHERE id = $1 LIMIT 1;`,
+          [auth.user.id]
+        );
+        updatedRemainingQuota = Number(
+          quotaRes.rows[0]?.remaining_leave_quota ?? 0
+        );
+      }
+
+      // 3. Perbarui status menjadi Cancelled & matikan flag quota_deducted
+      const cancelRes = await client.query(
+        `
+          UPDATE leave_requests
+          SET status = 'Cancelled',
+              cancellation_reason = $2,
+              cancelled_at = CURRENT_TIMESTAMP,
+              quota_deducted = FALSE,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = $1
+          RETURNING id, status, cancellation_reason, cancelled_at, quota_deducted;
+        `,
+        [targetId, cleanReason]
+      );
+
+      return {
+        ok: true,
+        status: 200,
+        requestId: cancelRes.rows[0].id,
+        refundedDays: shouldRefund ? totalDays : 0,
+        remainingLeaveQuota: updatedRemainingQuota,
+      };
+    });
+
+    if (!txResult.ok) {
+      return txResult;
+    }
+
+    revalidatePath("/leaves");
+    revalidatePath("/leaves/new");
+    revalidatePath("/dashboard");
+    revalidatePath("/profile");
+    revalidatePath("/approvals/leader");
+    revalidatePath("/approvals/hrd");
+
+    return txResult;
+  } catch (error) {
+    const mapped = mapLeaveRequestPgError(error);
+    if (mapped) return mapped;
+
+    console.error("cancelLeaveRequestAction error:", error);
+    return {
+      ok: false,
+      status: 500,
+      error: "Terjadi kesalahan saat membatalkan pengajuan cuti. Silakan coba lagi.",
     };
   }
 }

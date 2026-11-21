@@ -890,3 +890,135 @@ export function validateLeaveRequestPayload(payload) {
     },
   };
 }
+
+const ALLOWED_LEAVE_STATUS_FILTERS = new Set([
+  "ALL",
+  "WAITING",
+  "Pending",
+  "Approved by Leader",
+  "Approved",
+  "Rejected",
+  "Cancelled",
+]);
+
+const ALLOWED_LEAVE_SORT_OPTIONS = new Set([
+  "submitted_desc",
+  "start_desc",
+  "start_asc",
+]);
+
+/**
+ * Validasi payload Server Action `cancelLeaveRequestAction` (Modul 5 — Pembatalan Cuti).
+ * @param {number|string} requestId
+ * @param {string} cancellationReason
+ */
+export function validateCancelLeavePayload(requestId, cancellationReason) {
+  const fieldErrors = {};
+
+  if (!isPositiveInt(requestId)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "ID pengajuan cuti tidak valid.",
+      fieldErrors: { requestId: "ID pengajuan tidak valid." },
+    };
+  }
+
+  const trimmedReason = sanitizeText(cancellationReason, 500);
+  if (trimmedReason.length < 5) {
+    fieldErrors.cancellationReason =
+      "Alasan pembatalan wajib diisi minimal 5 karakter.";
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return {
+      ok: false,
+      status: 400,
+      error: fieldErrors.cancellationReason,
+      fieldErrors,
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      requestId: Number(requestId),
+      cancellationReason: trimmedReason,
+    },
+  };
+}
+
+/**
+ * Validasi & sanitasi query parameter untuk `GET /api/leaves`.
+ * @param {URLSearchParams|object} params
+ */
+export function validateLeaveListQueryParams(params) {
+  const getParam = (key) => {
+    if (!params) return "";
+    if (typeof params.get === "function") return params.get(key) || "";
+    return params[key] || "";
+  };
+
+  const rawStatus = String(getParam("status") || "ALL").trim();
+  const status = ALLOWED_LEAVE_STATUS_FILTERS.has(rawStatus)
+    ? rawStatus
+    : "ALL";
+
+  const rawLeaveTypeId = String(getParam("leaveTypeId") || "ALL").trim();
+  let leaveTypeId = null;
+  if (rawLeaveTypeId && rawLeaveTypeId !== "ALL") {
+    if (!isPositiveInt(rawLeaveTypeId)) {
+      return {
+        ok: false,
+        status: 400,
+        error: "Parameter filter jenis cuti tidak valid.",
+      };
+    }
+    leaveTypeId = Number(rawLeaveTypeId);
+  }
+
+  const dateFrom = String(getParam("dateFrom") || "").trim();
+  const dateTo = String(getParam("dateTo") || "").trim();
+
+  if (dateFrom && !isValidCalendarIsoDate(dateFrom)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Format tanggal awal filter tidak valid (YYYY-MM-DD).",
+    };
+  }
+
+  if (dateTo && !isValidCalendarIsoDate(dateTo)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Format tanggal akhir filter tidak valid (YYYY-MM-DD).",
+    };
+  }
+
+  if (dateFrom && dateTo && dateTo < dateFrom) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Tanggal akhir filter tidak boleh lebih awal dari tanggal awal.",
+    };
+  }
+
+  const search = sanitizeText(getParam("search"), 100);
+  const rawSort = String(getParam("sortBy") || "submitted_desc").trim();
+  const sortBy = ALLOWED_LEAVE_SORT_OPTIONS.has(rawSort)
+    ? rawSort
+    : "submitted_desc";
+
+  return {
+    ok: true,
+    data: {
+      status,
+      leaveTypeId,
+      dateFrom: dateFrom || null,
+      dateTo: dateTo || null,
+      search,
+      sortBy,
+    },
+  };
+}

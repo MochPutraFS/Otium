@@ -187,6 +187,37 @@ dialog.otium-modal::backdrop {
   overscroll-behavior: contain;
 }
 
+/* Native <dialog> slide-over drawer kanan Otium: top-layer, anti scroll-chaining */
+dialog.otium-drawer {
+  inset: 0;
+  margin: 0;
+  margin-inline-start: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  width: min(100vw, 30rem);
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: visible;
+}
+
+dialog.otium-drawer[open] {
+  display: flex;
+  justify-content: flex-end;
+}
+
+dialog.otium-drawer:modal {
+  overscroll-behavior: contain;
+}
+
+dialog.otium-drawer::backdrop {
+  background: rgba(15, 23, 42, 0.52);
+  backdrop-filter: blur(2px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
 /* Validasi input pasca-interaksi (:user-invalid + sinkronisasi aria-invalid) */
 .otium-field-input:is(:user-invalid, [aria-invalid="true"]) {
   border-color: #be123c;
