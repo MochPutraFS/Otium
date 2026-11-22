@@ -300,7 +300,6 @@ export default function TopNavbar({
                 <form action={logoutAction}>
                   <button
                     type="submit"
-                    onClick={() => setIsUserMenuOpen(false)}
                     className="flex w-full cursor-pointer items-center gap-2.5 rounded-[2px] px-3 py-2 text-xs font-medium text-[var(--terracotta)] transition-colors duration-150 hover:bg-[var(--terracotta-tint)]"
                   >
                     <LogOut className="h-4 w-4" aria-hidden="true" />
