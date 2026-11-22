@@ -1,15 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import {
-  AlertCircle,
-  CheckCircle2,
-  Info,
-  Loader2,
-  RotateCcw,
-  X,
-  XCircle,
-} from "lucide-react";
+import { AlertCircle, Info, Loader2, RotateCcw, X } from "lucide-react";
 import { formatIndonesianDateRange } from "@/lib/date-utils";
 
 const QUICK_NOTES_APPROVE = [
@@ -27,10 +19,8 @@ const QUICK_NOTES_REJECT = [
 const MIN_REJECT_REASON_LENGTH = 5;
 
 /**
- * Smart Modal Konfirmasi Approve (catatan opsional) & Reject (alasan wajib >= 5 karakter + info Auto-Refund).
- * Menggunakan native `<dialog className="otium-modal" closedby="any">` + `showModal()`
- * dengan fallback light-dismiss untuk browser tanpa `HTMLDialogElement.prototype.closedBy`,
- * serta validasi pasca-interaksi `.otium-field-input` & sinkronisasi `aria-invalid` / `aria-describedby`.
+ * Smart Modal Konfirmasi Approve (catatan opsional) & Reject (alasan wajib >= 5 karakter + Auto-Refund)
+ * bergaya Swiss Archival menggunakan native `<dialog className="otium-modal" closedby="any">`.
  */
 export default function ApprovalModal({
   isOpen,
@@ -55,7 +45,6 @@ export default function ApprovalModal({
   const isApprove = actionType === "Approve";
   const isLeader = approverRole === "Ketua Divisi";
 
-  // Reset state saat modal dibuka untuk target atau aksi baru
   useEffect(() => {
     if (isOpen) {
       setNotes("");
@@ -65,7 +54,6 @@ export default function ApprovalModal({
     }
   }, [isOpen, actionType, requestSummary?.id]);
 
-  // Sinkronisasi native <dialog> top-layer
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -79,7 +67,6 @@ export default function ApprovalModal({
     }
   }, [isOpen, requestSummary]);
 
-  // Fallback light-dismiss wajib untuk browser tanpa dukungan `closedby` (mis. Safari)
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog || !isOpen) return undefined;
@@ -152,7 +139,6 @@ export default function ApprovalModal({
 
     try {
       const result = await onSubmit?.(trimmed);
-      // Mendukung pola kontrak { ok, error, fieldErrors } maupun void (backward-compatible HRD)
       if (result && result.ok === false) {
         const msg =
           result.fieldErrors?.notes ||
@@ -189,38 +175,33 @@ export default function ApprovalModal({
       className="otium-modal"
     >
       {requestSummary && (
-        <div className="w-full max-w-lg overflow-hidden rounded-xl border border-stone-200 bg-white shadow-2xl">
+        <div className="w-full max-w-lg overflow-hidden rounded-[2px] border border-[var(--ink)] bg-[var(--paper-pure)] text-[var(--ink)] shadow-2xl">
           {/* Header */}
-          <div className="flex items-start justify-between gap-3 border-b border-stone-200 bg-[#F4F2EC]/60 px-5 py-4">
-            <div className="flex items-center gap-3">
-              <div
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${
+          <div className="flex items-start justify-between gap-3 border-b border-[var(--rule)] bg-[var(--paper)] px-5 py-4">
+            <div>
+              <span
+                className={`panel-eyebrow ${
                   isApprove
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-rose-200 bg-rose-50 text-rose-700"
+                    ? "!text-[var(--spruce)]"
+                    : "!text-[var(--terracotta)]"
                 }`}
               >
-                {isApprove ? (
-                  <CheckCircle2 className="h-4.5 w-4.5" aria-hidden="true" />
-                ) : (
-                  <XCircle className="h-4.5 w-4.5" aria-hidden="true" />
-                )}
-              </div>
-              <div>
-                <h3
-                  id={titleId}
-                  className="text-sm font-bold tracking-tight text-slate-900"
-                >
-                  {isApprove
-                    ? isLeader
-                      ? "Setujui Verifikasi Tahap 1"
-                      : "Persetujuan Final HRD"
-                    : `Tolak Pengajuan (${approverRole})`}
-                </h3>
-                <p className="mt-0.5 text-xs text-slate-600">
-                  Pastikan detail jadwal &amp; serah terima tugas sudah sesuai.
-                </p>
-              </div>
+                {isApprove ? "Otorisasi Paraf" : "Penolakan Pengajuan"} &bull;{" "}
+                {approverRole}
+              </span>
+              <h3
+                id={titleId}
+                className="font-serif text-2xl font-semibold leading-tight text-[var(--ink)]"
+              >
+                {isApprove
+                  ? isLeader
+                    ? "Paraf Verifikasi Tahap 1"
+                    : "Paraf Persetujuan Final HRD"
+                  : `Tolak Pengajuan (${approverRole})`}
+              </h3>
+              <p className="mt-0.5 text-xs text-[var(--ink-soft)]">
+                Pastikan detail jadwal &amp; serah terima tugas sudah sesuai.
+              </p>
             </div>
 
             <button
@@ -228,7 +209,7 @@ export default function ApprovalModal({
               onClick={() => dialogRef.current?.close()}
               disabled={isSubmitting}
               aria-label="Tutup modal konfirmasi"
-              className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-stone-300 bg-white text-slate-600 transition-colors hover:border-slate-900 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn btn-icon shrink-0"
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -241,24 +222,26 @@ export default function ApprovalModal({
             className="space-y-4 p-5 text-xs"
           >
             {/* Ringkasan Pemohon */}
-            <div className="space-y-1.5 rounded-lg border border-stone-200 bg-[#F4F2EC]/50 p-3.5">
+            <div className="space-y-1.5 border border-[var(--rule)] bg-[var(--paper)] p-3.5">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-slate-600">Pemohon</span>
-                <span className="text-right font-semibold text-slate-900">
+                <span className="text-[var(--ink-muted)]">Pemohon</span>
+                <span className="text-right font-semibold text-[var(--ink)]">
                   {requestSummary.applicantName} ({requestSummary.applicantRole}{" "}
-                  • {requestSummary.divisionName})
+                  &bull; {requestSummary.divisionName})
                 </span>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-slate-600">Jenis &amp; Durasi</span>
-                <span className="font-semibold text-slate-900 tabular-nums">
-                  {requestSummary.leaveTypeName} —{" "}
-                  {Number(requestSummary.totalDays).toFixed(1)} Hari Kerja
+                <span className="text-[var(--ink-muted)]">
+                  Jenis &amp; Durasi
+                </span>
+                <span className="mono font-semibold text-[var(--ink)]">
+                  {requestSummary.leaveTypeName} &mdash;{" "}
+                  {Number(requestSummary.totalDays).toFixed(1)} hr
                 </span>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-slate-600">Periode Cuti</span>
-                <span className="font-medium text-slate-800">
+                <span className="text-[var(--ink-muted)]">Periode Cuti</span>
+                <span className="mono font-medium text-[var(--ink-soft)]">
                   {formatIndonesianDateRange(
                     requestSummary.startDate,
                     requestSummary.endDate,
@@ -270,50 +253,42 @@ export default function ApprovalModal({
 
             {/* Kotak Info Dampak Status & Kuota */}
             {isApprove ? (
-              <div className="flex items-start gap-2.5 rounded-lg border border-sky-200 bg-sky-50 p-3.5 text-sky-900">
-                <Info
-                  className="mt-0.5 h-4 w-4 shrink-0 text-sky-700"
-                  aria-hidden="true"
-                />
-                <p className="leading-relaxed">
+              <div className="notice notice-info">
+                <Info aria-hidden="true" />
+                <p className="m-0 leading-relaxed">
                   {isLeader ? (
                     <>
                       Status berubah menjadi{" "}
                       <strong>Approved by Leader</strong> dan pengajuan otomatis
                       diteruskan ke antrean{" "}
-                      <strong>Persetujuan Final HRD</strong> beserta notifikasi
-                      untuk pemohon &amp; tim HRD.
+                      <strong>Persetujuan Final HRD</strong>.
                     </>
                   ) : (
                     <>
                       Status berubah menjadi <strong>Approved (Final)</strong>.{" "}
                       {requestSummary.deductsAnnualQuota
-                        ? "Pemotongan kuota cuti tahunan bersifat permanen."
+                        ? "Pemotongan kuota cuti tahunan bersifat permanen dan Surat PDF diterbitkan."
                         : "Jenis cuti ini tidak memotong kuota cuti tahunan."}
                     </>
                   )}
                 </p>
               </div>
             ) : (
-              <div className="flex items-start gap-2.5 rounded-lg border border-rose-200 bg-rose-50 p-3.5 text-rose-900">
-                <RotateCcw
-                  className="mt-0.5 h-4 w-4 shrink-0 text-rose-700"
-                  aria-hidden="true"
-                />
-                <p className="leading-relaxed">
+              <div className="notice notice-danger">
+                <RotateCcw aria-hidden="true" />
+                <p className="m-0 leading-relaxed">
                   Status berubah menjadi{" "}
-                  <strong>Ditolak ({approverRole})</strong>.{" "}
+                  <strong>Ditolak ({approverRole})</strong> dengan cap DITOLAK.{" "}
                   {willAutoRefund ? (
                     <>
                       Saldo kuota sebesar{" "}
-                      <strong>
+                      <strong className="mono">
                         +{Number(requestSummary.totalDays).toFixed(1)} Hari
                       </strong>{" "}
-                      akan <strong>dikembalikan otomatis (Auto-Refund)</strong>{" "}
-                      ke saldo pemohon.
+                      akan <strong>dikembalikan otomatis (Auto-Refund)</strong>.
                     </>
                   ) : (
-                    "Jenis cuti ini tidak memotong kuota cuti tahunan sehingga saldo tidak berubah."
+                    "Jenis cuti ini tidak memotong kuota cuti tahunan."
                   )}
                 </p>
               </div>
@@ -324,22 +299,25 @@ export default function ApprovalModal({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <label
                   htmlFor={notesInputId}
-                  className="font-semibold text-slate-900"
+                  className="font-semibold text-[var(--ink-soft)]"
                 >
                   {isApprove ? (
                     "Catatan Persetujuan (Opsional)"
                   ) : (
                     <>
                       Alasan Penolakan{" "}
-                      <span className="text-rose-700" aria-hidden="true">
+                      <span
+                        className="text-[var(--terracotta)]"
+                        aria-hidden="true"
+                      >
                         *
                       </span>
                       <span className="visually-hidden">(wajib diisi)</span>
                     </>
                   )}
                 </label>
-                <span className="text-[11px] text-slate-500">
-                  Saran cepat (1 klik):
+                <span className="text-[11px] text-[var(--ink-muted)]">
+                  Saran cepat:
                 </span>
               </div>
 
@@ -354,7 +332,7 @@ export default function ApprovalModal({
                       setTouched(true);
                       setErrorMsg("");
                     }}
-                    className="cursor-pointer rounded-full border border-stone-200 bg-[#F4F2EC] px-2.5 py-1 text-[11px] font-medium text-slate-700 transition-colors hover:border-slate-900 hover:bg-white hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="btn btn-sm !min-h-[26px] !text-[11px]"
                   >
                     {chip}
                   </button>
@@ -376,26 +354,26 @@ export default function ApprovalModal({
                 aria-describedby={isInvalid ? notesErrorId : undefined}
                 placeholder={
                   isApprove
-                    ? "Tuliskan catatan singkat untuk pemohon atau HRD (boleh dikosongkan)..."
+                    ? "Tuliskan catatan singkat untuk pemohon atau HRD (opsional)..."
                     : "Tuliskan alasan penolakan minimal 5 karakter secara jelas..."
                 }
-                className="otium-field-input w-full rounded-lg border border-stone-300 bg-white p-3 text-xs text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 disabled:bg-stone-50"
+                className="otium-field-input textarea"
               />
 
-              <div className="flex items-center justify-between gap-2 text-[11px] text-slate-500">
+              <div className="flex items-center justify-between gap-2 text-[11px] text-[var(--ink-muted)]">
                 <span>
                   {!isApprove
                     ? `Minimal ${MIN_REJECT_REASON_LENGTH} karakter.`
                     : "Opsional — tercatat di riwayat verifikasi."}
                 </span>
-                <span className="tabular-nums">{notes.length}/500</span>
+                <span className="mono">{notes.length}/500</span>
               </div>
 
               {isInvalid && (
                 <p
                   id={notesErrorId}
                   role="alert"
-                  className="flex items-start gap-1.5 text-xs font-medium text-rose-700"
+                  className="flex items-start gap-1.5 text-xs font-medium text-[var(--terracotta)]"
                 >
                   <AlertCircle
                     className="mt-0.5 h-3.5 w-3.5 shrink-0"
@@ -407,22 +385,21 @@ export default function ApprovalModal({
             </div>
 
             {/* Footer Buttons */}
-            <div className="flex items-center justify-end gap-2 border-t border-stone-200 pt-4">
+            <div className="flex items-center justify-end gap-2 border-t border-[var(--rule)] pt-4">
               <button
                 type="button"
+                autoFocus
                 onClick={() => dialogRef.current?.close()}
                 disabled={isSubmitting}
-                className="cursor-pointer rounded-lg border border-stone-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-900 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn btn-sm"
               >
                 Batal
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 ${
-                  isApprove
-                    ? "bg-slate-900 hover:bg-slate-800 focus-visible:ring-slate-900"
-                    : "bg-rose-700 hover:bg-rose-800 focus-visible:ring-rose-700"
+                className={`btn btn-sm ${
+                  isApprove ? "btn-primary" : "btn-danger"
                 }`}
               >
                 {isSubmitting && (
@@ -431,11 +408,15 @@ export default function ApprovalModal({
                     aria-hidden="true"
                   />
                 )}
-                {isSubmitting
-                  ? "Memproses..."
-                  : isApprove
-                    ? "Konfirmasi Setujui"
-                    : "Konfirmasi Tolak"}
+                <span>
+                  {isSubmitting
+                    ? "Memproses..."
+                    : isApprove
+                      ? isLeader
+                        ? "Paraf & Teruskan"
+                        : "Bubuhkan Paraf Final"
+                      : "Tolak Pengajuan"}
+                </span>
               </button>
             </div>
           </form>
