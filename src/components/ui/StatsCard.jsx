@@ -2,27 +2,24 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 
 const VARIANT_MAP = {
-  blue: "bg-[var(--slate-tint)] text-[var(--slate-blue)] border-[var(--slate-border)]",
-  emerald: "bg-[var(--spruce-tint)] text-[var(--spruce)] border-[var(--spruce-border)]",
-  amber: "bg-[var(--ochre-tint)] text-[var(--ochre)] border-[var(--ochre-border)]",
-  rose: "bg-[var(--terracotta-tint)] text-[var(--terracotta)] border-[var(--terracotta-border)]",
-  purple: "bg-[var(--slate-tint)] text-[var(--slate-blue)] border-[var(--slate-border)]",
-  sky: "bg-[var(--slate-tint)] text-[var(--slate-blue)] border-[var(--slate-border)]",
+  blue: "bg-blue-50/80 text-blue-700 border-blue-200/70",
+  emerald: "bg-emerald-50/80 text-emerald-700 border-emerald-200/70",
+  amber: "bg-amber-50/80 text-amber-800 border-amber-200/80",
+  rose: "bg-rose-50/80 text-rose-700 border-rose-200/70",
+  purple: "bg-purple-50/80 text-purple-700 border-purple-200/70",
+  sky: "bg-sky-50/80 text-sky-700 border-sky-200/70",
 };
 
 const PROGRESS_TONE_MAP = {
-  blue: "otium-progress--sky",
+  blue: "",
   emerald: "otium-progress--ok",
   amber: "otium-progress--amber",
   rose: "otium-progress--danger",
-  purple: "otium-progress--sky",
+  purple: "",
   sky: "otium-progress--sky",
 };
 
-/**
- * Kartu angka ringkasan bergaya Swiss Archival (border tegas, angka serif, native <progress>).
- * Mempertahankan 100% kontrak props lama untuk kompatibilitas lintas halaman.
- */
+// Kartu angka ringkasan di dashboard (Swiss Editorial Minimalism + native <progress>)
 export default function StatsCard({
   title,
   value,
@@ -52,28 +49,26 @@ export default function StatsCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <p className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-600">
               {title}
             </p>
             {badge && <span className="shrink-0">{badge}</span>}
           </div>
-          <h3 className="mt-1.5 truncate font-serif text-[30px] font-semibold leading-none tracking-[-0.02em] text-[var(--ink)] tabular-nums">
+          <h3 className="mt-1.5 truncate text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
             {value}
           </h3>
           {subtitle && (
-            <p className="mt-2 text-xs leading-relaxed text-[var(--ink-soft)] tabular-nums">
+            <p className="mt-1 text-xs leading-relaxed text-slate-600 tabular-nums">
               {subtitle}
             </p>
           )}
         </div>
-        {icon && (
-          <div
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[2px] border ${iconTone}`}
-            aria-hidden="true"
-          >
-            {icon}
-          </div>
-        )}
+        <div
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${iconTone}`}
+          aria-hidden="true"
+        >
+          {icon}
+        </div>
       </div>
 
       {hasProgress && (
@@ -88,9 +83,9 @@ export default function StatsCard({
       )}
 
       {href && actionLabel && (
-        <div className="mt-4 border-t border-[var(--rule)] pt-3">
+        <div className="mt-4 border-t border-stone-100 pt-3">
           {isWholeCardLink ? (
-            <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold uppercase tracking-[0.04em] text-[var(--spruce)] transition-colors duration-150 group-hover:underline">
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 transition-colors duration-150 group-hover:text-blue-800">
               {actionLabel}
               <ArrowUpRight
                 className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
@@ -100,7 +95,7 @@ export default function StatsCard({
           ) : (
             <Link
               href={href}
-              className="inline-flex cursor-pointer items-center gap-1 font-mono text-[11px] font-semibold uppercase tracking-[0.04em] text-[var(--spruce)] transition-colors duration-150 hover:underline"
+              className="inline-flex cursor-pointer items-center gap-1 rounded text-xs font-semibold text-blue-700 transition-colors duration-150 hover:text-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
             >
               {actionLabel}
               <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -115,7 +110,7 @@ export default function StatsCard({
     return (
       <Link
         href={href}
-        className="group flex cursor-pointer flex-col justify-between border border-[var(--rule-strong)] bg-[var(--paper-pure)] p-5 transition-colors duration-150 hover:border-[var(--spruce)] hover:bg-[var(--paper)]"
+        className="group flex cursor-pointer flex-col justify-between rounded-xl border border-stone-200 bg-white p-5 transition-colors duration-150 hover:border-slate-400 hover:bg-[#FAF9F6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
       >
         {cardInner}
       </Link>
@@ -123,7 +118,7 @@ export default function StatsCard({
   }
 
   return (
-    <div className="flex flex-col justify-between border border-[var(--rule-strong)] bg-[var(--paper-pure)] p-5">
+    <div className="flex flex-col justify-between rounded-xl border border-stone-200 bg-white p-5">
       {cardInner}
     </div>
   );
