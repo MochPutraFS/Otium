@@ -4,53 +4,19 @@ import { useEffect, useId, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
-  ArrowUpRight,
+  AlertTriangle,
   Building2,
+  CalendarRange,
+  Clock,
   RefreshCw,
-  SlidersHorizontal,
-  UserCog,
   UserPlus,
   Users,
 } from "lucide-react";
+import StatsCard from "@/components/ui/StatsCard";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 
-const CMS_MODULES = [
-  {
-    code: "01",
-    title: "Manajemen Pengguna",
-    desc: "Tambah akun 4 role, status aktif/nonaktif, & proteksi Admin/HRD.",
-    href: "/admin/users",
-    icon: Users,
-  },
-  {
-    code: "02",
-    title: "Manajemen Divisi",
-    desc: "Kelola unit kerja, penugasan Ketua Divisi, & konfirmasi hapus 2 tahap.",
-    href: "/admin/divisions",
-    icon: Building2,
-  },
-  {
-    code: "03",
-    title: "Anggota Divisi",
-    desc: "Atur keanggotaan divisi tanpa menghapus akun karyawan.",
-    href: "/admin/division-members",
-    icon: UserCog,
-  },
-  {
-    code: "04",
-    title: "Jenis Cuti Dinamis",
-    desc: "Konfigurasi kuota, batas H-n, syarat lampiran, & potongan saldo.",
-    href: "/admin/leave-types",
-    icon: SlidersHorizontal,
-  },
-];
-
-/**
- * Tampilan Dashboard Administrator bergaya Swiss Archival (100% UI-Only Live Data).
- * Menampilkan Metric Strip master data, akses cepat 4 modul CMS, dan tabel Swiss Ledger
- * karyawan masa kerja < 1 tahun (Belum Eligible Cuti Tahunan).
- */
+// Tampilan dashboard untuk role Admin (Pure Production Live Data)
 export default function AdminDashboardView({ initialData, data }) {
   const tableCaptionId = useId();
   const [dashboardData, setDashboardData] = useState(initialData || data);
@@ -65,7 +31,7 @@ export default function AdminDashboardView({ initialData, data }) {
     }
   }, [initialData]);
 
-  const { periodLabel, stats, ineligibleEmployees = [] } = dashboardData;
+  const { periodLabel, stats, ineligibleEmployees } = dashboardData;
 
   const divisionOptions = useMemo(() => {
     const uniqueDivisions = Array.from(
@@ -108,178 +74,139 @@ export default function AdminDashboardView({ initialData, data }) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="visually-hidden" role="status" aria-live="polite">
         {liveStatus}
       </div>
 
+      {/* Header dan tombol cepat */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+              Dashboard Administrator
+            </h2>
+            <StatusBadge status="Admin" />
+          </div>
+          <p className="mt-1 text-sm text-slate-600">
+            Pantau status pengguna, pengajuan cuti lintas divisi, dan kelayakan
+            masa kerja karyawan secara realtime.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors duration-150 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw
+              className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`}
+              aria-hidden="true"
+            />
+            Segarkan
+          </button>
+          <Link
+            href="/admin/divisions"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-stone-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+          >
+            <Building2 className="h-4 w-4 text-slate-600" aria-hidden="true" />
+            Kelola Divisi
+          </Link>
+          <Link
+            href="/admin/users"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-slate-900 px-3.5 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+          >
+            <UserPlus className="h-4 w-4" aria-hidden="true" />
+            Tambah Pengguna
+          </Link>
+        </div>
+      </div>
+
       {refreshError && (
-        <div role="alert" className="notice notice-danger">
-          <AlertCircle aria-hidden="true" />
+        <div
+          role="alert"
+          className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-800"
+        >
+          <AlertCircle
+            className="mt-0.5 h-4 w-4 shrink-0 text-rose-700"
+            aria-hidden="true"
+          />
           <span>{refreshError}</span>
         </div>
       )}
 
-      {/* 1. METRIC STRIP MASTER DATA & OPERASIONAL */}
-      <div
-        className="metric-strip"
-        role="region"
-        aria-label="Ringkasan Metrik Administrator"
-      >
-        <Link
+      {/* Ringkasan angka utama */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatsCard
+          title="Total Pengguna"
+          value={`${stats.activeUsers} Aktif`}
+          subtitle={`${stats.inactiveUsers} akun berstatus Nonaktif`}
+          icon={<Users className="h-5 w-5" aria-hidden="true" />}
+          variant="blue"
           href="/admin/users"
-          className="metric-cell group transition-colors duration-150 hover:bg-[var(--spruce-tint)]"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <span className="metric-label">Pengguna Aktif</span>
-            <ArrowUpRight
-              className="h-3.5 w-3.5 text-[var(--spruce)] transition-transform duration-150 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-              aria-hidden="true"
-            />
-          </div>
-          <div className="metric-val text-[var(--spruce)]">
-            {String(stats.activeUsers).padStart(2, "0")}
-          </div>
-          <div className="metric-note mono text-[11px]">
-            {stats.inactiveUsers} akun berstatus Nonaktif
-          </div>
-        </Link>
-
-        <div className="metric-cell">
-          <div className="metric-label">Pengajuan ({periodLabel})</div>
-          <div className="metric-val">
-            {String(stats.monthlyRequests).padStart(2, "0")}
-          </div>
-          <div className="metric-note">Total permohonan bulan berjalan</div>
-        </div>
-
-        <div className="metric-cell">
-          <div className="metric-label">Pending Approval</div>
-          <div className="metric-val text-[var(--ochre)]">
-            {String(stats.pendingApprovals).padStart(2, "0")}
-          </div>
-          <div className="metric-note">
-            Berstatus Pending &amp; Approved by Leader
-          </div>
-        </div>
-
-        <Link
+          actionLabel="Kelola Pengguna"
+        />
+        <StatsCard
+          title={`Pengajuan (${periodLabel})`}
+          value={`${stats.monthlyRequests} Pengajuan`}
+          subtitle="Total permohonan cuti bulan berjalan"
+          icon={<CalendarRange className="h-5 w-5" aria-hidden="true" />}
+          variant="emerald"
+        />
+        <StatsCard
+          title="Pending Approval"
+          value={`${stats.pendingApprovals} Pengajuan`}
+          subtitle="Berstatus Pending & Approved by Leader"
+          icon={<Clock className="h-5 w-5" aria-hidden="true" />}
+          variant="amber"
+        />
+        <StatsCard
+          title="Total Divisi"
+          value={`${stats.totalDivisions} Divisi`}
+          subtitle="Unit kerja terdaftar di sistem"
+          icon={<Building2 className="h-5 w-5" aria-hidden="true" />}
+          variant="purple"
           href="/admin/divisions"
-          className="metric-cell group transition-colors duration-150 hover:bg-[var(--spruce-tint)]"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <span className="metric-label">Total Divisi</span>
-            <ArrowUpRight
-              className="h-3.5 w-3.5 text-[var(--spruce)] transition-transform duration-150 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-              aria-hidden="true"
-            />
-          </div>
-          <div className="metric-val">
-            {String(stats.totalDivisions).padStart(2, "0")}
-          </div>
-          <div className="metric-note">Unit kerja terdaftar di sistem</div>
-        </Link>
+          actionLabel="Lihat Semua Divisi"
+        />
       </div>
 
-      {/* 2. PANEL AKSES CEPAT CMS MASTER DATA */}
-      <section className="panel" aria-label="Akses Cepat CMS Master Data">
-        <div className="panel-head">
-          <div>
-            <span className="panel-eyebrow">Administrasi Terpusat</span>
-            <h2 className="panel-title">Direktori CMS Master Data</h2>
-            <p className="panel-sub">
-              Kelola pengguna, struktur divisi, keanggotaan tim, dan aturan
-              jenis cuti dinamis.
-            </p>
+      {/* Tabel karyawan dengan masa kerja kurang dari 1 tahun */}
+      <section className="overflow-hidden rounded-xl border border-stone-200 bg-white">
+        <div className="flex flex-col gap-3 border-b border-stone-200 bg-[#FAF9F6] px-5 py-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <AlertTriangle
+                  className="h-4 w-4 text-amber-700"
+                  aria-hidden="true"
+                />
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Daftar Karyawan Masa Kerja &lt; 1 Tahun (Belum Eligible Cuti
+                  Tahunan)
+                </h3>
+              </div>
+              <p className="mt-1 text-xs text-slate-600">
+                Karyawan di bawah ini diblokir otomatis dari pengajuan Cuti
+                Tahunan, namun tetap dapat mengajukan Cuti Sakit atau Cuti
+                Khusus lainnya.
+              </p>
+            </div>
+            <span className="inline-flex w-fit items-center rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900 tabular-nums">
+              {filteredEmployees.length} dari {ineligibleEmployees.length}{" "}
+              Karyawan
+            </span>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="btn btn-sm"
+
+          {/* Filter divisi */}
+          {divisionOptions.length > 1 && (
+            <div
+              className="flex flex-wrap items-center gap-1.5 pt-1"
+              role="group"
+              aria-label="Filter divisi karyawan belum eligible"
             >
-              <RefreshCw
-                className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`}
-                aria-hidden="true"
-              />
-              <span>Segarkan</span>
-            </button>
-            <Link href="/admin/users" className="btn btn-primary btn-sm">
-              <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>Tambah Pengguna</span>
-            </Link>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 divide-y divide-[var(--rule)] sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4">
-          {CMS_MODULES.map((mod, idx) => {
-            const Icon = mod.icon;
-            return (
-              <Link
-                key={mod.href}
-                href={mod.href}
-                className={`group flex flex-col justify-between gap-3 bg-[var(--paper-pure)] p-4 transition-colors duration-150 hover:bg-[var(--alabaster)] ${
-                  idx < CMS_MODULES.length - 1
-                    ? "lg:border-r lg:border-[var(--rule)]"
-                    : ""
-                } ${idx < 2 ? "sm:border-b sm:border-[var(--rule)] lg:border-b-0" : ""} ${
-                  idx % 2 === 0 ? "sm:border-r sm:border-[var(--rule)]" : ""
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="mono text-[10.5px] font-semibold text-[var(--ink-muted)]">
-                      MODUL {mod.code}
-                    </span>
-                    <Icon
-                      className="h-4 w-4 text-[var(--spruce)]"
-                      aria-hidden="true"
-                    />
-                  </div>
-                  <h3 className="mt-1.5 text-sm font-semibold text-[var(--ink)] group-hover:text-[var(--spruce)]">
-                    {mod.title}
-                  </h3>
-                  <p className="mt-1 text-xs leading-relaxed text-[var(--ink-soft)]">
-                    {mod.desc}
-                  </p>
-                </div>
-                <span className="mono inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--spruce)] group-hover:underline">
-                  Buka Modul
-                  <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* 3. TABEL SWISS LEDGER: KARYAWAN MASA KERJA < 1 TAHUN */}
-      <section className="panel overflow-hidden">
-        <div className="panel-head">
-          <div>
-            <span className="panel-eyebrow">Audit Kelayakan Cuti Tahunan</span>
-            <h2 className="panel-title">
-              Karyawan Masa Kerja &lt; 1 Tahun (Belum Eligible)
-            </h2>
-            <p className="panel-sub">
-              Diblokir otomatis dari Cuti Tahunan, namun tetap berhak atas Cuti
-              Sakit &amp; Cuti Khusus lainnya.
-            </p>
-          </div>
-          <span className="tag tag-pending">
-            {filteredEmployees.length} dari {ineligibleEmployees.length} Karyawan
-          </span>
-        </div>
-
-        {/* Filter Divisi Toolbar */}
-        {divisionOptions.length > 1 && (
-          <div
-            className="toolbar"
-            role="group"
-            aria-label="Filter divisi karyawan belum eligible"
-          >
-            <div className="seg-group flex-wrap">
               {divisionOptions.map((divName) => {
                 const active = divName === activeDivision;
                 return (
@@ -288,21 +215,22 @@ export default function AdminDashboardView({ initialData, data }) {
                     type="button"
                     aria-pressed={active}
                     onClick={() => setSelectedDivision(divName)}
-                    className="seg-btn"
+                    className={`cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
+                      active
+                        ? "bg-slate-900 text-white"
+                        : "border border-stone-300 bg-white text-slate-700 hover:bg-stone-100 hover:text-slate-900"
+                    }`}
                   >
                     {divName}
                   </button>
                 );
               })}
             </div>
-            <span className="mono ml-auto text-[11px] text-[var(--ink-muted)]">
-              {filteredEmployees.length} catatan
-            </span>
-          </div>
-        )}
+          )}
+        </div>
 
         {filteredEmployees.length === 0 ? (
-          <div className="panel-body">
+          <div className="p-6">
             <EmptyState
               title="Tidak ada karyawan dengan masa kerja < 1 tahun"
               description={
@@ -317,64 +245,78 @@ export default function AdminDashboardView({ initialData, data }) {
             tabIndex={0}
             role="region"
             aria-labelledby={tableCaptionId}
-            className="otium-responsive-table-wrap"
+            className="otium-responsive-table-wrap focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-slate-900"
           >
-            <table className="ledger otium-responsive-table text-left">
+            <table className="otium-responsive-table text-left text-sm">
               <caption id={tableCaptionId} className="visually-hidden">
                 Daftar karyawan aktif dengan masa kerja kurang dari 1 tahun yang
                 belum eligible Cuti Tahunan
               </caption>
-              <thead>
+              <thead className="border-b border-stone-200 bg-[#FAF9F6] text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-600">
                 <tr>
-                  <th scope="col" className="row-idx">
-                    #
+                  <th scope="col" className="px-5 py-3">
+                    Nama &amp; Email
                   </th>
-                  <th scope="col">Nama &amp; Email</th>
-                  <th scope="col">Role</th>
-                  <th scope="col">Divisi</th>
-                  <th scope="col">Tanggal Bergabung</th>
-                  <th scope="col">Progres Menuju 1 Tahun</th>
-                  <th scope="col" className="text-right">
+                  <th scope="col" className="px-5 py-3">
+                    Role
+                  </th>
+                  <th scope="col" className="px-5 py-3">
+                    Divisi
+                  </th>
+                  <th scope="col" className="px-5 py-3">
+                    Tanggal Bergabung
+                  </th>
+                  <th scope="col" className="px-5 py-3">
+                    Progres Menuju 1 Tahun
+                  </th>
+                  <th scope="col" className="px-5 py-3 text-right">
                     Status Kelayakan
                   </th>
                 </tr>
               </thead>
-              <tbody>
-                {filteredEmployees.map((emp, idx) => (
-                  <tr key={emp.id}>
-                    <td data-label="No" className="row-idx">
-                      {String(idx + 1).padStart(2, "0")}
-                    </td>
-                    <th scope="row" className="font-normal">
-                      <p className="font-semibold text-[var(--ink)]">
+              <tbody className="divide-y divide-stone-100 bg-white">
+                {filteredEmployees.map((emp) => (
+                  <tr
+                    key={emp.id}
+                    className="transition-colors duration-150 hover:bg-[#FAF9F6]"
+                  >
+                    <th
+                      scope="row"
+                      className="whitespace-nowrap px-5 py-3.5 text-left font-normal"
+                    >
+                      <p className="font-semibold text-slate-900">
                         {emp.fullName}
                       </p>
-                      <p className="mono text-[11px] text-[var(--ink-muted)]">
-                        {emp.email}
-                      </p>
+                      <p className="text-xs text-slate-600">{emp.email}</p>
                     </th>
-                    <td data-label="Role" className="whitespace-nowrap">
+                    <td
+                      data-label="Role"
+                      className="whitespace-nowrap px-5 py-3.5"
+                    >
                       <StatusBadge status={emp.role} />
                     </td>
                     <td
                       data-label="Divisi"
-                      className="whitespace-nowrap text-xs font-medium text-[var(--ink-soft)]"
+                      className="whitespace-nowrap px-5 py-3.5 text-xs font-medium text-slate-700"
                     >
                       {emp.divisionName}
                     </td>
                     <td
                       data-label="Bergabung"
-                      className="mono whitespace-nowrap text-xs text-[var(--ink-soft)]"
+                      className="whitespace-nowrap px-5 py-3.5 text-xs text-slate-700 tabular-nums"
                     >
                       {emp.joinDate}
                     </td>
-                    <td data-label="Progres 1 Tahun" className="min-w-[190px]">
+                    <td
+                      data-label="Progres 1 Tahun"
+                      className="min-w-[190px] px-5 py-3.5"
+                    >
                       <div className="w-full max-w-[220px] sm:max-w-none">
-                        <div className="mono flex items-center justify-between gap-2 text-[11px]">
-                          <span className="font-semibold text-[var(--ink)]">
+                        <div className="flex items-center justify-between gap-2 text-xs tabular-nums">
+                          <span className="font-semibold text-slate-800">
                             {emp.tenureLabel}
                           </span>
-                          <span className="text-[var(--ink-muted)]">
+                          <span className="font-medium text-slate-600">
                             {emp.tenureProgressPercent}%
                           </span>
                         </div>
@@ -390,7 +332,7 @@ export default function AdminDashboardView({ initialData, data }) {
                     </td>
                     <td
                       data-label="Kelayakan"
-                      className="whitespace-nowrap text-right"
+                      className="whitespace-nowrap px-5 py-3.5 text-right"
                     >
                       <StatusBadge status={emp.status} />
                     </td>

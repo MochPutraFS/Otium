@@ -45,8 +45,14 @@ export default async function DashboardPage({ searchParams }) {
   return (
     <div className="space-y-5">
       {errorCode === "unauthorized_role" && (
-        <div role="alert" className="notice notice-danger">
-          <AlertCircle aria-hidden="true" />
+        <div
+          role="alert"
+          className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+        >
+          <AlertCircle
+            className="mt-0.5 h-4 w-4 shrink-0 text-rose-700"
+            aria-hidden="true"
+          />
           <span>
             Anda tidak memiliki hak akses untuk membuka halaman tersebut. Sistem
             mengarahkan Anda kembali ke Dashboard sesuai peran Anda.

@@ -15,15 +15,15 @@ import { loginAction } from "@/actions/auth-actions";
 
 const REASON_BANNERS = {
   session_expired: {
-    tone: "warn",
+    tone: "amber",
     message: "Sesi masuk Anda telah berakhir. Silakan login kembali.",
   },
   logged_out: {
-    tone: "success",
+    tone: "emerald",
     message: "Anda telah berhasil keluar dari portal Otium.",
   },
   inactive: {
-    tone: "danger",
+    tone: "rose",
     message: "Akun Anda berstatus Nonaktif. Silakan hubungi Administrator.",
   },
 };
@@ -42,8 +42,11 @@ function validatePassword(value) {
 }
 
 /**
- * Form Login terpusat (Pure Production) bergaya Swiss Archival untuk portal Otium.
- * Terhubung eksklusif ke Server Action `loginAction` tanpa mengubah kontrak backend.
+ * Form Login terpusat (Pure Production) untuk portal Otium (4 role: Admin, Karyawan, Ketua Divisi, HRD).
+ * Terhubung eksklusif ke Server Action `loginAction`, menerapkan praktik terbaik modern-web-guidance:
+ * - autofill-sign-in-form & autofill-highlight-inputs (autocomplete, spellCheck, autoCorrect, autoCapitalize, enterKeyHint, :autofill)
+ * - validate-input-after-interaction & accessible-error-announcement (blur validation, focus-first-invalid, 500ms polite live region)
+ * - brand-consistent-forms (native checkbox dengan accent-color + fallback @supports not)
  */
 export default function LoginFormCard({ callbackUrl = "", reason = "" }) {
   const [identifier, setIdentifier] = useState("");
@@ -89,6 +92,7 @@ export default function LoginFormCard({ callbackUrl = "", reason = "" }) {
     clearAnnouncement();
     if (!message) return;
 
+    // Jeda 500ms agar tidak menimpa pengumuman fokus field berikutnya pada screen reader
     announceTimerRef.current = setTimeout(() => {
       setAnnouncement(`${label}: ${message}`);
     }, 500);
@@ -214,40 +218,39 @@ export default function LoginFormCard({ callbackUrl = "", reason = "" }) {
     .join(" ");
 
   return (
-    <div className="w-full max-w-[400px] border border-[var(--rule-strong)] bg-[var(--paper-pure)] p-6 sm:p-8 lg:border-0 lg:bg-transparent lg:p-0">
+    <div className="w-full max-w-[400px] rounded-2xl border border-stone-200/90 bg-white p-6 shadow-sm sm:p-8 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
       {/* Live region sopan untuk pengumuman error blur bagi screen reader */}
       <div role="status" aria-live="polite" className="visually-hidden">
         {announcement}
       </div>
 
-      {/* Header Identitas Mobile/Tablet (Logo Otium Asli) */}
-      <div className="mb-6 flex items-center gap-3 border-b border-[var(--rule)] pb-5 lg:hidden">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[2px] border border-[var(--rule-strong)] bg-[var(--paper)] p-1.5">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/images/otium-logo.svg"
-            alt="Logo Otium"
-            className="h-full w-full object-contain"
-          />
-        </div>
+      {/* Header Identitas Mobile/Tablet */}
+      <div className="mb-7 flex items-center gap-3 lg:hidden">
+        <img
+          src="/images/otium-logo.svg"
+          alt="Logo Otium"
+          className="h-9 w-9 shrink-0 object-contain"
+        />
         <div>
-          <span className="block font-serif text-xl font-bold leading-none tracking-[0.08em] text-[var(--ink)]">
-            OTIUM
+          <span className="block text-lg font-bold leading-none tracking-tight text-slate-950">
+            Otium
           </span>
-          <span className="mt-0.5 block font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--ink-muted)]">
-            Arsip Cuti {new Date().getFullYear()}
+          <span className="mt-1 block text-[11px] font-medium uppercase tracking-[0.12em] text-slate-600">
+            Sistem Manajemen Cuti
           </span>
         </div>
       </div>
 
       {/* Heading Form */}
       <div>
-        <span className="panel-eyebrow">Portal Karyawan</span>
-        <h2 className="mt-1 font-serif text-[32px] font-semibold leading-[1.1] text-[var(--ink)] sm:text-[34px]">
-          Masuk ke Ruang Kerja
-        </h2>
-        <p className="mt-2 text-[13px] leading-relaxed text-[var(--ink-soft)]">
-          Role pengguna terdeteksi otomatis setelah kredensial terverifikasi.
+        <p className="hidden text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600 lg:block">
+          Portal Internal &middot; Otium
+        </p>
+        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-slate-950 lg:mt-2 lg:text-[1.75rem]">
+          Masuk ke ruang kerja
+        </h1>
+        <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+          Masukkan email atau username perusahaan beserta kata sandi Anda.
         </p>
       </div>
 
@@ -255,18 +258,28 @@ export default function LoginFormCard({ callbackUrl = "", reason = "" }) {
       {statusBanner && !errorMsg && (
         <div
           role="status"
-          className={`notice mt-5 ${
-            statusBanner.tone === "warn"
-              ? "notice-warn"
-              : statusBanner.tone === "success"
-                ? "notice-success"
-                : "notice-danger"
+          className={`mt-5 flex items-start gap-2.5 rounded-lg border px-3.5 py-3 text-sm ${
+            statusBanner.tone === "amber"
+              ? "border-amber-200 bg-amber-50 text-amber-900"
+              : statusBanner.tone === "emerald"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                : "border-rose-200 bg-rose-50 text-rose-800"
           }`}
         >
-          {statusBanner.tone === "success" ? (
-            <CheckCircle2 aria-hidden="true" />
+          {statusBanner.tone === "emerald" ? (
+            <CheckCircle2
+              className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700"
+              aria-hidden="true"
+            />
           ) : (
-            <AlertCircle aria-hidden="true" />
+            <AlertCircle
+              className={`mt-0.5 h-4 w-4 shrink-0 ${
+                statusBanner.tone === "amber"
+                  ? "text-amber-700"
+                  : "text-rose-700"
+              }`}
+              aria-hidden="true"
+            />
           )}
           <span>{statusBanner.message}</span>
         </div>
@@ -274,27 +287,30 @@ export default function LoginFormCard({ callbackUrl = "", reason = "" }) {
 
       {/* Alert Error Kredensial / Akun Nonaktif */}
       {errorMsg && (
-        <div role="alert" className="notice notice-danger mt-5">
-          <AlertCircle aria-hidden="true" />
+        <div
+          role="alert"
+          className="mt-5 flex items-start gap-2.5 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800"
+        >
+          <AlertCircle
+            className="mt-0.5 h-4 w-4 shrink-0 text-rose-700"
+            aria-hidden="true"
+          />
           <span>{errorMsg}</span>
         </div>
       )}
 
       {/* Form Kredensial */}
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate>
+      <form onSubmit={handleSubmit} className="mt-7 space-y-5" noValidate>
         {/* Field Email atau Username */}
-        <div className="flex flex-col gap-1.5">
+        <div>
           <label
             htmlFor="identifier"
-            className="text-xs font-semibold text-[var(--ink-soft)]"
+            className="block text-sm font-medium text-slate-800"
           >
-            Email atau Username{" "}
-            <span className="text-[var(--terracotta)]" aria-hidden="true">
-              *
-            </span>
+            Email atau Username
           </label>
-          <div className="relative">
-            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--ink-muted)]">
+          <div className="relative mt-1.5">
+            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500">
               <Mail className="h-4 w-4" aria-hidden="true" />
             </span>
             <input
@@ -318,17 +334,17 @@ export default function LoginFormCard({ callbackUrl = "", reason = "" }) {
               onChange={handleIdentifierChange}
               onBlur={handleIdentifierBlur}
               placeholder="nama@perusahaan.com atau username"
-              className={`otium-input input mono !pl-9 !pr-3 ${
+              className={`otium-input block w-full rounded-lg border bg-white py-2.5 pl-10 pr-3.5 text-sm text-slate-950 placeholder:text-slate-500 transition-colors duration-150 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 ${
                 fieldErrors.identifier
-                  ? "!border-[var(--terracotta)] !bg-[var(--terracotta-tint)]"
-                  : ""
+                  ? "border-rose-500 bg-rose-50/40 focus-visible:border-rose-600 focus-visible:ring-rose-500/20"
+                  : "border-slate-300 hover:border-slate-400 focus-visible:border-slate-900 focus-visible:ring-slate-900/15"
               }`}
             />
           </div>
           {fieldErrors.identifier && (
             <p
               id="identifier-error"
-              className="flex items-center gap-1.5 text-xs font-medium text-[var(--terracotta)]"
+              className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-rose-700"
             >
               <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               <span>{fieldErrors.identifier}</span>
@@ -337,29 +353,26 @@ export default function LoginFormCard({ callbackUrl = "", reason = "" }) {
         </div>
 
         {/* Field Password */}
-        <div className="flex flex-col gap-1.5">
+        <div>
           <div className="flex items-center justify-between gap-2">
             <label
               htmlFor="password"
-              className="text-xs font-semibold text-[var(--ink-soft)]"
+              className="block text-sm font-medium text-slate-800"
             >
-              Password{" "}
-              <span className="text-[var(--terracotta)]" aria-hidden="true">
-                *
-              </span>
+              Password
             </label>
             {isCapsLockOn && (
               <span
                 id="password-capslock-notice"
-                className="tag tag-pending !py-0 !text-[10.5px]"
+                className="inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-800"
               >
                 <AlertCircle className="h-3 w-3 shrink-0" aria-hidden="true" />
                 Caps Lock aktif
               </span>
             )}
           </div>
-          <div className="relative">
-            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--ink-muted)]">
+          <div className="relative mt-1.5">
+            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500">
               <Lock className="h-4 w-4" aria-hidden="true" />
             </span>
             <input
@@ -380,10 +393,10 @@ export default function LoginFormCard({ callbackUrl = "", reason = "" }) {
               onKeyUp={handlePasswordKeyEvent}
               onBlur={handlePasswordBlur}
               placeholder="Masukkan password Anda"
-              className={`otium-input input mono !pl-9 !pr-10 ${
+              className={`otium-input block w-full rounded-lg border bg-white py-2.5 pl-10 pr-11 text-sm text-slate-950 placeholder:text-slate-500 transition-colors duration-150 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 ${
                 fieldErrors.password
-                  ? "!border-[var(--terracotta)] !bg-[var(--terracotta-tint)]"
-                  : ""
+                  ? "border-rose-500 bg-rose-50/40 focus-visible:border-rose-600 focus-visible:ring-rose-500/20"
+                  : "border-slate-300 hover:border-slate-400 focus-visible:border-slate-900 focus-visible:ring-slate-900/15"
               }`}
             />
             <button
@@ -395,7 +408,7 @@ export default function LoginFormCard({ callbackUrl = "", reason = "" }) {
               aria-label={
                 showPassword ? "Sembunyikan password" : "Tampilkan password"
               }
-              className="absolute inset-y-0 right-1 my-1 flex w-8 cursor-pointer items-center justify-center rounded-[2px] text-[var(--ink-muted)] transition-colors duration-150 hover:bg-[var(--alabaster)] hover:text-[var(--ink)] disabled:cursor-not-allowed"
+              className="absolute inset-y-0 right-1 my-1 flex w-9 cursor-pointer items-center justify-center rounded-md text-slate-600 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 disabled:cursor-not-allowed"
             >
               {showPassword ? (
                 <EyeOff className="h-4 w-4" aria-hidden="true" />
@@ -407,7 +420,7 @@ export default function LoginFormCard({ callbackUrl = "", reason = "" }) {
           {fieldErrors.password && (
             <p
               id="password-error"
-              className="flex items-center gap-1.5 text-xs font-medium text-[var(--terracotta)]"
+              className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-rose-700"
             >
               <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               <span>{fieldErrors.password}</span>
@@ -415,11 +428,11 @@ export default function LoginFormCard({ callbackUrl = "", reason = "" }) {
           )}
         </div>
 
-        {/* Checkbox Remember Me (7 hari sesuai AGENTS.md) */}
-        <div className="pt-0.5">
+        {/* Checkbox Remember Me (accent-color + fallback @supports not) */}
+        <div className="flex items-center justify-between pt-0.5">
           <label
             htmlFor="rememberMe"
-            className="otium-checkbox-label inline-flex cursor-pointer select-none items-center gap-2.5 text-[13px] text-[var(--ink-soft)]"
+            className="otium-checkbox-label inline-flex cursor-pointer select-none items-center gap-2.5 text-sm text-slate-700"
           >
             <input
               id="rememberMe"
@@ -428,14 +441,11 @@ export default function LoginFormCard({ callbackUrl = "", reason = "" }) {
               disabled={isLoading}
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="otium-checkbox h-4 w-4 cursor-pointer rounded-[2px] border-[var(--rule-strong)] disabled:cursor-not-allowed"
+              className="otium-checkbox h-4 w-4 cursor-pointer rounded border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
             />
             <span>
-              Remember Me (tetap masuk{" "}
-              <strong className="font-semibold text-[var(--ink)]">
-                7 hari
-              </strong>
-              )
+              Tetap masuk selama{" "}
+              <strong className="font-medium text-slate-900">7 hari</strong>
             </span>
           </label>
         </div>
@@ -444,7 +454,7 @@ export default function LoginFormCard({ callbackUrl = "", reason = "" }) {
         <button
           type="submit"
           disabled={isLoading}
-          className="btn btn-primary !min-h-[42px] w-full"
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isLoading ? (
             <>
@@ -453,7 +463,7 @@ export default function LoginFormCard({ callbackUrl = "", reason = "" }) {
             </>
           ) : (
             <>
-              <span>Masuk ke Dashboard</span>
+              <span>Masuk ke Portal</span>
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </>
           )}
@@ -461,9 +471,9 @@ export default function LoginFormCard({ callbackUrl = "", reason = "" }) {
       </form>
 
       {/* Catatan Colophon Ringkas (Tanpa Registrasi Publik) */}
-      <p className="mt-7 border-t border-[var(--rule)] pt-4 text-xs leading-relaxed text-[var(--ink-muted)]">
-        Akses akun dikelola terpusat oleh Administrator &bull; Tanpa registrasi
-        publik.
+      <p className="mt-7 border-t border-stone-200 pt-5 text-xs leading-relaxed text-slate-600">
+        Akses akun dikelola oleh Administrator &middot; Peran pengguna
+        terdeteksi otomatis setelah masuk.
       </p>
     </div>
   );

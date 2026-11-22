@@ -4,23 +4,22 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
-  ArrowUpRight,
+  Building2,
+  CalendarRange,
   CheckSquare,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
+  UserCheck,
 } from "lucide-react";
+import StatsCard from "@/components/ui/StatsCard";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 
 const LEAVES_PAGE_SIZE = 5;
 const HRD_TABS = ["leaves", "divisions"];
 
-/**
- * Tampilan Dashboard HRD (Final Approver) bergaya Swiss Archival (100% UI-Only Live Data).
- * Menampilkan Metric Strip perusahaan, ringkasan antrean persetujuan final HRD,
- * serta Tabbed Ledger aksesibel untuk jadwal cuti bulanan & kapasitas lintas divisi.
- */
+// Tampilan dashboard untuk role HRD (Pure Production Live Data — Tabbed Card Aksesibel)
 export default function HrdDashboardView({ initialData, data }) {
   const leavesTabId = useId();
   const divisionsTabId = useId();
@@ -42,12 +41,8 @@ export default function HrdDashboardView({ initialData, data }) {
     }
   }, [initialData]);
 
-  const {
-    periodLabel,
-    stats,
-    monthlyApprovedLeaves = [],
-    divisionsSummary = [],
-  } = dashboardData;
+  const { periodLabel, stats, monthlyApprovedLeaves, divisionsSummary } =
+    dashboardData;
 
   const divisionOptions = useMemo(() => {
     const names = divisionsSummary.map((div) => div.name);
@@ -65,14 +60,6 @@ export default function HrdDashboardView({ initialData, data }) {
     );
   }, [monthlyApprovedLeaves, activeDivision]);
 
-  // Hitung divisi dengan beban cuti harian > 30% murni dari props divisionsSummary
-  const highLeaveDivisions = useMemo(() => {
-    return divisionsSummary.filter((div) => {
-      if (!div.activeMembers) return false;
-      return (div.currentlyOnLeave / div.activeMembers) * 100 > 30;
-    });
-  }, [divisionsSummary]);
-
   const totalPages = Math.max(
     1,
     Math.ceil(filteredLeaves.length / LEAVES_PAGE_SIZE)
@@ -84,6 +71,7 @@ export default function HrdDashboardView({ initialData, data }) {
     startIndex + LEAVES_PAGE_SIZE
   );
 
+  // Keyboard navigation untuk tablist (selection follows focus: ArrowLeft/ArrowRight/Home/End)
   function handleTabKeyDown(event, currentKey) {
     const idx = HRD_TABS.indexOf(currentKey);
     let nextKey = null;
@@ -133,127 +121,100 @@ export default function HrdDashboardView({ initialData, data }) {
         {liveStatus}
       </div>
 
+      {/* Header dan tombol menuju antrean final */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+              Dashboard HRD (Final Approver)
+            </h2>
+            <StatusBadge status="HRD" />
+          </div>
+          <p className="mt-1 text-sm text-slate-600">
+            Tinjau antrean persetujuan final lintas divisi, pantau jadwal cuti
+            karyawan bulan {periodLabel}, dan kapasitas tiap divisi.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors duration-150 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw
+              className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`}
+              aria-hidden="true"
+            />
+            Segarkan
+          </button>
+          <Link
+            href="/approvals/hrd"
+            className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 tabular-nums"
+          >
+            <CheckSquare className="h-4 w-4" aria-hidden="true" />
+            Ke Antrean Final Approval ({stats.pendingFinalApproval})
+          </Link>
+        </div>
+      </div>
+
       {refreshError && (
-        <div role="alert" className="notice notice-danger">
-          <AlertCircle aria-hidden="true" />
+        <div
+          role="alert"
+          className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-800"
+        >
+          <AlertCircle
+            className="mt-0.5 h-4 w-4 shrink-0 text-rose-700"
+            aria-hidden="true"
+          />
           <span>{refreshError}</span>
         </div>
       )}
 
-      {/* 1. METRIC STRIP PERUSAHAAN (4 Sel Arsip — Sel 1 = CTA Antrean Final HRD) */}
-      <div
-        className="metric-strip"
-        role="region"
-        aria-label="Ringkasan Metrik HRD"
-      >
-        <Link
+      {/* Ringkasan metrik perusahaan (Kartu 2 = Clickable CTA Card) */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatsCard
+          title="Pengajuan Bulan Ini"
+          value={`${stats.monthlyCompanyRequests} Pengajuan`}
+          subtitle={`Akumulasi seluruh perusahaan (${periodLabel})`}
+          icon={<CalendarRange className="h-5 w-5" aria-hidden="true" />}
+          variant="blue"
+        />
+        <StatsCard
+          title="Pending Final Approval"
+          value={`${stats.pendingFinalApproval} Menunggu`}
+          subtitle="Klik untuk proses Approved by Leader & cuti Ketua"
+          icon={<CheckSquare className="h-5 w-5" aria-hidden="true" />}
+          variant="amber"
           href="/approvals/hrd"
-          className="metric-cell group transition-colors duration-150 hover:bg-[var(--spruce-tint)]"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <span className="metric-label">Pending Final HRD</span>
-            <ArrowUpRight
-              className="h-3.5 w-3.5 text-[var(--ochre)] transition-transform duration-150 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-              aria-hidden="true"
-            />
-          </div>
-          <div className="metric-val text-[var(--ochre)]">
-            {String(stats.pendingFinalApproval).padStart(2, "0")}
-          </div>
-          <div className="metric-note font-mono text-[11px] text-[var(--spruce)] group-hover:underline">
-            Buka Meja Persetujuan &rarr;
-          </div>
-        </Link>
-
-        <div className="metric-cell">
-          <div className="metric-label">Pengajuan Bulan Ini</div>
-          <div className="metric-val">
-            {String(stats.monthlyCompanyRequests).padStart(2, "0")}
-          </div>
-          <div className="metric-note">Periode {periodLabel}</div>
-        </div>
-
-        <div className="metric-cell">
-          <div className="metric-label">Karyawan Cuti Bulan Ini</div>
-          <div className="metric-val text-[var(--spruce)]">
-            {String(stats.employeesOnLeaveThisMonth).padStart(2, "0")}
-          </div>
-          <div className="metric-note">Jadwal cuti berstatus Approved</div>
-        </div>
-
-        <div className="metric-cell">
-          <div className="metric-label">Divisi &amp; Tim Aktif</div>
-          <div className="metric-val">
-            {String(stats.activeDivisions).padStart(2, "0")}
-          </div>
-          <div className="metric-note mono text-[11px]">
-            {stats.activeEmployees} pengguna aktif terdaftar
-          </div>
-        </div>
+          actionLabel="Proses Final Approval"
+          clickableCard
+        />
+        <StatsCard
+          title="Karyawan Cuti Bulan Ini"
+          value={`${stats.employeesOnLeaveThisMonth} Karyawan`}
+          subtitle="Jadwal cuti berstatus Approved"
+          icon={<UserCheck className="h-5 w-5" aria-hidden="true" />}
+          variant="emerald"
+        />
+        <StatsCard
+          title="Total Divisi & Tim Aktif"
+          value={`${stats.activeDivisions} Divisi`}
+          subtitle={`${stats.activeEmployees} pengguna aktif terdaftar`}
+          icon={<Building2 className="h-5 w-5" aria-hidden="true" />}
+          variant="purple"
+        />
       </div>
 
-      {/* 2. PANEL RINGKASAN ANTREAN FINAL HRD & KAPASITAS */}
-      <section className="panel" aria-label="Ringkasan Otorisasi HRD">
-        <div className="panel-head">
-          <div>
-            <span className="panel-eyebrow">
-              Otorisasi Final &bull; {periodLabel}
-            </span>
-            <h2 className="panel-title">Meja Persetujuan Final HRD</h2>
-            <p className="panel-sub">
-              Tinjau pengajuan berstatus Approved by Leader &amp; pengajuan
-              pribadi Ketua Divisi (mendukung Multi-Approve atomik).
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="btn btn-sm"
-            >
-              <RefreshCw
-                className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`}
-                aria-hidden="true"
-              />
-              <span>Segarkan</span>
-            </button>
-            <Link href="/approvals/hrd" className="btn btn-primary btn-sm">
-              <CheckSquare className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>
-                Ke Antrean Final ({stats.pendingFinalApproval})
-              </span>
-            </Link>
-          </div>
-        </div>
-
-        {highLeaveDivisions.length > 0 && (
-          <div className="panel-body !py-3.5">
-            <div className="notice notice-warn">
-              <AlertCircle aria-hidden="true" />
-              <span>
-                <strong>Perhatian Kapasitas Tim (&gt;30% cuti hari ini):</strong>{" "}
-                {highLeaveDivisions
-                  .map(
-                    (d) =>
-                      `${d.name} (${d.currentlyOnLeave}/${d.activeMembers} cuti)`
-                  )
-                  .join(", ")}
-                .
-              </span>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* 3. TABBED LEDGER PANEL: SEDANG CUTI BULAN INI | KAPASITAS DIVISI */}
-      <section className="panel overflow-hidden">
-        <div className="flex flex-col gap-3 border-b border-[var(--rule)] bg-[var(--paper)] px-5 pt-3.5">
+      {/* Tabbed Card Terpadu: Sedang Cuti Bulan Ini | Ringkasan Divisi */}
+      <section className="overflow-hidden rounded-xl border border-stone-200 bg-white">
+        <div className="flex flex-col gap-3 border-b border-stone-200 bg-[#FAF9F6] px-5 pt-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div
               role="tablist"
-              aria-label="Monitoring cuti dan kapasitas divisi HRD"
-              className="flex flex-nowrap items-center gap-6 overflow-x-auto"
+              aria-label="Monitoring cuti dan divisi HRD"
+              className="flex flex-nowrap items-center gap-5 overflow-x-auto"
             >
               <button
                 ref={(el) => {
@@ -266,10 +227,10 @@ export default function HrdDashboardView({ initialData, data }) {
                 aria-selected={activeTab === "leaves"}
                 onClick={() => setActiveTab("leaves")}
                 onKeyDown={(e) => handleTabKeyDown(e, "leaves")}
-                className={`otium-tab mono shrink-0 cursor-pointer pb-3 pt-1 text-xs font-semibold uppercase tracking-[0.04em] transition-colors duration-150 ${
+                className={`otium-tab shrink-0 cursor-pointer pb-3 pt-1 text-xs font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 tabular-nums ${
                   activeTab === "leaves"
-                    ? "text-[var(--spruce)]"
-                    : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+                    ? "text-slate-900"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 Sedang Cuti Bulan Ini ({monthlyApprovedLeaves.length})
@@ -285,13 +246,13 @@ export default function HrdDashboardView({ initialData, data }) {
                 aria-selected={activeTab === "divisions"}
                 onClick={() => setActiveTab("divisions")}
                 onKeyDown={(e) => handleTabKeyDown(e, "divisions")}
-                className={`otium-tab mono shrink-0 cursor-pointer pb-3 pt-1 text-xs font-semibold uppercase tracking-[0.04em] transition-colors duration-150 ${
+                className={`otium-tab shrink-0 cursor-pointer pb-3 pt-1 text-xs font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 tabular-nums ${
                   activeTab === "divisions"
-                    ? "text-[var(--spruce)]"
-                    : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+                    ? "text-slate-900"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                Kapasitas &amp; Ketersediaan Divisi ({divisionsSummary.length})
+                Ringkasan Divisi ({divisionsSummary.length})
               </button>
             </div>
 
@@ -299,12 +260,42 @@ export default function HrdDashboardView({ initialData, data }) {
               {activeTab === "leaves" ? (
                 <StatusBadge status="Approved" />
               ) : (
-                <span className="mono text-[11px] text-[var(--ink-muted)]">
-                  Rasio kehadiran tim hari ini
+                <span className="text-xs font-medium text-slate-600">
+                  Rasio ketersediaan tim hari ini lintas unit kerja
                 </span>
               )}
             </div>
           </div>
+
+          {activeTab === "leaves" && divisionOptions.length > 1 && (
+            <div
+              className="flex flex-wrap items-center gap-1.5 pb-3.5"
+              role="group"
+              aria-label="Filter divisi karyawan cuti bulan ini"
+            >
+              {divisionOptions.map((divName) => {
+                const active = divName === activeDivision;
+                return (
+                  <button
+                    key={divName}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => {
+                      setSelectedDivision(divName);
+                      setCurrentPage(1);
+                    }}
+                    className={`cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
+                      active
+                        ? "bg-slate-900 text-white"
+                        : "border border-stone-300 bg-white text-slate-700 hover:bg-stone-100 hover:text-slate-900"
+                    }`}
+                  >
+                    {divName}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Konten Tab 1: Daftar Karyawan Cuti Bulan Ini */}
@@ -313,39 +304,8 @@ export default function HrdDashboardView({ initialData, data }) {
           aria-labelledby={leavesTabId}
           hidden={activeTab !== "leaves"}
         >
-          {divisionOptions.length > 1 && (
-            <div
-              className="toolbar"
-              role="group"
-              aria-label="Filter divisi karyawan cuti bulan ini"
-            >
-              <div className="seg-group flex-wrap">
-                {divisionOptions.map((divName) => {
-                  const active = divName === activeDivision;
-                  return (
-                    <button
-                      key={divName}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => {
-                        setSelectedDivision(divName);
-                        setCurrentPage(1);
-                      }}
-                      className="seg-btn"
-                    >
-                      {divName}
-                    </button>
-                  );
-                })}
-              </div>
-              <span className="mono ml-auto text-[11px] text-[var(--ink-muted)]">
-                {filteredLeaves.length} jadwal
-              </span>
-            </div>
-          )}
-
           {filteredLeaves.length === 0 ? (
-            <div className="panel-body">
+            <div className="p-6">
               <EmptyState
                 title="Belum ada jadwal cuti Approved pada periode ini"
                 description={
@@ -361,35 +321,47 @@ export default function HrdDashboardView({ initialData, data }) {
                 tabIndex={0}
                 role="region"
                 aria-labelledby={leavesCaptionId}
-                className="otium-responsive-table-wrap"
+                className="otium-responsive-table-wrap focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-slate-900"
               >
-                <table className="ledger otium-responsive-table text-left">
+                <table className="otium-responsive-table text-left text-sm">
                   <caption id={leavesCaptionId} className="visually-hidden">
                     Daftar karyawan yang sedang atau akan menjalani cuti
                     Approved pada bulan {periodLabel}
                   </caption>
-                  <thead>
+                  <thead className="border-b border-stone-200 bg-[#FAF9F6] text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-600">
                     <tr>
-                      <th scope="col" className="row-idx">
-                        #
+                      <th scope="col" className="px-5 py-3">
+                        Nama Karyawan
                       </th>
-                      <th scope="col">Nama Karyawan</th>
-                      <th scope="col">Divisi</th>
-                      <th scope="col">Jenis Cuti</th>
-                      <th scope="col">Periode Cuti</th>
-                      <th scope="col">Durasi</th>
-                      <th scope="col">Rekan Pengganti</th>
+                      <th scope="col" className="px-5 py-3">
+                        Divisi
+                      </th>
+                      <th scope="col" className="px-5 py-3">
+                        Jenis Cuti
+                      </th>
+                      <th scope="col" className="px-5 py-3">
+                        Periode Cuti
+                      </th>
+                      <th scope="col" className="px-5 py-3">
+                        Durasi
+                      </th>
+                      <th scope="col" className="px-5 py-3">
+                        Rekan Pengganti
+                      </th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {paginatedLeaves.map((item, idx) => (
-                      <tr key={item.id}>
-                        <td data-label="No" className="row-idx">
-                          {String(startIndex + idx + 1).padStart(2, "0")}
-                        </td>
-                        <th scope="row" className="font-normal">
+                  <tbody className="divide-y divide-stone-100 bg-white">
+                    {paginatedLeaves.map((item) => (
+                      <tr
+                        key={item.id}
+                        className="transition-colors duration-150 hover:bg-[#FAF9F6]"
+                      >
+                        <th
+                          scope="row"
+                          className="whitespace-nowrap px-5 py-3.5 text-left font-normal"
+                        >
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-semibold text-[var(--ink)]">
+                            <span className="font-semibold text-slate-900">
                               {item.employeeName}
                             </span>
                             {item.role === "Ketua Divisi" && (
@@ -399,31 +371,31 @@ export default function HrdDashboardView({ initialData, data }) {
                         </th>
                         <td
                           data-label="Divisi"
-                          className="whitespace-nowrap text-xs font-medium text-[var(--ink-soft)]"
+                          className="whitespace-nowrap px-5 py-3.5 text-xs font-medium text-slate-700"
                         >
                           {item.divisionName}
                         </td>
                         <td
                           data-label="Jenis Cuti"
-                          className="whitespace-nowrap text-xs text-[var(--ink-soft)]"
+                          className="whitespace-nowrap px-5 py-3.5 text-xs text-slate-700"
                         >
                           {item.leaveTypeName}
                         </td>
                         <td
                           data-label="Periode"
-                          className="mono whitespace-nowrap text-xs text-[var(--ink-soft)]"
+                          className="whitespace-nowrap px-5 py-3.5 text-xs text-slate-700 tabular-nums"
                         >
                           {item.periodLabel}
                         </td>
                         <td
                           data-label="Durasi"
-                          className="mono whitespace-nowrap text-xs font-semibold text-[var(--ink)]"
+                          className="whitespace-nowrap px-5 py-3.5 text-xs font-semibold text-slate-900 tabular-nums"
                         >
-                          {item.totalDays.toFixed(1)} hr
+                          {item.totalDays.toFixed(1)} Hari
                         </td>
                         <td
                           data-label="Rekan Pengganti"
-                          className="whitespace-nowrap text-xs text-[var(--ink-soft)]"
+                          className="whitespace-nowrap px-5 py-3.5 text-xs text-slate-700"
                         >
                           {item.handoverName}
                         </td>
@@ -433,10 +405,10 @@ export default function HrdDashboardView({ initialData, data }) {
                 </table>
               </div>
 
-              <div className="flex items-center justify-between border-t border-[var(--rule)] bg-[var(--paper)] px-5 py-3 text-xs text-[var(--ink-soft)]">
-                <span className="mono text-[11px]">
+              <div className="flex items-center justify-between border-t border-stone-200 bg-[#FAF9F6] px-5 py-3 text-xs text-slate-600 tabular-nums">
+                <span>
                   Menampilkan{" "}
-                  <strong className="font-semibold text-[var(--ink)]">
+                  <strong className="font-semibold text-slate-900">
                     {startIndex + 1}&ndash;
                     {Math.min(
                       startIndex + LEAVES_PAGE_SIZE,
@@ -444,10 +416,10 @@ export default function HrdDashboardView({ initialData, data }) {
                     )}
                   </strong>{" "}
                   dari{" "}
-                  <strong className="font-semibold text-[var(--ink)]">
+                  <strong className="font-semibold text-slate-900">
                     {filteredLeaves.length}
                   </strong>{" "}
-                  jadwal
+                  jadwal cuti
                 </span>
 
                 <div className="flex items-center gap-1.5">
@@ -456,11 +428,11 @@ export default function HrdDashboardView({ initialData, data }) {
                     disabled={safePage <= 1}
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     aria-label="Halaman sebelumnya"
-                    className="btn btn-sm !min-h-[28px] !px-2"
+                    className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-stone-300 bg-white text-slate-700 transition-colors duration-150 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>
-                  <span className="mono px-1.5 text-[11px] font-semibold text-[var(--ink)]">
+                  <span className="px-1.5 font-medium text-slate-800">
                     {safePage} / {totalPages}
                   </span>
                   <button
@@ -470,7 +442,7 @@ export default function HrdDashboardView({ initialData, data }) {
                       setCurrentPage((p) => Math.min(totalPages, p + 1))
                     }
                     aria-label="Halaman berikutnya"
-                    className="btn btn-sm !min-h-[28px] !px-2"
+                    className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-stone-300 bg-white text-slate-700 transition-colors duration-150 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>
@@ -480,14 +452,14 @@ export default function HrdDashboardView({ initialData, data }) {
           )}
         </div>
 
-        {/* Konten Tab 2: Kapasitas & Ketersediaan Divisi */}
+        {/* Konten Tab 2: Daftar Divisi Perusahaan & Rasio Ketersediaan Tim */}
         <div
           role="tabpanel"
           aria-labelledby={divisionsTabId}
           hidden={activeTab !== "divisions"}
         >
           {divisionsSummary.length === 0 ? (
-            <div className="panel-body">
+            <div className="p-6">
               <EmptyState
                 title="Belum ada divisi terdaftar"
                 description="Admin belum menambahkan data divisi pada sistem."
@@ -498,29 +470,34 @@ export default function HrdDashboardView({ initialData, data }) {
               tabIndex={0}
               role="region"
               aria-labelledby={divisionsCaptionId}
-              className="otium-responsive-table-wrap"
+              className="otium-responsive-table-wrap focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-slate-900"
             >
-              <table className="ledger otium-responsive-table text-left">
+              <table className="otium-responsive-table text-left text-sm">
                 <caption id={divisionsCaptionId} className="visually-hidden">
                   Ringkasan divisi perusahaan beserta rasio ketersediaan tim
                   hari ini dan jumlah pengajuan cuti bulan berjalan
                 </caption>
-                <thead>
+                <thead className="border-b border-stone-200 bg-[#FAF9F6] text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-600">
                   <tr>
-                    <th scope="col" className="row-idx">
-                      #
+                    <th scope="col" className="px-5 py-3">
+                      Nama Divisi
                     </th>
-                    <th scope="col">Nama Divisi</th>
-                    <th scope="col">Ketua Divisi</th>
-                    <th scope="col">Ketersediaan Tim Hari Ini</th>
-                    <th scope="col">Sedang Cuti</th>
-                    <th scope="col" className="text-right">
+                    <th scope="col" className="px-5 py-3">
+                      Ketua Divisi
+                    </th>
+                    <th scope="col" className="px-5 py-3">
+                      Ketersediaan Tim
+                    </th>
+                    <th scope="col" className="px-5 py-3">
+                      Sedang Cuti
+                    </th>
+                    <th scope="col" className="px-5 py-3 text-right">
                       Cuti Bulan Ini
                     </th>
                   </tr>
                 </thead>
-                <tbody>
-                  {divisionsSummary.map((div, idx) => {
+                <tbody className="divide-y divide-stone-100 bg-white">
+                  {divisionsSummary.map((div) => {
                     const availableCount = Math.max(
                       0,
                       div.activeMembers - div.currentlyOnLeave
@@ -529,43 +506,40 @@ export default function HrdDashboardView({ initialData, data }) {
                       div.activeMembers > 0
                         ? Math.round((availableCount / div.activeMembers) * 100)
                         : 100;
-                    const leaveRatioPct =
-                      div.activeMembers > 0
-                        ? Math.round(
-                            (div.currentlyOnLeave / div.activeMembers) * 100
-                          )
-                        : 0;
-                    const isOverCapacity = leaveRatioPct > 30;
-                    const barTone = isOverCapacity
-                      ? "otium-progress--danger"
-                      : availPercent >= 80
+                    const barTone =
+                      availPercent >= 80
                         ? "otium-progress--ok"
-                        : "otium-progress--amber";
+                        : availPercent >= 60
+                          ? "otium-progress--sky"
+                          : "otium-progress--amber";
 
                     return (
-                      <tr key={div.id}>
-                        <td data-label="No" className="row-idx">
-                          {String(idx + 1).padStart(2, "0")}
-                        </td>
-                        <th scope="row" className="font-semibold text-[var(--ink)]">
+                      <tr
+                        key={div.id}
+                        className="transition-colors duration-150 hover:bg-[#FAF9F6]"
+                      >
+                        <th
+                          scope="row"
+                          className="whitespace-nowrap px-5 py-3.5 text-left font-semibold text-slate-900"
+                        >
                           {div.name}
                         </th>
                         <td
                           data-label="Ketua Divisi"
-                          className="whitespace-nowrap text-xs text-[var(--ink-soft)]"
+                          className="whitespace-nowrap px-5 py-3.5 text-xs font-medium text-slate-700"
                         >
                           {div.leaderName}
                         </td>
                         <td
                           data-label="Ketersediaan Tim"
-                          className="min-w-[200px]"
+                          className="min-w-[200px] px-5 py-3.5"
                         >
                           <div className="w-full max-w-[220px] sm:max-w-none">
-                            <div className="mono flex items-center justify-between gap-2 text-[11px]">
-                              <span className="font-semibold text-[var(--ink)]">
+                            <div className="flex items-center justify-between gap-2 text-xs tabular-nums">
+                              <span className="font-semibold text-slate-800">
                                 {availableCount}/{div.activeMembers} Hadir
                               </span>
-                              <span className="text-[var(--ink-muted)]">
+                              <span className="font-medium text-slate-600">
                                 {availPercent}%
                               </span>
                             </div>
@@ -581,25 +555,19 @@ export default function HrdDashboardView({ initialData, data }) {
                         </td>
                         <td
                           data-label="Sedang Cuti"
-                          className="whitespace-nowrap text-xs"
+                          className="whitespace-nowrap px-5 py-3.5 text-xs tabular-nums"
                         >
                           {div.currentlyOnLeave > 0 ? (
-                            <span
-                              className={`tag ${
-                                isOverCapacity ? "tag-rejected" : "tag-leader"
-                              }`}
-                            >
-                              {div.currentlyOnLeave} Orang ({leaveRatioPct}%)
+                            <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-800">
+                              {div.currentlyOnLeave} Orang
                             </span>
                           ) : (
-                            <span className="mono text-xs text-[var(--ink-muted)]">
-                              0 Orang
-                            </span>
+                            <span className="text-slate-600">0 Orang</span>
                           )}
                         </td>
                         <td
                           data-label="Cuti Bulan Ini"
-                          className="mono whitespace-nowrap text-right text-xs font-semibold text-[var(--ink)]"
+                          className="whitespace-nowrap px-5 py-3.5 text-right text-xs font-semibold text-slate-900 tabular-nums"
                         >
                           {div.monthlyLeaveCount} Pengajuan
                         </td>

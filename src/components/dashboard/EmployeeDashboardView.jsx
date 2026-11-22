@@ -6,17 +6,21 @@ import {
   AlertCircle,
   ArrowRight,
   Ban,
+  Building2,
+  CalendarCheck,
   CalendarPlus,
   Check,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   Clock,
+  FileText,
   Handshake,
   RefreshCw,
+  Stethoscope,
   X,
 } from "lucide-react";
-import QuotaPrecisionRuler from "@/components/ui/QuotaPrecisionRuler";
+import StatsCard from "@/components/ui/StatsCard";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 
@@ -29,13 +33,13 @@ const STATUS_FILTER_OPTIONS = [
   "Cancelled",
 ];
 
-// Stepper mini bergaya Swiss Archival untuk posisi pengajuan (Ketua Divisi -> HRD)
+// Stepper mini untuk melihat posisi pengajuan (Ketua Divisi -> HRD)
 function MiniApprovalStepper({ status, rejectedByRole }) {
   if (status === "Cancelled") {
     return (
-      <span className="mono inline-flex items-center gap-1.5 text-[11px] text-[var(--ink-muted)]">
-        <Ban className="h-3.5 w-3.5" aria-hidden="true" />
-        Dibatalkan
+      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-600">
+        <Ban className="h-3.5 w-3.5 text-slate-500" aria-hidden="true" />
+        Dibatalkan Pemohon
       </span>
     );
   }
@@ -61,66 +65,54 @@ function MiniApprovalStepper({ status, rejectedByRole }) {
   function renderDot(state) {
     if (state === "done") {
       return (
-        <span className="flex h-4 w-4 items-center justify-center rounded-[2px] bg-[var(--spruce)] text-[var(--spruce-btn-ink)]">
+        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-white">
           <Check className="h-2.5 w-2.5" aria-hidden="true" />
         </span>
       );
     }
     if (state === "rejected") {
       return (
-        <span className="flex h-4 w-4 items-center justify-center rounded-[2px] bg-[var(--terracotta)] text-[var(--spruce-btn-ink)]">
+        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-white">
           <X className="h-2.5 w-2.5" aria-hidden="true" />
         </span>
       );
     }
     if (state === "current") {
       return (
-        <span className="flex h-4 w-4 items-center justify-center rounded-[2px] border border-[var(--ochre-border)] bg-[var(--ochre-tint)] text-[var(--ochre)]">
+        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-100 text-amber-800 ring-1 ring-amber-400">
           <Clock className="h-2.5 w-2.5" aria-hidden="true" />
         </span>
       );
     }
     return (
-      <span className="h-3.5 w-3.5 rounded-[2px] border border-[var(--rule-strong)] bg-[var(--alabaster)]" />
+      <span className="h-3.5 w-3.5 rounded-full border border-stone-300 bg-stone-100" />
     );
   }
 
   return (
     <div
-      className="mono inline-flex items-center gap-1.5 text-[11px] text-[var(--ink-soft)]"
+      className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-600"
       aria-label="Alur verifikasi 2 tahap"
     >
-      <span
-        className="inline-flex items-center gap-1"
-        title="Tahap 1: Ketua Divisi"
-      >
+      <span className="inline-flex items-center gap-1" title="Tahap 1: Ketua Divisi">
         {renderDot(step1State)}
-        <span>Ketua</span>
+        <span className="text-slate-700">Ketua</span>
       </span>
       <span
-        className={`h-px w-4 ${
-          step1State === "done"
-            ? "bg-[var(--spruce)]"
-            : "bg-[var(--rule-strong)]"
+        className={`h-0.5 w-4 rounded-full ${
+          step1State === "done" ? "bg-emerald-500" : "bg-stone-200"
         }`}
         aria-hidden="true"
       />
-      <span
-        className="inline-flex items-center gap-1"
-        title="Tahap 2: Final HRD"
-      >
+      <span className="inline-flex items-center gap-1" title="Tahap 2: Final HRD">
         {renderDot(step2State)}
-        <span>HRD</span>
+        <span className="text-slate-700">HRD</span>
       </span>
     </div>
   );
 }
 
-/**
- * Tampilan Dashboard Karyawan bergaya Swiss Archival (100% UI-Only Live Data).
- * Menampilkan Quota Ledger Hero + 12-Day Precision Ruler, Metric Strip,
- * Pengajuan Aktif, Handover Inbox, dan Tabel Riwayat Swiss Ledger.
- */
+// Tampilan dashboard untuk role Karyawan (Pure Production Live Data)
 export default function EmployeeDashboardView({ initialData, data }) {
   const tableCaptionId = useId();
   const handoverPanelId = useId();
@@ -138,23 +130,18 @@ export default function EmployeeDashboardView({ initialData, data }) {
     }
   }, [initialData]);
 
-  const { user, stats, handoverInbox = [], recentRequests = [] } = dashboardData;
+  const { user, stats, handoverInbox, recentRequests } = dashboardData;
 
   const filteredRequests = useMemo(() => {
     if (selectedStatus === "Semua") return recentRequests;
     return recentRequests.filter((req) => req.status === selectedStatus);
   }, [recentRequests, selectedStatus]);
 
-  const activeRequest = useMemo(() => {
-    return (
-      recentRequests.find(
-        (req) => req.status === "Pending" || req.status === "Approved by Leader"
-      ) || null
-    );
-  }, [recentRequests]);
+  const quotaRemainingPercent =
+    stats.initialQuota > 0
+      ? Math.round((stats.remainingQuota / stats.initialQuota) * 100)
+      : 0;
 
-  const activeCount =
-    Number(stats.pendingCount || 0) + Number(stats.approvedByLeaderCount || 0);
   const firstHandover = handoverInbox[0] || null;
 
   async function handleRefresh() {
@@ -185,302 +172,145 @@ export default function EmployeeDashboardView({ initialData, data }) {
         {liveStatus}
       </div>
 
+      {/* Sapaan dan tombol ajukan cuti */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+              Selamat Datang, {user.fullName}
+            </h2>
+            <StatusBadge status={user.role} />
+          </div>
+          <p className="mt-1 text-sm text-slate-600">
+            Pantau sisa kuota cuti tahunan realtime, tugas serah terima rekan,
+            dan progres persetujuan 2 tahap Anda.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors duration-150 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw
+              className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`}
+              aria-hidden="true"
+            />
+            Segarkan
+          </button>
+          <Link
+            href="/leaves/new"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+          >
+            <CalendarPlus className="h-4 w-4" aria-hidden="true" />
+            Ajukan Cuti Baru
+          </Link>
+        </div>
+      </div>
+
       {refreshError && (
-        <div role="alert" className="notice notice-danger">
-          <AlertCircle aria-hidden="true" />
+        <div
+          role="alert"
+          className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-800"
+        >
+          <AlertCircle
+            className="mt-0.5 h-4 w-4 shrink-0 text-rose-700"
+            aria-hidden="true"
+          />
           <span>{refreshError}</span>
         </div>
       )}
 
-      {/* 1. HERO: QUOTA LEDGER & 12-DAY PRECISION RULER */}
-      <section className="quota-hero" aria-label="Ringkasan Saldo Kuota">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="panel-eyebrow !mb-0">
-                Saldo Cuti Tahunan
-                {user.divisionName ? ` • ${user.divisionName}` : ""} &bull;
-                Tahun Buku {new Date().getFullYear()}
-              </span>
-              <StatusBadge
-                status={
-                  user.isEligibleAnnualLeave ? "Eligible" : "Belum Eligible"
-                }
-              />
-            </div>
-
-            <div className="mt-1.5 font-serif text-[42px] font-semibold leading-none text-[var(--spruce)] tabular-nums sm:text-[46px]">
-              {stats.remainingQuota.toFixed(1)}{" "}
-              <span className="font-sans text-[15px] font-normal text-[var(--ink-soft)]">
-                dari {stats.initialQuota.toFixed(1)} hari kerja
-              </span>
-            </div>
-
-            <p className="mt-2 text-xs text-[var(--ink-soft)]">
-              Selamat datang,{" "}
-              <strong className="font-semibold text-[var(--ink)]">
-                {user.fullName}
-              </strong>
-              .{" "}
-              {user.isEligibleAnnualLeave
-                ? "Anda memenuhi syarat masa kerja ≥ 1 tahun untuk pengajuan Cuti Tahunan (min. H-3)."
-                : "Masa kerja < 1 tahun: Cuti Tahunan terkunci, namun Cuti Sakit & Cuti Lainnya tetap tersedia."}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="btn btn-sm"
-            >
-              <RefreshCw
-                className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`}
-                aria-hidden="true"
-              />
-              <span>Segarkan</span>
-            </button>
-            <Link href="/leaves/new" className="btn btn-primary">
-              <CalendarPlus className="h-4 w-4" aria-hidden="true" />
-              <span>Ajukan Cuti Baru</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* 12-Day Precision Ruler */}
-        <QuotaPrecisionRuler
-          total={stats.initialQuota}
-          remaining={stats.remainingQuota}
-          delta={0}
+      {/* Ringkasan kuota (+ badge Eligible & native progress), sakit, total pengajuan, dan divisi */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatsCard
+          title="Sisa Kuota Tahunan"
+          value={`${stats.remainingQuota.toFixed(1)} Hari`}
+          subtitle={`Terpakai: ${stats.usedQuota.toFixed(1)} dari ${stats.initialQuota.toFixed(1)} Hari (${quotaRemainingPercent}%)`}
+          icon={<CalendarCheck className="h-5 w-5" aria-hidden="true" />}
+          variant="emerald"
+          badge={
+            <StatusBadge
+              status={
+                user.isEligibleAnnualLeave ? "Eligible" : "Belum Eligible"
+              }
+            />
+          }
+          progressPercent={quotaRemainingPercent}
+          progressVariant={user.isEligibleAnnualLeave ? "emerald" : "amber"}
+          progressLabel={`Sisa kuota cuti tahunan ${stats.remainingQuota.toFixed(1)} dari ${stats.initialQuota.toFixed(1)} hari (${quotaRemainingPercent}%)`}
         />
-
-        {/* 3-Cell Quota KPI Row */}
-        <div className="quota-kpi-row">
-          <div className="quota-kpi-cell">
-            <div className="metric-label">Terpakai / Hold</div>
-            <div className="mono mt-0.5 text-xl font-semibold text-[var(--ochre)]">
-              {stats.usedQuota.toFixed(1)} hr
-            </div>
-          </div>
-          <div className="quota-kpi-cell">
-            <div className="metric-label">Pengajuan Aktif</div>
-            <div className="mono mt-0.5 text-xl font-semibold text-[var(--ink)]">
-              {String(activeCount).padStart(2, "0")}
-            </div>
-          </div>
-          <div className="quota-kpi-cell">
-            <div className="metric-label">Disetujui</div>
-            <div className="mono mt-0.5 text-xl font-semibold text-[var(--spruce)]">
-              {String(stats.approvedCount).padStart(2, "0")}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 2. METRIC STRIP (4 Sel Ringkas Arsip) */}
-      <div className="metric-strip" role="region" aria-label="Ringkasan Metrik">
-        <div className="metric-cell">
-          <div className="metric-label">Total Pengajuan Saya</div>
-          <div className="metric-val">
-            {String(stats.totalRequests).padStart(2, "0")}
-          </div>
-          <div className="metric-note">
-            <Link
-              href="/leaves"
-              className="font-mono text-[11px] font-semibold text-[var(--spruce)] hover:underline"
-            >
-              Buka Riwayat Cuti &rarr;
-            </Link>
-          </div>
-        </div>
-
-        <div className="metric-cell">
-          <div className="metric-label">Cuti Sakit Diajukan</div>
-          <div className="metric-val text-[var(--terracotta)]">
-            {String(stats.sickLeaveCount).padStart(2, "0")}
-          </div>
-          <div className="metric-note mono">
-            Total {stats.sickLeaveDays.toFixed(1)} hari di tahun berjalan
-          </div>
-        </div>
-
-        <div className="metric-cell">
-          <div className="metric-label">Status Berjalan</div>
-          <div className="metric-val text-[var(--ochre)]">
-            {String(stats.pendingCount + stats.approvedByLeaderCount).padStart(
-              2,
-              "0"
-            )}
-          </div>
-          <div className="metric-note">
-            {stats.pendingCount} Pending &bull; {stats.approvedByLeaderCount}{" "}
-            Tahap HRD &bull; {stats.rejectedCount} Ditolak
-          </div>
-        </div>
-
-        <div className="metric-cell">
-          <div className="metric-label">Divisi &amp; Atasan</div>
-          <div className="truncate font-serif text-2xl font-semibold leading-tight text-[var(--ink)]">
-            {user.divisionName || "Belum Ditugaskan"}
-          </div>
-          <div className="metric-note truncate">
-            {user.leaderName
-              ? `Ketua: ${user.leaderName}`
-              : "Belum ada Ketua Divisi aktif"}
-          </div>
-        </div>
+        <StatsCard
+          title="Cuti Sakit Diajukan"
+          value={`${stats.sickLeaveCount} Kali`}
+          subtitle={`Total ${stats.sickLeaveDays.toFixed(1)} Hari di tahun berjalan`}
+          icon={<Stethoscope className="h-5 w-5" aria-hidden="true" />}
+          variant="rose"
+        />
+        <StatsCard
+          title="Total Pengajuan Saya"
+          value={`${stats.totalRequests} Pengajuan`}
+          subtitle={`${stats.approvedCount} Approved · ${stats.approvedByLeaderCount} Tahap HRD · ${stats.pendingCount} Pending · ${stats.rejectedCount} Rejected`}
+          icon={<FileText className="h-5 w-5" aria-hidden="true" />}
+          variant="blue"
+          href="/leaves"
+          actionLabel="Lihat Riwayat Cuti"
+        />
+        <StatsCard
+          title="Divisi & Atasan"
+          value={user.divisionName || "Belum Ditugaskan"}
+          subtitle={
+            user.leaderName
+              ? `Ketua Divisi: ${user.leaderName}`
+              : "Belum ada Ketua Divisi aktif"
+          }
+          icon={<Building2 className="h-5 w-5" aria-hidden="true" />}
+          variant="purple"
+        />
       </div>
 
-      {/* 3. PANEL PENGAJUAN AKTIF (Jika ada yang sedang diproses) */}
-      {activeRequest && (
-        <section className="panel" aria-label="Pengajuan Cuti Aktif">
-          <div className="panel-head">
-            <div>
-              <span className="panel-eyebrow">Lembar Edaran Berjalan</span>
-              <h2 className="panel-title">Pengajuan Aktif Terkini</h2>
-              <p className="panel-sub">
-                Lacak posisi verifikasi atasan dan persetujuan akhir HRD.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <StatusBadge
-                status={activeRequest.status}
-                rejectedByRole={activeRequest.rejectedByRole}
-              />
-              <Link href="/leaves" className="btn btn-sm">
-                <span>Detail Riwayat</span>
-                <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-              </Link>
-            </div>
-          </div>
-
-          <div className="panel-body">
-            <article className="slip">
-              <div className="slip-meta">
-                <span>
-                  <strong className="text-[var(--ink)]">Jenis:</strong>{" "}
-                  {activeRequest.leaveTypeName}
-                  {activeRequest.isHalfDay ? " (0.5 Hari)" : ""}
-                </span>
-                <span>
-                  <strong className="text-[var(--ink)]">Periode:</strong>{" "}
-                  <span className="mono">
-                    {activeRequest.periodLabel} (
-                    {activeRequest.totalDays.toFixed(1)} hr)
-                  </span>
-                </span>
-                <span>
-                  <strong className="text-[var(--ink)]">Handover:</strong>{" "}
-                  {activeRequest.handoverName}
-                </span>
-              </div>
-
-              <div
-                className="slip-steps"
-                role="list"
-                aria-label="Tahapan persetujuan pengajuan aktif"
-              >
-                <div className="slip-box" role="listitem">
-                  <span className="mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
-                    01 Pemohon
-                  </span>
-                  <span className="text-[13px] font-semibold text-[var(--ink)]">
-                    {user.fullName}
-                  </span>
-                  <span className="mono mt-auto text-[11px] text-[var(--spruce)]">
-                    ✓ Diajukan
-                  </span>
-                </div>
-
-                <div
-                  className={`slip-box ${
-                    activeRequest.status === "Pending" ? "is-action" : ""
-                  }`}
-                  role="listitem"
-                >
-                  <span className="mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
-                    02 Ketua Divisi
-                  </span>
-                  <span className="text-[13px] font-semibold text-[var(--ink)]">
-                    {user.leaderName || "Ketua Divisi"}
-                  </span>
-                  <span
-                    className={`mono mt-auto text-[11px] ${
-                      activeRequest.status === "Approved by Leader"
-                        ? "text-[var(--spruce)]"
-                        : "text-[var(--ochre)]"
-                    }`}
-                  >
-                    {activeRequest.status === "Approved by Leader"
-                      ? "✓ Terverifikasi"
-                      : "○ Menunggu verifikasi"}
-                  </span>
-                </div>
-
-                <div
-                  className={`slip-box ${
-                    activeRequest.status === "Approved by Leader"
-                      ? "is-action"
-                      : ""
-                  }`}
-                  role="listitem"
-                >
-                  <span className="mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
-                    03 HRD Final
-                  </span>
-                  <span className="text-[13px] font-semibold text-[var(--ink)]">
-                    Otorisasi HRD
-                  </span>
-                  <span className="mono mt-auto text-[11px] text-[var(--ink-muted)]">
-                    {activeRequest.status === "Approved by Leader"
-                      ? "○ Menunggu paraf final"
-                      : "○ Menunggu tahap 02"}
-                  </span>
-                </div>
-              </div>
-            </article>
-          </div>
-        </section>
-      )}
-
-      {/* 4. HANDOVER INBOX (Banner Kondisional) */}
+      {/* Banner Kondisional Handover Inbox */}
       {handoverInbox.length === 0 ? (
-        <div className="notice notice-success">
-          <CheckCircle2 aria-hidden="true" />
+        <div className="flex items-center gap-2.5 rounded-xl border border-stone-200 bg-white px-4 py-3 text-xs text-slate-600">
+          <CheckCircle2
+            className="h-4 w-4 shrink-0 text-emerald-600"
+            aria-hidden="true"
+          />
           <span>
             Tidak ada penunjukan serah terima tugas (handover) aktif
             {user.divisionName ? (
               <>
                 {" "}
                 di divisi{" "}
-                <strong className="font-semibold">{user.divisionName}</strong>
+                <strong className="font-semibold text-slate-900">
+                  {user.divisionName}
+                </strong>
               </>
             ) : null}{" "}
             saat ini.
           </span>
         </div>
       ) : (
-        <section className="panel" aria-label="Penunjukan Handover Aktif">
-          <div className="panel-head">
-            <div className="flex min-w-0 items-start gap-3">
-              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[2px] border border-[var(--slate-border)] bg-[var(--slate-tint)] text-[var(--slate-blue)]">
+        <section className="overflow-hidden rounded-xl border border-blue-200 bg-blue-50/40">
+          <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3 sm:items-center">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-blue-200 bg-white text-blue-700">
                 <Handshake className="h-4 w-4" aria-hidden="true" />
               </div>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="tag tag-leader">
+                  <span className="inline-flex items-center rounded-full bg-blue-700 px-2.5 py-0.5 text-[11px] font-semibold text-white tabular-nums">
                     Handover Aktif ({handoverInbox.length})
                   </span>
-                  <h2 className="panel-title !text-sm">
+                  <p className="truncate text-xs font-semibold text-slate-900 sm:text-sm tabular-nums">
                     Menggantikan {firstHandover.requesterName} &middot;{" "}
-                    <span className="mono text-xs font-medium">
-                      {firstHandover.periodLabel} (
-                      {firstHandover.totalDays.toFixed(1)} hr)
-                    </span>
-                  </h2>
+                    {firstHandover.periodLabel} (
+                    {firstHandover.totalDays.toFixed(1)} Hari)
+                  </p>
                 </div>
-                <p className="panel-sub truncate">
+                <p className="mt-0.5 truncate text-xs text-slate-700">
                   Tugas: &ldquo;{firstHandover.handoverNotes}&rdquo;
                   {handoverInbox.length > 1
                     ? ` (+${handoverInbox.length - 1} penunjukan lainnya)`
@@ -494,9 +324,9 @@ export default function EmployeeDashboardView({ initialData, data }) {
               onClick={() => setIsHandoverExpanded((prev) => !prev)}
               aria-expanded={isHandoverExpanded}
               aria-controls={handoverPanelId}
-              className="btn btn-sm shrink-0"
+              className="inline-flex w-fit shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-800 transition-colors duration-150 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
             >
-              <span>{isHandoverExpanded ? "Tutup Detail" : "Lihat Detail"}</span>
+              {isHandoverExpanded ? "Tutup Detail" : "Lihat Detail"}
               {isHandoverExpanded ? (
                 <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
               ) : (
@@ -506,31 +336,34 @@ export default function EmployeeDashboardView({ initialData, data }) {
           </div>
 
           {isHandoverExpanded && (
-            <div id={handoverPanelId} className="panel-body space-y-3">
+            <div
+              id={handoverPanelId}
+              className="space-y-2.5 border-t border-blue-200/80 bg-white p-4"
+            >
               {handoverInbox.map((item) => (
                 <article
                   key={item.id}
-                  className="border border-[var(--rule)] bg-[var(--paper)] p-3.5"
+                  className="rounded-lg border border-stone-200 bg-[#FAF9F6] p-3.5"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
-                      <p className="text-sm font-semibold text-[var(--ink)]">
-                        {item.requesterName}{" "}
-                        <span className="text-xs font-normal text-[var(--ink-muted)]">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {item.requesterName}
+                        <span className="ml-1.5 text-xs font-normal text-slate-600">
                           ({item.divisionName})
                         </span>
                       </p>
-                      <p className="mono mt-0.5 text-xs text-[var(--slate-blue)]">
+                      <p className="mt-0.5 text-xs font-medium text-blue-700 tabular-nums">
                         {item.leaveTypeName} &middot; {item.periodLabel} (
                         {item.totalDays.toFixed(1)} Hari)
                       </p>
                     </div>
                     <StatusBadge status={item.status} />
                   </div>
-                  <p className="mt-2 border border-[var(--rule)] bg-[var(--paper-pure)] px-3 py-2 text-xs leading-relaxed text-[var(--ink-soft)]">
-                    <strong className="font-semibold text-[var(--ink)]">
+                  <p className="mt-2 rounded-lg border border-stone-200/80 bg-white px-3 py-2 text-xs leading-relaxed text-slate-700">
+                    <span className="font-semibold text-slate-900">
                       Catatan Tugas:{" "}
-                    </strong>
+                    </span>
                     {item.handoverNotes}
                   </p>
                 </article>
@@ -540,29 +373,32 @@ export default function EmployeeDashboardView({ initialData, data }) {
         </section>
       )}
 
-      {/* 5. TABEL RIWAYAT CUTI TERBARU (SWISS LEDGER) */}
-      <section className="panel overflow-hidden">
-        <div className="panel-head">
-          <div>
-            <span className="panel-eyebrow">Arsip Pengajuan Pribadi</span>
-            <h2 className="panel-title">Riwayat Pengajuan Cuti Terbaru Saya</h2>
-            <p className="panel-sub">
-              Lacak progres verifikasi Ketua Divisi &amp; HRD secara langsung.
-            </p>
+      {/* Tabel riwayat cuti terbaru dengan filter status */}
+      <section className="overflow-hidden rounded-xl border border-stone-200 bg-white">
+        <div className="flex flex-col gap-3 border-b border-stone-200 bg-[#FAF9F6] px-5 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">
+                Riwayat Pengajuan Cuti Terbaru Saya
+              </h3>
+              <p className="mt-0.5 text-xs text-slate-600">
+                Lacak progres verifikasi Ketua Divisi &amp; HRD secara langsung.
+              </p>
+            </div>
+            <Link
+              href="/leaves"
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded text-xs font-semibold text-blue-700 transition-colors duration-150 hover:text-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+            >
+              Lihat Semua
+              <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </Link>
           </div>
-          <Link href="/leaves" className="btn btn-sm">
-            <span>Lihat Semua</span>
-            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-          </Link>
-        </div>
 
-        {/* Filter Status Toolbar */}
-        <div
-          className="toolbar"
-          role="group"
-          aria-label="Filter status riwayat pengajuan cuti"
-        >
-          <div className="seg-group flex-wrap">
+          <div
+            className="flex flex-wrap items-center gap-1.5"
+            role="group"
+            aria-label="Filter status riwayat pengajuan cuti"
+          >
             {STATUS_FILTER_OPTIONS.map((statusOpt) => {
               const active = statusOpt === selectedStatus;
               return (
@@ -571,20 +407,21 @@ export default function EmployeeDashboardView({ initialData, data }) {
                   type="button"
                   aria-pressed={active}
                   onClick={() => setSelectedStatus(statusOpt)}
-                  className="seg-btn"
+                  className={`cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
+                    active
+                      ? "bg-slate-900 text-white"
+                      : "border border-stone-300 bg-white text-slate-700 hover:bg-stone-100 hover:text-slate-900"
+                  }`}
                 >
                   {statusOpt}
                 </button>
               );
             })}
           </div>
-          <span className="mono ml-auto text-[11px] text-[var(--ink-muted)]">
-            {filteredRequests.length} catatan
-          </span>
         </div>
 
         {filteredRequests.length === 0 ? (
-          <div className="panel-body">
+          <div className="p-6">
             <EmptyState
               title="Tidak ada pengajuan dengan status ini"
               description="Coba pilih filter status lain atau ajukan permohonan cuti baru."
@@ -597,61 +434,74 @@ export default function EmployeeDashboardView({ initialData, data }) {
             tabIndex={0}
             role="region"
             aria-labelledby={tableCaptionId}
-            className="otium-responsive-table-wrap"
+            className="otium-responsive-table-wrap focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-slate-900"
           >
-            <table className="ledger otium-responsive-table text-left">
+            <table className="otium-responsive-table text-left text-sm">
               <caption id={tableCaptionId} className="visually-hidden">
                 Riwayat pengajuan cuti terbaru saya beserta alur persetujuan 2
                 tahap
               </caption>
-              <thead>
+              <thead className="border-b border-stone-200 bg-[#FAF9F6] text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-600">
                 <tr>
-                  <th scope="col" className="row-idx">
-                    #
+                  <th scope="col" className="px-5 py-3">
+                    Jenis Cuti
                   </th>
-                  <th scope="col">Jenis Cuti</th>
-                  <th scope="col">Periode Tanggal</th>
-                  <th scope="col">Durasi</th>
-                  <th scope="col">Rekan Handover</th>
-                  <th scope="col">Alur 2 Tahap</th>
-                  <th scope="col" className="text-right">
+                  <th scope="col" className="px-5 py-3">
+                    Periode Tanggal
+                  </th>
+                  <th scope="col" className="px-5 py-3">
+                    Durasi
+                  </th>
+                  <th scope="col" className="px-5 py-3">
+                    Rekan Handover
+                  </th>
+                  <th scope="col" className="px-5 py-3">
+                    Alur 2 Tahap
+                  </th>
+                  <th scope="col" className="px-5 py-3 text-right">
                     Status
                   </th>
                 </tr>
               </thead>
-              <tbody>
-                {filteredRequests.map((req, idx) => (
-                  <tr key={req.id}>
-                    <td data-label="No" className="row-idx">
-                      {String(idx + 1).padStart(2, "0")}
-                    </td>
-                    <th scope="row" className="font-semibold text-[var(--ink)]">
+              <tbody className="divide-y divide-stone-100 bg-white">
+                {filteredRequests.map((req) => (
+                  <tr
+                    key={req.id}
+                    className="transition-colors duration-150 hover:bg-[#FAF9F6]"
+                  >
+                    <th
+                      scope="row"
+                      className="whitespace-nowrap px-5 py-3.5 text-left font-semibold text-slate-900"
+                    >
                       <span>{req.leaveTypeName}</span>
                       {req.isHalfDay && (
-                        <span className="tag tag-leader ml-2 !py-0 !text-[10px]">
-                          0.5 Hr
+                        <span className="ml-2 rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 tabular-nums">
+                          0.5 Hari
                         </span>
                       )}
                     </th>
                     <td
                       data-label="Periode"
-                      className="mono whitespace-nowrap text-xs text-[var(--ink-soft)]"
+                      className="whitespace-nowrap px-5 py-3.5 text-xs text-slate-700 tabular-nums"
                     >
                       {req.periodLabel}
                     </td>
                     <td
                       data-label="Durasi"
-                      className="mono whitespace-nowrap text-xs font-semibold text-[var(--ink)]"
+                      className="whitespace-nowrap px-5 py-3.5 text-xs font-semibold text-slate-900 tabular-nums"
                     >
-                      {req.totalDays.toFixed(1)} hr
+                      {req.totalDays.toFixed(1)} Hari
                     </td>
                     <td
                       data-label="Rekan Handover"
-                      className="whitespace-nowrap text-xs text-[var(--ink-soft)]"
+                      className="whitespace-nowrap px-5 py-3.5 text-xs text-slate-700"
                     >
                       {req.handoverName}
                     </td>
-                    <td data-label="Alur 2 Tahap" className="whitespace-nowrap">
+                    <td
+                      data-label="Alur 2 Tahap"
+                      className="whitespace-nowrap px-5 py-3.5"
+                    >
                       <MiniApprovalStepper
                         status={req.status}
                         rejectedByRole={req.rejectedByRole}
@@ -659,7 +509,7 @@ export default function EmployeeDashboardView({ initialData, data }) {
                     </td>
                     <td
                       data-label="Status"
-                      className="whitespace-nowrap text-right"
+                      className="whitespace-nowrap px-5 py-3.5 text-right"
                     >
                       <StatusBadge
                         status={req.status}

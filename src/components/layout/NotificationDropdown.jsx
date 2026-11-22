@@ -15,24 +15,24 @@ import {
 const TYPE_ICON_MAP = {
   handover: {
     icon: Users,
-    tone: "border-[var(--slate-border)] bg-[var(--slate-tint)] text-[var(--slate-blue)]",
+    tone: "border-blue-200 bg-blue-50 text-[#1D4ED8]",
   },
   approval: {
     icon: ClipboardCheck,
-    tone: "border-[var(--spruce-border)] bg-[var(--spruce-tint)] text-[var(--spruce)]",
+    tone: "border-emerald-200 bg-emerald-50 text-emerald-700",
   },
   system: {
     icon: Info,
-    tone: "border-[var(--ochre-border)] bg-[var(--ochre-tint)] text-[var(--ochre)]",
+    tone: "border-amber-200 bg-amber-50 text-amber-700",
   },
   info: {
     icon: Info,
-    tone: "border-[var(--rule-strong)] bg-[var(--alabaster)] text-[var(--ink-soft)]",
+    tone: "border-stone-200 bg-[#F4F2EC] text-slate-700",
   },
 };
 
 /**
- * Dropdown notifikasi internal bergaya Swiss Archival (handover, update status cuti, & pengingat kuota).
+ * Dropdown notifikasi internal (handover, update status cuti, & pengingat kuota).
  * Terhubung langsung ke PostgreSQL melalui GET & PATCH /api/notifications.
  */
 export default function NotificationDropdown({
@@ -190,43 +190,36 @@ export default function NotificationDropdown({
         aria-label={`Notifikasi (${unreadCount} belum dibaca)`}
         aria-expanded={isOpen}
         aria-controls="notification-panel"
-        className="btn btn-icon"
+        className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-stone-200 bg-white text-slate-700 transition-colors duration-150 hover:border-stone-300 hover:bg-[#F4F2EC]/60 hover:text-[#0F172A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A]"
       >
         <Bell className="h-4 w-4" aria-hidden="true" />
         {unreadCount > 0 && (
-          <span
-            className="notif-pip"
-            aria-hidden="true"
-            title={`${unreadCount} belum dibaca`}
-          />
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1 font-mono text-[10px] font-bold tabular-nums text-white ring-2 ring-white">
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
         )}
       </button>
 
       {isOpen && (
         <div
           id="notification-panel"
-          className="absolute right-0 z-40 mt-2 w-[calc(100vw-2rem)] max-w-[360px] overflow-hidden rounded-[2px] border border-[var(--ink)] bg-[var(--paper-pure)] shadow-[0_14px_32px_rgba(25,24,22,0.16)] sm:w-[360px]"
+          className="absolute right-0 z-40 mt-2 w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-xl border border-stone-200 bg-white shadow-lg sm:w-96"
         >
           {/* Header Panel */}
-          <div className="flex items-center justify-between gap-2 border-b border-[var(--rule)] bg-[var(--paper)] px-4 py-3">
+          <div className="flex items-center justify-between gap-2 border-b border-stone-200 bg-[#F4F2EC]/50 px-4 py-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-[13px] font-semibold text-[var(--ink)]">
-                  Kotak Notifikasi
+                <h2 className="text-sm font-semibold text-[#0F172A]">
+                  Notifikasi Internal
                 </h2>
-                {unreadCount > 0 && (
-                  <span className="tag tag-approved !py-0 !text-[10px]">
-                    {unreadCount > 99 ? "99+" : unreadCount} Baru
-                  </span>
-                )}
                 {isRefreshing && (
                   <Loader2
-                    className="h-3.5 w-3.5 animate-spin text-[var(--ink-muted)]"
+                    className="h-3.5 w-3.5 animate-spin text-slate-500"
                     aria-hidden="true"
                   />
                 )}
               </div>
-              <p className="mt-0.5 text-[11px] text-[var(--ink-muted)]">
+              <p className="text-[11px] text-slate-600">
                 {unreadCount > 0
                   ? `${unreadCount} notifikasi belum dibaca`
                   : "Semua notifikasi telah dibaca"}
@@ -238,10 +231,10 @@ export default function NotificationDropdown({
                 type="button"
                 onClick={markAllAsRead}
                 disabled={isUpdatingAll}
-                className="btn btn-sm shrink-0"
+                className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-stone-200 bg-white px-2.5 py-1 text-xs font-medium text-[#0F172A] transition-colors duration-150 hover:bg-[#F4F2EC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <CheckCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                <span>Tandai semua</span>
+                Tandai semua
               </button>
             )}
           </div>
@@ -249,7 +242,7 @@ export default function NotificationDropdown({
           {errorMessage && (
             <div
               role="alert"
-              className="flex items-center gap-2 border-b border-[var(--terracotta-border)] bg-[var(--terracotta-tint)] px-4 py-2 text-xs text-[var(--terracotta)]"
+              className="flex items-center gap-2 border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700"
             >
               <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               <span>{errorMessage}</span>
@@ -257,19 +250,18 @@ export default function NotificationDropdown({
           )}
 
           {/* Daftar Notifikasi */}
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-80 divide-y divide-stone-200/80 overflow-y-auto">
             {items.length === 0 ? (
               <div className="px-4 py-10 text-center">
                 <Bell
-                  className="mx-auto h-6 w-6 text-[var(--ink-muted)]"
+                  className="mx-auto h-6 w-6 text-slate-400"
                   aria-hidden="true"
                 />
-                <p className="mt-2 text-xs font-semibold text-[var(--ink-soft)]">
+                <p className="mt-2 text-xs font-medium text-slate-700">
                   Belum ada notifikasi
                 </p>
-                <p className="mt-0.5 text-[11px] text-[var(--ink-muted)]">
-                  Pemberitahuan handover &amp; pembaruan cuti akan tampil di
-                  sini.
+                <p className="mt-0.5 text-[11px] text-slate-500">
+                  Pemberitahuan handover &amp; pembaruan cuti akan tampil di sini.
                 </p>
               </div>
             ) : (
@@ -283,47 +275,43 @@ export default function NotificationDropdown({
                     key={item.id}
                     type="button"
                     onClick={() => markAsRead(item)}
-                    className={`notif-row w-full cursor-pointer text-left transition-colors duration-150 hover:bg-[var(--alabaster)] ${
-                      item.isRead ? "bg-[var(--paper-pure)]" : "unread"
+                    className={`flex w-full cursor-pointer items-start gap-3 px-4 py-3.5 text-left transition-colors duration-150 hover:bg-[#F4F2EC]/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#0F172A] ${
+                      item.isRead ? "bg-white" : "bg-blue-50/40"
                     }`}
                   >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-[2px] border ${config.tone}`}
-                      >
-                        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-                      </div>
+                    <div
+                      className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${config.tone}`}
+                    >
+                      <Icon className="h-4 w-4" aria-hidden="true" />
+                    </div>
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <p
-                            className={`text-[12.5px] font-semibold leading-snug ${
-                              item.isRead
-                                ? "text-[var(--ink-soft)]"
-                                : "text-[var(--ink)]"
-                            }`}
-                          >
-                            {item.title}
-                          </p>
-                          {!item.isRead ? (
-                            <span
-                              className="mt-1 h-2 w-2 shrink-0 bg-[var(--spruce)]"
-                              aria-label="Belum dibaca"
-                            />
-                          ) : (
-                            <Check
-                              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--ink-muted)]"
-                              aria-hidden="true"
-                            />
-                          )}
-                        </div>
-                        <p className="mt-0.5 text-xs leading-relaxed text-[var(--ink-soft)]">
-                          {item.message}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p
+                          className={`text-xs font-semibold ${
+                            item.isRead ? "text-slate-700" : "text-[#0F172A]"
+                          }`}
+                        >
+                          {item.title}
                         </p>
-                        <p className="mono mt-1 text-[10.5px] text-[var(--ink-muted)]">
-                          {item.createdAtLabel}
-                        </p>
+                        {!item.isRead ? (
+                          <span
+                            className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#1D4ED8]"
+                            aria-label="Belum dibaca"
+                          />
+                        ) : (
+                          <Check
+                            className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400"
+                            aria-hidden="true"
+                          />
+                        )}
                       </div>
+                      <p className="mt-0.5 text-xs leading-relaxed text-slate-600">
+                        {item.message}
+                      </p>
+                      <p className="mt-1 text-[11px] tabular-nums text-slate-500">
+                        {item.createdAtLabel}
+                      </p>
                     </div>
                   </button>
                 );
