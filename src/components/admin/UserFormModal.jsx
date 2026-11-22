@@ -466,8 +466,7 @@ export default function UserFormModal({
     });
   }
 
-  const inputBaseClass =
-    "otium-field-input mt-1 w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-150 hover:border-stone-400 focus-visible:border-slate-900 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-slate-500";
+  const inputBaseClass = "input otium-field-input mt-1 w-full";
 
   return (
     <dialog
@@ -476,29 +475,29 @@ export default function UserFormModal({
       aria-labelledby={titleId}
       className="otium-modal w-full max-w-2xl"
     >
-      <div className="flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-xl border border-stone-300 bg-white shadow-2xl">
+      <div className="flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-[6px] border border-[var(--ink)] bg-[var(--paper-pure)] shadow-[var(--shadow-lg)]">
         {/* Live region tunggal untuk pembaca layar */}
         <div aria-live="polite" className="visually-hidden">
           {liveAnnouncement}
         </div>
 
         {/* Header Editorial */}
-        <div className="flex items-start justify-between gap-4 border-b border-stone-200 bg-[#F4F2EC] px-6 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-[var(--rule)] bg-[var(--alabaster)] px-6 py-4">
           <div className="flex items-start gap-3">
-            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-stone-300 bg-white text-slate-900">
+            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[4px] border border-[var(--rule-strong)] bg-[var(--paper-pure)] text-[var(--spruce)]">
               <UserPlus className="h-4 w-4" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">
-                {isEdit ? "Pembaruan Akun" : "Provisioning Akun Baru"}
+              <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+                {isEdit ? "PEMBARUAN AKUN" : "PROVISIONING AKUN BARU"}
               </p>
               <h2
                 id={titleId}
-                className="mt-0.5 text-base font-bold tracking-tight text-slate-900"
+                className="mt-0.5 font-serif text-[20px] font-semibold leading-snug text-[var(--ink)]"
               >
                 {isEdit ? "Edit Data Pengguna" : "Tambah Pengguna Baru"}
               </h2>
-              <p className="mt-0.5 text-xs text-slate-600">
+              <p className="mt-0.5 text-[12px] text-[var(--ink-soft)]">
                 {isEdit
                   ? `Perbarui identitas, role, kuota cuti, atau tanggal bergabung ${initialUser.fullName}.`
                   : "Seluruh akun dibuat terpusat oleh Admin tanpa registrasi publik."}
@@ -511,7 +510,7 @@ export default function UserFormModal({
             disabled={isSubmitting}
             onClick={() => onClose?.()}
             aria-label="Tutup dialog"
-            className="cursor-pointer rounded-lg p-1.5 text-slate-600 transition-colors duration-150 hover:bg-stone-200/80 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-icon h-7 w-7 shrink-0"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -526,12 +525,9 @@ export default function UserFormModal({
           className="flex-1 space-y-5 overflow-y-auto px-6 py-5"
         >
           {serverError && (
-            <div
-              role="alert"
-              className="flex items-start gap-2.5 rounded-lg border border-rose-300 bg-rose-50 px-3.5 py-3 text-xs text-rose-900"
-            >
+            <div role="alert" className="notice notice-danger">
               <AlertCircle
-                className="mt-0.5 h-4 w-4 shrink-0 text-rose-700"
+                className="mt-0.5 h-4 w-4 shrink-0"
                 aria-hidden="true"
               />
               <span>{serverError}</span>
@@ -539,16 +535,13 @@ export default function UserFormModal({
           )}
 
           {isEditingSelf && (
-            <div className="flex items-start gap-2.5 rounded-lg border border-stone-300 bg-[#F4F2EC] px-3.5 py-3 text-xs text-slate-700">
-              <Lock
-                className="mt-0.5 h-4 w-4 shrink-0 text-slate-700"
-                aria-hidden="true"
-              />
+            <div className="notice notice-info">
+              <Lock className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
               <div>
-                <p className="font-semibold text-slate-900">
+                <p className="font-semibold text-[var(--ink)]">
                   Proteksi Anti-Self-Lockout Aktif
                 </p>
-                <p className="mt-0.5 text-slate-600">
+                <p className="mt-0.5 text-[12px]">
                   Anda sedang mengedit akun Admin Anda sendiri. Perubahan{" "}
                   <strong>Role</strong> dan <strong>Status Aktif</strong> dikunci
                   agar akses Administrator tidak terputus.
@@ -562,9 +555,9 @@ export default function UserFormModal({
             <div>
               <label
                 htmlFor="user-fullname"
-                className="block text-xs font-semibold text-slate-900"
+                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
               >
-                Nama Lengkap <span className="text-rose-700">*</span>
+                Nama Lengkap <span className="text-[var(--terracotta)]">*</span>
               </label>
               <input
                 id="user-fullname"
@@ -590,7 +583,7 @@ export default function UserFormModal({
               {errors.fullName && (
                 <p
                   id="user-fullname-error"
-                  className="mt-1.5 flex items-start gap-1 text-xs font-medium text-rose-700"
+                  className="mt-1.5 flex items-start gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                 >
                   <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   <span>{errors.fullName}</span>
@@ -602,13 +595,13 @@ export default function UserFormModal({
             <div>
               <label
                 htmlFor="user-username"
-                className="block text-xs font-semibold text-slate-900"
+                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
               >
-                Username <span className="text-rose-700">*</span>
+                Username <span className="text-[var(--terracotta)]">*</span>
               </label>
               <span
                 id="user-username-hint"
-                className="mt-0.5 block text-[11px] text-slate-600"
+                className="mt-0.5 block text-[11px] text-[var(--ink-muted)]"
               >
                 3–50 karakter: huruf kecil, angka, titik, underscore, atau strip.
               </span>
@@ -633,12 +626,12 @@ export default function UserFormModal({
                     : "user-username-hint"
                 }
                 placeholder="rina.permata"
-                className={inputBaseClass}
+                className={`${inputBaseClass} font-mono`}
               />
               {errors.username && (
                 <p
                   id="user-username-error"
-                  className="mt-1.5 flex items-start gap-1 text-xs font-medium text-rose-700"
+                  className="mt-1.5 flex items-start gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                 >
                   <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   <span>{errors.username}</span>
@@ -650,13 +643,13 @@ export default function UserFormModal({
             <div>
               <label
                 htmlFor="user-email"
-                className="block text-xs font-semibold text-slate-900"
+                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
               >
-                Email Perusahaan <span className="text-rose-700">*</span>
+                Email Perusahaan <span className="text-[var(--terracotta)]">*</span>
               </label>
               <span
                 id="user-email-hint"
-                className="mt-0.5 block text-[11px] text-slate-600"
+                className="mt-0.5 block text-[11px] text-[var(--ink-muted)]"
               >
                 Format: nama@otium.id (unik per akun).
               </span>
@@ -684,7 +677,7 @@ export default function UserFormModal({
               {errors.email && (
                 <p
                   id="user-email-error"
-                  className="mt-1.5 flex items-start gap-1 text-xs font-medium text-rose-700"
+                  className="mt-1.5 flex items-start gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                 >
                   <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   <span>{errors.email}</span>
@@ -696,20 +689,20 @@ export default function UserFormModal({
             <div>
               <label
                 htmlFor="user-password"
-                className="block text-xs font-semibold text-slate-900"
+                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
               >
                 Password{" "}
                 {isEdit ? (
-                  <span className="font-normal text-slate-600">
+                  <span className="font-sans normal-case tracking-normal text-[var(--ink-muted)]">
                     (Opsional saat edit)
                   </span>
                 ) : (
-                  <span className="text-rose-700">*</span>
+                  <span className="text-[var(--terracotta)]">*</span>
                 )}
               </label>
               <span
                 id="user-password-hint"
-                className="mt-0.5 block text-[11px] text-slate-600"
+                className="mt-0.5 block text-[11px] text-[var(--ink-muted)]"
               >
                 {isEdit
                   ? "Kosongkan bila tetap. Jika diisi: min. 8 karakter (huruf & angka)."
@@ -740,7 +733,7 @@ export default function UserFormModal({
                       ? "Isi hanya untuk reset password"
                       : "Contoh: Otium2026"
                   }
-                  className="otium-field-input w-full rounded-lg border border-stone-300 bg-white py-2.5 pl-3.5 pr-10 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-150 hover:border-stone-400 focus-visible:border-slate-900 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-slate-900"
+                  className="input otium-field-input w-full pr-10"
                 />
                 <button
                   type="button"
@@ -748,19 +741,19 @@ export default function UserFormModal({
                   aria-label={
                     showPassword ? "Sembunyikan password" : "Tampilkan password"
                   }
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer rounded-md p-1 text-slate-600 transition-colors duration-150 hover:bg-stone-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
+                  className="absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-[2px] text-[var(--ink-muted)] transition-colors hover:bg-[var(--alabaster-deep)] hover:text-[var(--ink)]"
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4" aria-hidden="true" />
+                    <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />
                   ) : (
-                    <Eye className="h-4 w-4" aria-hidden="true" />
+                    <Eye className="h-3.5 w-3.5" aria-hidden="true" />
                   )}
                 </button>
               </div>
               {errors.password && (
                 <p
                   id="user-password-error"
-                  className="mt-1.5 flex items-start gap-1 text-xs font-medium text-rose-700"
+                  className="mt-1.5 flex items-start gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                 >
                   <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   <span>{errors.password}</span>
@@ -772,9 +765,9 @@ export default function UserFormModal({
             <div>
               <label
                 htmlFor="user-role"
-                className="block text-xs font-semibold text-slate-900"
+                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
               >
-                Role Pengguna <span className="text-rose-700">*</span>
+                Role Pengguna <span className="text-[var(--terracotta)]">*</span>
               </label>
               <select
                 id="user-role"
@@ -784,7 +777,7 @@ export default function UserFormModal({
                 onChange={(e) => setRole(e.target.value)}
                 aria-invalid={Boolean(errors.role) ? "true" : "false"}
                 aria-describedby={errors.role ? "user-role-error" : undefined}
-                className={`${inputBaseClass} cursor-pointer`}
+                className="select otium-field-input mt-1 w-full"
               >
                 {ROLE_OPTIONS.map((r) => (
                   <option key={r} value={r}>
@@ -795,7 +788,7 @@ export default function UserFormModal({
               {errors.role && (
                 <p
                   id="user-role-error"
-                  className="mt-1.5 text-xs font-medium text-rose-700"
+                  className="mt-1.5 text-[11.5px] font-medium text-[var(--terracotta)]"
                 >
                   {errors.role}
                 </p>
@@ -806,10 +799,12 @@ export default function UserFormModal({
             <div>
               <label
                 htmlFor="user-division"
-                className="block text-xs font-semibold text-slate-900"
+                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
               >
                 Divisi{" "}
-                <span className="font-normal text-slate-600">(Opsional)</span>
+                <span className="font-sans normal-case tracking-normal text-[var(--ink-muted)]">
+                  (Opsional)
+                </span>
               </label>
               <select
                 id="user-division"
@@ -817,7 +812,7 @@ export default function UserFormModal({
                 value={divisionId}
                 onChange={(e) => setDivisionId(e.target.value)}
                 aria-invalid={Boolean(errors.divisionId) ? "true" : "false"}
-                className={`${inputBaseClass} cursor-pointer`}
+                className="select otium-field-input mt-1 w-full"
               >
                 <option value="">Belum ditetapkan (NULL)</option>
                 {divisions.map((div) => (
@@ -827,7 +822,7 @@ export default function UserFormModal({
                 ))}
               </select>
               {errors.divisionId && (
-                <p className="mt-1.5 text-xs font-medium text-rose-700">
+                <p className="mt-1.5 text-[11.5px] font-medium text-[var(--terracotta)]">
                   {errors.divisionId}
                 </p>
               )}
@@ -837,14 +832,14 @@ export default function UserFormModal({
             <div>
               <label
                 htmlFor="user-initial-quota"
-                className="block text-xs font-semibold text-slate-900"
+                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
               >
                 Kuota Cuti Tahunan Awal (Hari){" "}
-                <span className="text-rose-700">*</span>
+                <span className="text-[var(--terracotta)]">*</span>
               </label>
               <span
                 id="user-initial-quota-hint"
-                className="mt-0.5 block text-[11px] text-slate-600"
+                className="mt-0.5 block text-[11px] text-[var(--ink-muted)]"
               >
                 Mendukung kelipatan 0.5 hari (default 12.0).
               </span>
@@ -873,12 +868,12 @@ export default function UserFormModal({
                     ? "user-initial-quota-hint user-initial-quota-error"
                     : "user-initial-quota-hint"
                 }
-                className={`${inputBaseClass} tabular-nums`}
+                className={`${inputBaseClass} font-mono tabular-nums`}
               />
               {errors.initialLeaveQuota && (
                 <p
                   id="user-initial-quota-error"
-                  className="mt-1.5 flex items-start gap-1 text-xs font-medium text-rose-700"
+                  className="mt-1.5 flex items-start gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                 >
                   <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   <span>{errors.initialLeaveQuota}</span>
@@ -891,14 +886,14 @@ export default function UserFormModal({
               <div>
                 <label
                   htmlFor="user-remaining-quota"
-                  className="block text-xs font-semibold text-slate-900"
+                  className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
                 >
                   Sisa Kuota Saat Ini (Hari){" "}
-                  <span className="text-rose-700">*</span>
+                  <span className="text-[var(--terracotta)]">*</span>
                 </label>
                 <span
                   id="user-remaining-quota-hint"
-                  className="mt-0.5 block text-[11px] text-slate-600"
+                  className="mt-0.5 block text-[11px] text-[var(--ink-muted)]"
                 >
                   Saldo realtime saat ini (kelipatan 0.5 hari).
                 </span>
@@ -927,12 +922,12 @@ export default function UserFormModal({
                       ? "user-remaining-quota-hint user-remaining-quota-error"
                       : "user-remaining-quota-hint"
                   }
-                  className={`${inputBaseClass} tabular-nums`}
+                  className={`${inputBaseClass} font-mono tabular-nums`}
                 />
                 {errors.remainingLeaveQuota && (
                   <p
                     id="user-remaining-quota-error"
-                    className="mt-1.5 flex items-start gap-1 text-xs font-medium text-rose-700"
+                    className="mt-1.5 flex items-start gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                   >
                     <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                     <span>{errors.remainingLeaveQuota}</span>
@@ -943,13 +938,13 @@ export default function UserFormModal({
               <div>
                 <label
                   htmlFor="user-joindate"
-                  className="block text-xs font-semibold text-slate-900"
+                  className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
                 >
-                  Tanggal Bergabung <span className="text-rose-700">*</span>
+                  Tanggal Bergabung <span className="text-[var(--terracotta)]">*</span>
                 </label>
                 <span
                   id="user-joindate-hint"
-                  className="mt-0.5 block text-[11px] text-slate-600"
+                  className="mt-0.5 block text-[11px] text-[var(--ink-muted)]"
                 >
                   Acuan kelayakan Cuti Tahunan (masa kerja &ge; 1 tahun).
                 </span>
@@ -969,12 +964,12 @@ export default function UserFormModal({
                       ? "user-joindate-hint user-joindate-error"
                       : "user-joindate-hint"
                   }
-                  className={`${inputBaseClass} tabular-nums`}
+                  className={`${inputBaseClass} font-mono tabular-nums`}
                 />
                 {errors.joinDate && (
                   <p
                     id="user-joindate-error"
-                    className="mt-1.5 flex items-start gap-1 text-xs font-medium text-rose-700"
+                    className="mt-1.5 flex items-start gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                   >
                     <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                     <span>{errors.joinDate}</span>
@@ -990,9 +985,9 @@ export default function UserFormModal({
               <div>
                 <label
                   htmlFor="user-joindate-edit"
-                  className="block text-xs font-semibold text-slate-900"
+                  className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
                 >
-                  Tanggal Bergabung <span className="text-rose-700">*</span>
+                  Tanggal Bergabung <span className="text-[var(--terracotta)]">*</span>
                 </label>
                 <input
                   id="user-joindate-edit"
@@ -1008,12 +1003,12 @@ export default function UserFormModal({
                   aria-describedby={
                     errors.joinDate ? "user-joindate-edit-error" : undefined
                   }
-                  className={`${inputBaseClass} tabular-nums`}
+                  className={`${inputBaseClass} font-mono tabular-nums`}
                 />
                 {errors.joinDate && (
                   <p
                     id="user-joindate-edit-error"
-                    className="mt-1.5 flex items-start gap-1 text-xs font-medium text-rose-700"
+                    className="mt-1.5 flex items-start gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                   >
                     <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                     <span>{errors.joinDate}</span>
@@ -1023,14 +1018,14 @@ export default function UserFormModal({
             )}
 
             <div className={isEdit ? "" : "sm:col-span-2"}>
-              <span className="block text-xs font-semibold text-slate-900">
+              <span className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]">
                 Status Akun
               </span>
               <label
-                className={`otium-checkbox-label mt-1.5 flex items-center gap-3 rounded-lg border border-stone-300 px-3.5 py-2.5 transition-colors duration-150 ${
+                className={`otium-checkbox-label mt-1.5 flex items-center gap-3 rounded-[4px] border border-[var(--rule-strong)] px-3.5 py-2.5 transition-colors duration-150 ${
                   isEditingSelf
-                    ? "cursor-not-allowed bg-stone-100 opacity-75"
-                    : "cursor-pointer bg-[#F4F2EC]/70 hover:bg-[#F4F2EC]"
+                    ? "cursor-not-allowed bg-[var(--alabaster)] opacity-70"
+                    : "cursor-pointer bg-[var(--alabaster)] hover:bg-[var(--paper)]"
                 }`}
               >
                 <input
@@ -1038,9 +1033,9 @@ export default function UserFormModal({
                   disabled={isEditingSelf}
                   checked={isActive}
                   onChange={(e) => setIsActive(e.target.checked)}
-                  className="otium-checkbox h-4 w-4 cursor-pointer rounded border-stone-400 disabled:cursor-not-allowed"
+                  className="otium-checkbox h-4 w-4 cursor-pointer rounded disabled:cursor-not-allowed"
                 />
-                <span className="text-xs font-medium text-slate-800">
+                <span className="text-[12.5px] font-medium text-[var(--ink)]">
                   Akun Aktif (Dapat Login &amp; Bertransaksi Cuti)
                 </span>
               </label>
@@ -1049,55 +1044,55 @@ export default function UserFormModal({
 
           {/* Live Preview Kelayakan Masa Kerja 1 Tahun */}
           <div
-            className={`flex items-start gap-2.5 rounded-lg border px-3.5 py-3 text-xs ${
-              tenurePreview.isEligible
-                ? "border-emerald-300/80 bg-emerald-50/70 text-emerald-950"
-                : "border-amber-300/90 bg-amber-50/80 text-amber-950"
+            className={`notice ${
+              tenurePreview.isEligible ? "notice-success" : "notice-warn"
             }`}
           >
             {tenurePreview.isEligible ? (
               <CheckCircle2
-                className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700"
+                className="mt-0.5 h-4 w-4 shrink-0"
                 aria-hidden="true"
               />
             ) : (
               <AlertCircle
-                className="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
+                className="mt-0.5 h-4 w-4 shrink-0"
                 aria-hidden="true"
               />
             )}
             <div>
-              <p className="font-semibold">
+              <p className="font-semibold text-[var(--ink)]">
                 Evaluasi Masa Kerja: {tenurePreview.label} —{" "}
                 {tenurePreview.isEligible
                   ? "Eligible Cuti Tahunan (≥ 1 Tahun)"
                   : "Belum Eligible Cuti Tahunan (< 1 Tahun)"}
               </p>
-              <p className="mt-0.5 text-[11px] opacity-85">
-                Dihitung terhadap tanggal server hari ini ({todayIso}). Karyawan
-                dengan masa kerja &lt; 1 tahun tetap dapat mengajukan Cuti Sakit
-                atau Cuti Lainnya.
+              <p className="mt-0.5 text-[11.5px]">
+                Dihitung terhadap tanggal server hari ini (
+                <span className="font-mono">{todayIso}</span>). Karyawan dengan
+                masa kerja &lt; 1 tahun tetap dapat mengajukan Cuti Sakit atau
+                Cuti Lainnya.
               </p>
             </div>
           </div>
 
           {/* Peringatan otomatis bila Ketua Divisi aktif diubah role / dinonaktifkan */}
           {willReleaseLeadership && (
-            <div className="flex items-start gap-2.5 rounded-lg border border-rose-300 bg-rose-50 px-3.5 py-3 text-xs text-rose-950">
+            <div className="notice notice-danger">
               <AlertTriangle
-                className="mt-0.5 h-4 w-4 shrink-0 text-rose-700"
+                className="mt-0.5 h-4 w-4 shrink-0"
                 aria-hidden="true"
               />
               <div>
-                <p className="font-semibold">
+                <p className="font-semibold text-[var(--ink)]">
                   Posisi Ketua Divisi Akan Dilepas Otomatis
                 </p>
-                <p className="mt-0.5">
+                <p className="mt-0.5 text-[12px]">
                   Akun ini sedang memimpin divisi{" "}
                   <strong>{ledDivision.name}</strong>. Mengubah role menjadi
                   selain <em>Ketua Divisi</em> atau menonaktifkan akun akan
-                  mengosongkan <code className="font-mono">divisions.leader_id</code>{" "}
-                  divisi tersebut dalam satu transaksi SQL atomik.
+                  mengosongkan{" "}
+                  <code className="font-mono">divisions.leader_id</code> divisi
+                  tersebut dalam satu transaksi SQL atomik.
                 </p>
               </div>
             </div>
@@ -1105,12 +1100,12 @@ export default function UserFormModal({
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2.5 border-t border-stone-200 bg-[#F4F2EC] px-6 py-3.5">
+        <div className="flex items-center justify-end gap-2 border-t border-[var(--rule)] bg-[var(--alabaster)] px-6 py-3.5">
           <button
             type="button"
             disabled={isSubmitting}
             onClick={() => onClose?.()}
-            className="cursor-pointer rounded-lg border border-stone-300 bg-white px-4 py-2 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn btn-sm"
           >
             Batal
           </button>
@@ -1118,7 +1113,7 @@ export default function UserFormModal({
             type="submit"
             form="admin-user-form"
             disabled={isSubmitting}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn btn-sm btn-primary"
           >
             {isSubmitting ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />

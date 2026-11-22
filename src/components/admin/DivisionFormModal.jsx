@@ -260,20 +260,20 @@ export default function DivisionFormModal({
       aria-labelledby={titleId}
       className="otium-modal w-full max-w-lg"
     >
-      <div className="flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-xl border border-stone-300 bg-white shadow-2xl">
+      <div className="flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-[6px] border border-[var(--ink)] bg-[var(--paper-pure)] shadow-[var(--shadow-lg)]">
         {/* Header Editorial */}
-        <div className="flex items-start justify-between gap-3 border-b border-stone-200 bg-[#F4F2EC] px-5 py-4">
+        <div className="flex items-start justify-between gap-3 border-b border-[var(--rule)] bg-[var(--alabaster)] px-5 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-stone-300 bg-white text-slate-900">
-              <Building2 className="h-5 w-5" aria-hidden="true" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[4px] border border-[var(--rule-strong)] bg-[var(--paper-pure)] text-[var(--spruce)]">
+              <Building2 className="h-4 w-4" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">
-                {isEdit ? "Perbarui Master Divisi" : "Registrasi Divisi Baru"}
+              <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+                {isEdit ? "PERBARUI MASTER DIVISI" : "REGISTRASI DIVISI BARU"}
               </p>
               <h2
                 id={titleId}
-                className="text-base font-bold tracking-tight text-slate-900"
+                className="font-serif text-[20px] font-semibold leading-snug text-[var(--ink)]"
               >
                 {isEdit ? "Edit Data Divisi" : "Buat Divisi Baru"}
               </h2>
@@ -285,7 +285,7 @@ export default function DivisionFormModal({
             disabled={isSubmitting}
             onClick={() => onClose?.()}
             aria-label="Tutup modal form divisi"
-            className="cursor-pointer rounded-lg p-1.5 text-slate-600 transition-colors duration-150 hover:bg-stone-200/80 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-icon h-7 w-7 shrink-0"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -299,12 +299,9 @@ export default function DivisionFormModal({
         >
           <div className="space-y-4 px-5 py-5">
             {serverError && (
-              <div
-                role="alert"
-                className="flex items-start gap-2.5 rounded-lg border border-rose-300 bg-rose-50 px-3.5 py-3 text-xs font-medium text-rose-950"
-              >
+              <div role="alert" className="notice notice-danger">
                 <AlertCircle
-                  className="mt-0.5 h-4 w-4 shrink-0 text-rose-700"
+                  className="mt-0.5 h-4 w-4 shrink-0"
                   aria-hidden="true"
                 />
                 <span>{serverError}</span>
@@ -315,9 +312,9 @@ export default function DivisionFormModal({
             <div>
               <label
                 htmlFor={nameId}
-                className="block text-xs font-semibold text-slate-800"
+                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
               >
-                Nama Divisi <span className="text-rose-700">*</span>
+                Nama Divisi <span className="text-[var(--terracotta)]">*</span>
               </label>
               <input
                 ref={nameInputRef}
@@ -347,12 +344,12 @@ export default function DivisionFormModal({
                 aria-invalid={nameError ? "true" : "false"}
                 aria-describedby={nameError ? nameErrorId : undefined}
                 placeholder="Contoh: Finance & Accounting"
-                className="otium-field-input mt-1.5 w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 transition-colors duration-150 focus-visible:border-slate-900 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-slate-900"
+                className="input otium-field-input mt-1.5 w-full"
               />
               {nameError && (
                 <p
                   id={nameErrorId}
-                  className="mt-1.5 flex items-center gap-1 text-xs font-medium text-rose-700"
+                  className="mt-1.5 flex items-center gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                 >
                   <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   <span>{nameError}</span>
@@ -364,10 +361,12 @@ export default function DivisionFormModal({
             <div>
               <label
                 htmlFor={descId}
-                className="block text-xs font-semibold text-slate-800"
+                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
               >
                 Deskripsi Singkat{" "}
-                <span className="font-normal text-slate-600">(Opsional)</span>
+                <span className="font-sans normal-case tracking-normal text-[var(--ink-muted)]">
+                  (Opsional)
+                </span>
               </label>
               <textarea
                 id={descId}
@@ -393,12 +392,12 @@ export default function DivisionFormModal({
                 aria-invalid={descError ? "true" : "false"}
                 aria-describedby={descError ? descErrorId : undefined}
                 placeholder="Uraikan ruang lingkup dan tanggung jawab utama divisi ini..."
-                className="otium-field-input mt-1.5 w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 transition-colors duration-150 focus-visible:border-slate-900 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-slate-900"
+                className="textarea otium-field-input mt-1.5 w-full"
               />
               {descError && (
                 <p
                   id={descErrorId}
-                  className="mt-1.5 flex items-center gap-1 text-xs font-medium text-rose-700"
+                  className="mt-1.5 flex items-center gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                 >
                   <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   <span>{descError}</span>
@@ -411,12 +410,12 @@ export default function DivisionFormModal({
               <div className="flex items-center justify-between gap-2">
                 <label
                   htmlFor={leaderIdField}
-                  className="block text-xs font-semibold text-slate-800"
+                  className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
                 >
-                  Ketua Divisi <span className="text-rose-700">*</span>
+                  Ketua Divisi <span className="text-[var(--terracotta)]">*</span>
                 </label>
                 {isLoadingLeaders && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600">
+                  <span className="inline-flex items-center gap-1 font-mono text-[10.5px] text-[var(--ink-muted)]">
                     <Loader2
                       className="h-3 w-3 animate-spin"
                       aria-hidden="true"
@@ -448,7 +447,7 @@ export default function DivisionFormModal({
                 onBlur={() => handleBlurField("leaderId")}
                 aria-invalid={leaderError ? "true" : "false"}
                 aria-describedby={leaderError ? leaderErrorId : undefined}
-                className="otium-field-input mt-1.5 w-full cursor-pointer rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors duration-150 focus-visible:border-slate-900 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:bg-stone-100"
+                className="select otium-field-input mt-1.5 w-full"
               >
                 <option value="" disabled>
                   -- Pilih Kandidat Ketua Divisi --
@@ -463,7 +462,7 @@ export default function DivisionFormModal({
                 ))}
               </select>
 
-              <p className="mt-1.5 text-[11px] text-slate-600">
+              <p className="mt-1.5 text-[11px] text-[var(--ink-muted)]">
                 Aturan kepemimpinan tunggal: 1 Ketua Divisi hanya dapat memimpin
                 maksimal 1 divisi aktif.
                 {isEdit
@@ -474,7 +473,7 @@ export default function DivisionFormModal({
               {leaderError && (
                 <p
                   id={leaderErrorId}
-                  className="mt-1.5 flex items-center gap-1 text-xs font-medium text-rose-700"
+                  className="mt-1.5 flex items-center gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                 >
                   <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   <span>{leaderError}</span>
@@ -482,24 +481,21 @@ export default function DivisionFormModal({
               )}
 
               {leadersLoadError && (
-                <p
-                  role="alert"
-                  className="mt-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800"
-                >
-                  {leadersLoadError}
-                </p>
+                <div role="alert" className="notice notice-danger mt-2">
+                  <span>{leadersLoadError}</span>
+                </div>
               )}
 
               {!isLoadingLeaders &&
                 !leadersLoadError &&
                 availableLeaders.length === 0 && (
-                  <div className="mt-2.5 flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+                  <div className="notice notice-warn mt-2.5">
                     <AlertCircle
-                      className="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
+                      className="mt-0.5 h-4 w-4 shrink-0"
                       aria-hidden="true"
                     />
                     <div>
-                      <p className="font-semibold">
+                      <p className="font-semibold text-[var(--ink)]">
                         Belum ada kandidat Ketua Divisi yang bebas tugas.
                       </p>
                       <p className="mt-0.5 leading-relaxed">
@@ -507,7 +503,7 @@ export default function DivisionFormModal({
                         <Link
                           href="/admin/users"
                           onClick={() => onClose?.()}
-                          className="font-semibold text-slate-900 underline decoration-slate-900/40 underline-offset-2 hover:decoration-slate-900"
+                          className="font-semibold text-[var(--ink)] underline underline-offset-2"
                         >
                           Modul 1 (Manajemen Pengguna)
                         </Link>{" "}
@@ -520,12 +516,12 @@ export default function DivisionFormModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-2.5 border-t border-stone-200 bg-[#F4F2EC]/70 px-5 py-3.5">
+          <div className="flex items-center justify-end gap-2 border-t border-[var(--rule)] bg-[var(--alabaster)] px-5 py-3.5">
             <button
               type="button"
               disabled={isSubmitting}
               onClick={() => onClose?.()}
-              className="cursor-pointer rounded-lg border border-stone-300 bg-white px-4 py-2 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn btn-sm"
             >
               Batal
             </button>
@@ -536,7 +532,7 @@ export default function DivisionFormModal({
                 isLoadingLeaders ||
                 availableLeaders.length === 0
               }
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:bg-slate-400"
+              className="btn btn-sm btn-primary"
             >
               {isSubmitting ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />

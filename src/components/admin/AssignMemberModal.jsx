@@ -180,24 +180,24 @@ export default function AssignMemberModal({
       className="otium-modal w-full max-w-xl"
     >
       {targetDivision && (
-        <div className="flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-xl border border-stone-300 bg-white shadow-2xl">
+        <div className="flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-[6px] border border-[var(--ink)] bg-[var(--paper-pure)] shadow-[var(--shadow-lg)]">
           {/* Header */}
-          <div className="flex items-start justify-between gap-3 border-b border-stone-200 bg-[#F4F2EC] px-5 py-4">
+          <div className="flex items-start justify-between gap-3 border-b border-[var(--rule)] bg-[var(--alabaster)] px-5 py-4">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-stone-300 bg-white text-slate-900">
-                <UserPlus className="h-5 w-5" aria-hidden="true" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[4px] border border-[var(--rule-strong)] bg-[var(--paper-pure)] text-[var(--spruce)]">
+                <UserPlus className="h-4 w-4" aria-hidden="true" />
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">
-                  Penempatan Anggota · CMS Modul 03
+                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+                  PENEMPATAN ANGGOTA · CMS MODUL 03
                 </p>
                 <h2
                   id={titleId}
-                  className="text-base font-bold tracking-tight text-slate-900"
+                  className="font-serif text-[20px] font-semibold leading-snug text-[var(--ink)]"
                 >
                   Assign Anggota ke {targetDivision.name}
                 </h2>
-                <p className="mt-0.5 text-xs text-slate-600">
+                <p className="mt-0.5 text-[12px] text-[var(--ink-soft)]">
                   Pilih satu atau lebih karyawan aktif untuk ditempatkan secara
                   atomik ke divisi ini.
                 </p>
@@ -209,21 +209,18 @@ export default function AssignMemberModal({
               disabled={isSubmitting}
               onClick={() => onClose?.()}
               aria-label="Tutup modal assign anggota"
-              className="cursor-pointer rounded-lg p-1.5 text-slate-600 transition-colors duration-150 hover:bg-stone-200/80 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn-icon h-7 w-7 shrink-0"
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
 
-          {/* Tab Scope (.otium-tab) + Pencarian */}
-          <div className="space-y-3 border-b border-stone-200 px-5 pt-3 pb-3.5">
+          {/* Tab Scope (.seg-group) + Pencarian */}
+          <div className="space-y-3 border-b border-[var(--rule)] px-5 py-3.5">
             {errorMessage && (
-              <div
-                role="alert"
-                className="flex items-start gap-2 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2.5 text-xs font-medium text-rose-950"
-              >
+              <div role="alert" className="notice notice-danger">
                 <AlertCircle
-                  className="mt-0.5 h-4 w-4 shrink-0 text-rose-700"
+                  className="mt-0.5 h-4 w-4 shrink-0"
                   aria-hidden="true"
                 />
                 <span>{errorMessage}</span>
@@ -233,38 +230,32 @@ export default function AssignMemberModal({
             <div
               role="tablist"
               aria-label="Sumber kandidat karyawan"
-              className="flex flex-wrap gap-5 border-b border-stone-200"
+              className="seg-group w-fit"
             >
               <button
                 type="button"
                 role="tab"
                 aria-selected={scopeTab === "unassigned"}
+                aria-pressed={scopeTab === "unassigned"}
                 onClick={() => setScopeTab("unassigned")}
-                className={`otium-tab cursor-pointer pb-2.5 text-xs font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
-                  scopeTab === "unassigned"
-                    ? "text-slate-900"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
+                className="seg-btn"
               >
                 Belum Punya Divisi{" "}
-                <span className="ml-1 rounded bg-[#F4F2EC] px-1.5 py-0.5 text-[11px] font-bold text-slate-800 tabular-nums">
-                  {unassignedCount}
+                <span className="ml-1 font-mono text-[11px] tabular-nums opacity-80">
+                  ({unassignedCount})
                 </span>
               </button>
               <button
                 type="button"
                 role="tab"
                 aria-selected={scopeTab === "transfer"}
+                aria-pressed={scopeTab === "transfer"}
                 onClick={() => setScopeTab("transfer")}
-                className={`otium-tab cursor-pointer pb-2.5 text-xs font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
-                  scopeTab === "transfer"
-                    ? "text-slate-900"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
+                className="seg-btn"
               >
                 Pindahkan dari Divisi Lain{" "}
-                <span className="ml-1 rounded bg-[#F4F2EC] px-1.5 py-0.5 text-[11px] font-bold text-slate-800 tabular-nums">
-                  {transferCount}
+                <span className="ml-1 font-mono text-[11px] tabular-nums opacity-80">
+                  ({transferCount})
                 </span>
               </button>
             </div>
@@ -274,7 +265,7 @@ export default function AssignMemberModal({
                 Cari nama atau email karyawan
               </label>
               <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+                className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--ink-muted)]"
                 aria-hidden="true"
               />
               <input
@@ -284,7 +275,7 @@ export default function AssignMemberModal({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Cari nama, username, atau email karyawan..."
-                className="w-full rounded-lg border border-stone-300 bg-[#F4F2EC]/55 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-500 transition-colors duration-150 focus-visible:border-slate-900 focus-visible:bg-white focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-slate-900"
+                className="input w-full pl-9"
               />
             </div>
           </div>
@@ -319,29 +310,29 @@ export default function AssignMemberModal({
                         aria-pressed={isSelected}
                         disabled={isSubmitting}
                         onClick={() => toggleUser(user.id)}
-                        className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border p-3 text-left transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60 ${
+                        className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-[4px] border p-3 text-left transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--spruce)] disabled:cursor-not-allowed disabled:opacity-60 ${
                           isSelected
-                            ? "border-slate-900 bg-[#F4F2EC] ring-1 ring-slate-900/20"
-                            : "border-stone-200 bg-white hover:border-stone-300 hover:bg-[#F4F2EC]/45"
+                            ? "border-[var(--spruce)] bg-[var(--spruce-tint)]"
+                            : "border-[var(--rule)] bg-[var(--paper-pure)] hover:border-[var(--rule-strong)] hover:bg-[var(--alabaster)]"
                         }`}
                       >
                         <div className="flex min-w-0 items-center gap-3">
                           <span
-                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
+                            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] border ${
                               isSelected
-                                ? "border-slate-900 bg-slate-900 text-white"
-                                : "border-stone-400 bg-white"
+                                ? "border-[var(--spruce)] bg-[var(--spruce)] text-white"
+                                : "border-[var(--rule-strong)] bg-[var(--paper-pure)]"
                             }`}
                           >
                             {isSelected && (
-                              <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                              <Check className="h-3 w-3" aria-hidden="true" />
                             )}
                           </span>
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-slate-900">
+                            <p className="truncate text-[13px] font-semibold text-[var(--ink)]">
                               {user.fullName}
                             </p>
-                            <p className="truncate text-xs text-slate-600">
+                            <p className="truncate font-mono text-[11px] text-[var(--ink-muted)]">
                               {user.email} · @{user.username}
                             </p>
                           </div>
@@ -350,11 +341,11 @@ export default function AssignMemberModal({
                         <div className="flex shrink-0 flex-col items-end gap-1">
                           <StatusBadge status={user.role} />
                           {prevDivisionName ? (
-                            <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900">
+                            <span className="tag tag-pending text-[10px]">
                               Asal: {prevDivisionName}
                             </span>
                           ) : (
-                            <span className="text-[11px] font-medium text-slate-600">
+                            <span className="font-mono text-[10.5px] text-[var(--ink-muted)]">
                               Belum ada divisi
                             </span>
                           )}
@@ -368,9 +359,9 @@ export default function AssignMemberModal({
           </div>
 
           {/* Footer */}
-          <div className="flex flex-wrap items-center justify-between gap-2.5 border-t border-stone-200 bg-[#F4F2EC]/70 px-5 py-3.5">
-            <span className="text-xs font-medium text-slate-700 tabular-nums">
-              <strong className="text-slate-900">
+          <div className="flex flex-wrap items-center justify-between gap-2.5 border-t border-[var(--rule)] bg-[var(--alabaster)] px-5 py-3.5">
+            <span className="font-mono text-[12px] tabular-nums text-[var(--ink-soft)]">
+              <strong className="text-[var(--ink)]">
                 {selectedUserIds.length}
               </strong>{" "}
               karyawan dipilih
@@ -380,7 +371,7 @@ export default function AssignMemberModal({
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => onClose?.()}
-                className="cursor-pointer rounded-lg border border-stone-300 bg-white px-4 py-2 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn btn-sm"
               >
                 Batal
               </button>
@@ -388,7 +379,7 @@ export default function AssignMemberModal({
                 type="button"
                 disabled={selectedUserIds.length === 0 || isSubmitting}
                 onClick={handleConfirm}
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:bg-slate-400"
+                className="btn btn-sm btn-primary"
               >
                 {isSubmitting ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />

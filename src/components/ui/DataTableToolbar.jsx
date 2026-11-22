@@ -2,7 +2,10 @@
 
 import { ArrowUpDown, RotateCcw, Search, SlidersHorizontal, X } from "lucide-react";
 
-// Bar kontrol pencarian, multi-filter, dan sortir untuk keempat modul CMS Admin
+/**
+ * Bar kontrol pencarian, multi-filter, dan sortir bergaya Swiss Archival
+ * untuk keempat modul CMS Master Data Admin.
+ */
 export default function DataTableToolbar({
   searchQuery = "",
   onSearchChange,
@@ -18,12 +21,12 @@ export default function DataTableToolbar({
   rightActions = null,
 }) {
   return (
-    <div className="rounded-xl border border-stone-200 bg-white p-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <div className="panel overflow-hidden">
+      <div className="toolbar justify-between">
         {/* Input pencarian */}
-        <div className="relative flex-1 lg:max-w-sm">
+        <div className="relative w-full lg:max-w-sm lg:flex-1">
           <Search
-            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+            className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--ink-muted)]"
             aria-hidden="true"
           />
           <input
@@ -32,14 +35,14 @@ export default function DataTableToolbar({
             onChange={(e) => onSearchChange?.(e.target.value)}
             placeholder={searchPlaceholder}
             aria-label={searchPlaceholder}
-            className="w-full rounded-lg border border-stone-300 bg-[#F4F2EC]/55 py-2.5 pl-10 pr-9 text-sm text-slate-900 placeholder:text-slate-500 transition-colors duration-150 focus-visible:border-slate-900 focus-visible:bg-white focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-slate-900"
+            className="input !py-1.5 !pl-8 !pr-8 !text-xs"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => onSearchChange?.("")}
               aria-label="Hapus kata kunci pencarian"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer rounded-md p-1 text-slate-600 transition-colors duration-150 hover:bg-stone-200/80 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
+              className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded-[2px] p-1 text-[var(--ink-muted)] transition-colors hover:bg-[var(--alabaster-deep)] hover:text-[var(--ink)]"
             >
               <X className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
@@ -50,14 +53,14 @@ export default function DataTableToolbar({
         <div className="flex flex-wrap items-center gap-2">
           {filters.map((filter) => (
             <div key={filter.key} className="relative flex items-center">
-              <label htmlFor={`filter-${filter.key}`} className="sr-only">
+              <label htmlFor={`filter-${filter.key}`} className="visually-hidden">
                 {filter.label}
               </label>
               <select
                 id={`filter-${filter.key}`}
                 value={filter.value}
                 onChange={(e) => filter.onChange?.(e.target.value)}
-                className="cursor-pointer rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs font-medium text-slate-800 transition-colors duration-150 hover:border-stone-400 focus-visible:border-slate-900 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-slate-900"
+                className="select !w-auto cursor-pointer !py-1.5 !text-xs"
               >
                 {filter.options.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -71,17 +74,17 @@ export default function DataTableToolbar({
           {sortOptions.length > 0 && (
             <div className="relative flex items-center">
               <ArrowUpDown
-                className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-slate-500"
+                className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-[var(--ink-muted)]"
                 aria-hidden="true"
               />
-              <label htmlFor="table-sort-select" className="sr-only">
+              <label htmlFor="table-sort-select" className="visually-hidden">
                 Urutkan data
               </label>
               <select
                 id="table-sort-select"
                 value={currentSort}
                 onChange={(e) => onSortChange?.(e.target.value)}
-                className="cursor-pointer rounded-lg border border-stone-300 bg-white py-2 pl-8 pr-3 text-xs font-medium text-slate-800 transition-colors duration-150 hover:border-stone-400 focus-visible:border-slate-900 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-slate-900"
+                className="select !w-auto cursor-pointer !py-1.5 !pl-8 !pr-3 !text-xs"
               >
                 {sortOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -96,10 +99,10 @@ export default function DataTableToolbar({
             <button
               type="button"
               onClick={onReset}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-stone-300 bg-[#F4F2EC] px-3 py-2 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:bg-stone-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+              className="btn btn-sm !min-h-[30px]"
             >
-              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-              Reset Filter
+              <RotateCcw className="h-3 w-3" aria-hidden="true" />
+              <span>Reset Filter</span>
             </button>
           )}
 
@@ -108,22 +111,21 @@ export default function DataTableToolbar({
       </div>
 
       {typeof totalFiltered === "number" && typeof totalAll === "number" && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-stone-100 pt-2.5 text-xs text-slate-600">
-          <span className="inline-flex items-center gap-1.5 tabular-nums">
-            <SlidersHorizontal
-              className="h-3.5 w-3.5 text-slate-500"
-              aria-hidden="true"
-            />
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-[var(--paper-pure)] px-5 py-2.5 text-xs text-[var(--ink-muted)]">
+          <span className="mono inline-flex items-center gap-1.5 text-[11px]">
+            <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
             Menampilkan{" "}
-            <strong className="font-semibold text-slate-900">
+            <strong className="font-semibold text-[var(--ink)]">
               {totalFiltered}
             </strong>{" "}
             dari{" "}
-            <strong className="font-semibold text-slate-900">{totalAll}</strong>{" "}
+            <strong className="font-semibold text-[var(--ink)]">
+              {totalAll}
+            </strong>{" "}
             data
           </span>
           {hasActiveFilters && (
-            <span className="rounded-full border border-stone-300 bg-[#F4F2EC] px-2.5 py-0.5 text-[11px] font-semibold text-slate-800">
+            <span className="tag tag-approved !py-0 !text-[10px]">
               Filter aktif diterapkan
             </span>
           )}

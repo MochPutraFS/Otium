@@ -380,20 +380,20 @@ export default function LeaveTypeFormModal({
       aria-labelledby={titleId}
       closedby={isSubmitting ? "none" : "any"}
     >
-      <div className="flex max-h-[calc(100dvh-2rem)] w-[min(42rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-stone-300 bg-white shadow-2xl">
+      <div className="flex max-h-[calc(100dvh-2rem)] w-[min(42rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-[6px] border border-[var(--ink)] bg-[var(--paper-pure)] shadow-[var(--shadow-lg)]">
         {/* Header Editorial */}
-        <div className="flex items-start justify-between gap-4 border-b border-stone-200 bg-[#F4F2EC] px-6 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-[var(--rule)] bg-[var(--alabaster)] px-6 py-4">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-stone-300 bg-white text-slate-900">
-              <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[4px] border border-[var(--rule-strong)] bg-[var(--paper-pure)] text-[var(--spruce)]">
+              <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600">
-                {isEdit ? "Perbarui Konfigurasi" : "Kategori Baru"} · leave_types
+              <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+                {isEdit ? "PERBARUI KONFIGURASI" : "KATEGORI BARU"} · LEAVE_TYPES
               </p>
               <h2
                 id={titleId}
-                className="mt-0.5 text-base font-bold tracking-tight text-slate-900"
+                className="mt-0.5 font-serif text-[20px] font-semibold leading-snug text-[var(--ink)]"
               >
                 {isEdit ? "Ubah Jenis Cuti Dinamis" : "Tambah Jenis Cuti Baru"}
               </h2>
@@ -405,7 +405,7 @@ export default function LeaveTypeFormModal({
             disabled={isSubmitting}
             onClick={() => onClose?.()}
             aria-label="Tutup dialog"
-            className="cursor-pointer rounded-lg p-1.5 text-slate-500 transition-colors duration-150 hover:bg-stone-200/70 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-icon h-7 w-7 shrink-0"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -421,12 +421,9 @@ export default function LeaveTypeFormModal({
           className="flex-1 space-y-5 overflow-y-auto px-6 py-5"
         >
           {serverError && (
-            <div
-              role="alert"
-              className="flex items-start gap-2.5 rounded-lg border border-rose-300 bg-rose-50 px-3.5 py-3 text-xs font-medium text-rose-900"
-            >
+            <div role="alert" className="notice notice-danger">
               <AlertCircle
-                className="mt-0.5 h-4 w-4 shrink-0 text-rose-700"
+                className="mt-0.5 h-4 w-4 shrink-0"
                 aria-hidden="true"
               />
               <span>{serverError}</span>
@@ -438,16 +435,16 @@ export default function LeaveTypeFormModal({
             <div>
               <label
                 htmlFor={codeId}
-                className="flex items-center justify-between text-xs font-semibold text-slate-800"
+                className="flex items-center justify-between font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
               >
                 <span>
                   Kode Unik Jenis Cuti{" "}
-                  <span className="text-rose-700" aria-hidden="true">
+                  <span className="text-[var(--terracotta)]" aria-hidden="true">
                     *
                   </span>
                 </span>
                 {isCoreLocked && (
-                  <span className="inline-flex items-center gap-1 rounded border border-stone-300 bg-[#F4F2EC] px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">
+                  <span className="tag text-[9.5px]">
                     <Lock className="h-2.5 w-2.5" aria-hidden="true" />
                     Kode Inti
                   </span>
@@ -479,13 +476,11 @@ export default function LeaveTypeFormModal({
                   fieldErrors.code ? `${codeHelpId} ${codeErrorId}` : codeHelpId
                 }
                 placeholder="Contoh: MARRIAGE"
-                className={`otium-field-input mt-1.5 w-full rounded-lg border px-3.5 py-2.5 font-mono text-sm uppercase text-slate-900 transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900 ${
-                  isCoreLocked
-                    ? "cursor-not-allowed border-stone-200 bg-[#F4F2EC] text-slate-600"
-                    : "border-stone-300 bg-white hover:border-stone-400"
+                className={`input otium-field-input mt-1.5 w-full font-mono uppercase ${
+                  isCoreLocked ? "cursor-not-allowed opacity-70" : ""
                 }`}
               />
-              <p id={codeHelpId} className="mt-1 text-[11px] text-slate-600">
+              <p id={codeHelpId} className="mt-1 text-[11px] text-[var(--ink-muted)]">
                 {isCoreLocked
                   ? "Kode inti dikunci agar aturan sistem (H-3 / H+3) tetap konsisten."
                   : "Huruf kapital, angka, atau underscore (2–30 karakter)."}
@@ -494,7 +489,7 @@ export default function LeaveTypeFormModal({
                 <p
                   id={codeErrorId}
                   role="alert"
-                  className="mt-1 text-xs font-medium text-rose-700"
+                  className="mt-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                 >
                   {fieldErrors.code}
                 </p>
@@ -505,10 +500,10 @@ export default function LeaveTypeFormModal({
             <div>
               <label
                 htmlFor={nameId}
-                className="block text-xs font-semibold text-slate-800"
+                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
               >
                 Nama Jenis Cuti{" "}
-                <span className="text-rose-700" aria-hidden="true">
+                <span className="text-[var(--terracotta)]" aria-hidden="true">
                   *
                 </span>
               </label>
@@ -530,13 +525,13 @@ export default function LeaveTypeFormModal({
                 aria-invalid={fieldErrors.name ? "true" : undefined}
                 aria-describedby={fieldErrors.name ? nameErrorId : undefined}
                 placeholder="Contoh: Cuti Menikah"
-                className="otium-field-input mt-1.5 w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors hover:border-stone-400 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
+                className="input otium-field-input mt-1.5 w-full"
               />
               {fieldErrors.name && (
                 <p
                   id={nameErrorId}
                   role="alert"
-                  className="mt-1 text-xs font-medium text-rose-700"
+                  className="mt-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                 >
                   {fieldErrors.name}
                 </p>
@@ -547,10 +542,10 @@ export default function LeaveTypeFormModal({
             <div>
               <label
                 htmlFor={quotaId}
-                className="block text-xs font-semibold text-slate-800"
+                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
               >
                 Kuota Maksimal (Hari){" "}
-                <span className="text-rose-700" aria-hidden="true">
+                <span className="text-[var(--terracotta)]" aria-hidden="true">
                   *
                 </span>
               </label>
@@ -577,16 +572,17 @@ export default function LeaveTypeFormModal({
                     ? `${quotaHelpId} ${quotaErrorId}`
                     : quotaHelpId
                 }
-                className="otium-field-input mt-1.5 w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm tabular-nums text-slate-900 transition-colors hover:border-stone-400 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
+                className="input otium-field-input mt-1.5 w-full font-mono tabular-nums"
               />
-              <p id={quotaHelpId} className="mt-1 text-[11px] text-slate-600">
-                Mendukung pecahan kelipatan <code>0.5</code> hari (maks. 365).
+              <p id={quotaHelpId} className="mt-1 text-[11px] text-[var(--ink-muted)]">
+                Mendukung pecahan kelipatan <code className="font-mono">0.5</code>{" "}
+                hari (maks. 365).
               </p>
               {fieldErrors.maxQuota && (
                 <p
                   id={quotaErrorId}
                   role="alert"
-                  className="mt-1 text-xs font-medium text-rose-700"
+                  className="mt-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                 >
                   {fieldErrors.maxQuota}
                 </p>
@@ -597,10 +593,10 @@ export default function LeaveTypeFormModal({
             <div>
               <label
                 htmlFor={leadId}
-                className="block text-xs font-semibold text-slate-800"
+                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
               >
                 Batas Waktu Pengajuan (Hari Kalender){" "}
-                <span className="text-rose-700" aria-hidden="true">
+                <span className="text-[var(--terracotta)]" aria-hidden="true">
                   *
                 </span>
               </label>
@@ -627,17 +623,18 @@ export default function LeaveTypeFormModal({
                     ? `${leadHelpId} ${leadErrorId}`
                     : leadHelpId
                 }
-                className="otium-field-input mt-1.5 w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm tabular-nums text-slate-900 transition-colors hover:border-stone-400 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
+                className="input otium-field-input mt-1.5 w-full font-mono tabular-nums"
               />
-              <p id={leadHelpId} className="mt-1 text-[11px] text-slate-600">
-                Positif = Min. H-n (mis. <code>3</code>), <code>0</code> = H-0,
-                Negatif = Maks. H+n (mis. <code>-3</code>).
+              <p id={leadHelpId} className="mt-1 text-[11px] text-[var(--ink-muted)]">
+                Positif = Min. H-n (mis. <code className="font-mono">3</code>),{" "}
+                <code className="font-mono">0</code> = H-0, Negatif = Maks. H+n
+                (mis. <code className="font-mono">-3</code>).
               </p>
               {fieldErrors.minSubmissionDays && (
                 <p
                   id={leadErrorId}
                   role="alert"
-                  className="mt-1 text-xs font-medium text-rose-700"
+                  className="mt-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                 >
                   {fieldErrors.minSubmissionDays}
                 </p>
@@ -647,7 +644,7 @@ export default function LeaveTypeFormModal({
 
           {/* Business Rules Toggles dalam <fieldset> + <legend> semantik */}
           <fieldset className="space-y-2.5">
-            <legend className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">
+            <legend className="font-mono text-[10.5px] font-medium uppercase tracking-[0.12em] text-[var(--ink-muted)]">
               Pengaturan Aturan Bisnis (Business Rules)
             </legend>
             <div className="space-y-2">
@@ -655,7 +652,7 @@ export default function LeaveTypeFormModal({
                 <label
                   key={item.id}
                   htmlFor={item.id}
-                  className="otium-checkbox-label flex cursor-pointer items-start gap-3 rounded-lg border border-stone-200 bg-[#FAF9F6] px-3.5 py-3 transition-colors duration-150 hover:border-stone-300 hover:bg-[#F4F2EC]"
+                  className="otium-checkbox-label flex cursor-pointer items-start gap-3 rounded-[4px] border border-[var(--rule)] bg-[var(--alabaster)] px-3.5 py-3 transition-colors duration-150 hover:border-[var(--rule-strong)] hover:bg-[var(--paper)]"
                 >
                   <input
                     id={item.id}
@@ -663,13 +660,13 @@ export default function LeaveTypeFormModal({
                     type="checkbox"
                     checked={item.checked}
                     onChange={(e) => item.onChange(e.target.checked)}
-                    className="otium-checkbox mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-stone-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+                    className="otium-checkbox mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded"
                   />
                   <span className="block">
-                    <span className="block text-xs font-semibold text-slate-900">
+                    <span className="block text-[12.5px] font-semibold text-[var(--ink)]">
                       {item.title}
                     </span>
-                    <span className="mt-0.5 block text-[11px] leading-relaxed text-slate-600">
+                    <span className="mt-0.5 block text-[11.5px] leading-relaxed text-[var(--ink-soft)]">
                       {item.subtitle}
                     </span>
                   </span>
@@ -679,18 +676,16 @@ export default function LeaveTypeFormModal({
           </fieldset>
 
           {/* Pratinjau Ringkasan Aturan */}
-          <div className="flex items-start gap-2.5 rounded-lg border border-stone-300 bg-[#F4F2EC] px-3.5 py-3 text-xs text-slate-800">
+          <div className="notice notice-info">
             <Sparkles
-              className="mt-0.5 h-4 w-4 shrink-0 text-slate-700"
+              className="mt-0.5 h-4 w-4 shrink-0"
               aria-hidden="true"
             />
             <div>
-              <p className="font-semibold text-slate-900">
+              <p className="font-semibold text-[var(--ink)]">
                 Pratinjau Ringkasan Aturan di Form Pemohon
               </p>
-              <p className="mt-0.5 leading-relaxed text-slate-700">
-                {rulePreview}
-              </p>
+              <p className="mt-0.5 leading-relaxed">{rulePreview}</p>
             </div>
           </div>
 
@@ -699,12 +694,14 @@ export default function LeaveTypeFormModal({
             <div className="flex items-center justify-between">
               <label
                 htmlFor={descId}
-                className="block text-xs font-semibold text-slate-800"
+                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
               >
                 Deskripsi / Panduan Pemohon{" "}
-                <span className="font-normal text-slate-500">(Opsional)</span>
+                <span className="font-sans normal-case tracking-normal text-[var(--ink-muted)]">
+                  (Opsional)
+                </span>
               </label>
-              <span className="text-[11px] tabular-nums text-slate-500">
+              <span className="font-mono text-[11px] tabular-nums text-[var(--ink-muted)]">
                 {description.length}/500
               </span>
             </div>
@@ -723,13 +720,13 @@ export default function LeaveTypeFormModal({
               aria-invalid={fieldErrors.description ? "true" : undefined}
               aria-describedby={fieldErrors.description ? descErrorId : undefined}
               placeholder="Tuliskan persyaratan dokumen atau panduan pengajuan jenis cuti ini..."
-              className="otium-field-input mt-1.5 w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors hover:border-stone-400 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
+              className="textarea otium-field-input mt-1.5 w-full"
             />
             {fieldErrors.description && (
               <p
                 id={descErrorId}
                 role="alert"
-                className="mt-1 text-xs font-medium text-rose-700"
+                className="mt-1 text-[11.5px] font-medium text-[var(--terracotta)]"
               >
                 {fieldErrors.description}
               </p>
@@ -738,12 +735,12 @@ export default function LeaveTypeFormModal({
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2.5 border-t border-stone-200 bg-[#FAF9F6] px-6 py-3.5">
+        <div className="flex items-center justify-end gap-2 border-t border-[var(--rule)] bg-[var(--alabaster)] px-6 py-3.5">
           <button
             type="button"
             disabled={isSubmitting}
             onClick={() => onClose?.()}
-            className="cursor-pointer rounded-lg border border-stone-300 bg-white px-4 py-2 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:bg-[#F4F2EC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn btn-sm"
           >
             Batal
           </button>
@@ -751,7 +748,7 @@ export default function LeaveTypeFormModal({
             type="submit"
             form={formId}
             disabled={isSubmitting}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn btn-sm btn-primary"
           >
             {isSubmitting ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />

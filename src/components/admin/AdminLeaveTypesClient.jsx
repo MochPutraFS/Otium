@@ -4,6 +4,9 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   CheckCircle2,
   Clock,
   FileText,
@@ -15,7 +18,6 @@ import {
   Power,
   RefreshCw,
   ShieldCheck,
-  SlidersHorizontal,
   X,
 } from "lucide-react";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -29,7 +31,7 @@ import {
 } from "@/actions/leave-type-actions";
 
 /**
- * Workspace CMS Modul 4: Manajemen Jenis Cuti Dinamis (/admin/leave-types) — Pure Production.
+ * Workspace CMS Modul 4: Manajemen Jenis Cuti Dinamis (/admin/leave-types) — Swiss Archival.
  * Terhubung ke PostgreSQL via Server Component initial load, Server Actions (`saveLeaveTypeAction`,
  * `toggleLeaveTypeStatusAction`), dan Route Handler `GET /api/admin/leave-types`.
  */
@@ -181,6 +183,45 @@ export default function AdminLeaveTypesClient({
     setSortBy("default");
   }
 
+  function handleColumnSort(col) {
+    if (col === "name") {
+      setSortBy((prev) => (prev === "name_asc" ? "name_desc" : "name_asc"));
+    } else if (col === "quota") {
+      setSortBy((prev) => (prev === "quota_desc" ? "quota_asc" : "quota_desc"));
+    } else if (col === "lead") {
+      setSortBy("lead_desc");
+    }
+  }
+
+  function getAriaSort(col) {
+    if (col === "name") {
+      if (sortBy === "name_asc") return "ascending";
+      if (sortBy === "name_desc") return "descending";
+    }
+    if (col === "quota") {
+      if (sortBy === "quota_asc") return "ascending";
+      if (sortBy === "quota_desc") return "descending";
+    }
+    if (col === "lead" && sortBy === "lead_desc") return "descending";
+    return "none";
+  }
+
+  function renderSortIcon(col) {
+    const dir = getAriaSort(col);
+    if (dir === "ascending") {
+      return <ArrowUp className="h-3 w-3 shrink-0" aria-hidden="true" />;
+    }
+    if (dir === "descending") {
+      return <ArrowDown className="h-3 w-3 shrink-0" aria-hidden="true" />;
+    }
+    return (
+      <ArrowUpDown
+        className="h-3 w-3 shrink-0 opacity-45"
+        aria-hidden="true"
+      />
+    );
+  }
+
   function openCreateModal() {
     setFormServerError("");
     setFormServerFieldErrors(null);
@@ -301,33 +342,6 @@ export default function AdminLeaveTypesClient({
     { value: "usage_desc", label: "Pemakaian (Terbanyak)" },
   ];
 
-  const statCards = [
-    {
-      label: "Total Jenis Cuti",
-      value: `${stats.total}`,
-      unit: "Kategori",
-      subtitle: `${stats.deductsAnnual} kategori memotong kuota tahunan`,
-      icon: SlidersHorizontal,
-      accentClass: "text-slate-900 bg-[#F4F2EC] border-stone-200",
-    },
-    {
-      label: "Jenis Cuti Aktif",
-      value: `${stats.active}`,
-      unit: "Aktif",
-      subtitle: `${stats.inactive} kategori dinonaktifkan dari form`,
-      icon: CheckCircle2,
-      accentClass: "text-emerald-800 bg-emerald-50 border-emerald-200/80",
-    },
-    {
-      label: "Wajib Lampiran Bukti",
-      value: `${stats.withAttachment}`,
-      unit: "Kategori",
-      subtitle: "Memerlukan unggahan surat dokter / dokumen",
-      icon: Paperclip,
-      accentClass: "text-amber-800 bg-amber-50 border-amber-200/80",
-    },
-  ];
-
   return (
     <div className="space-y-6">
       {/* Notifikasi Status / Error */}
@@ -335,29 +349,23 @@ export default function AdminLeaveTypesClient({
         <div
           role={toast.tone === "error" ? "alert" : "status"}
           aria-live={toast.tone === "error" ? "assertive" : "polite"}
-          className={`fixed right-5 top-20 z-50 flex max-w-md items-center gap-2.5 rounded-lg border px-4 py-3 text-xs font-semibold shadow-lg ${
-            toast.tone === "error"
-              ? "border-rose-300 bg-rose-50 text-rose-950"
-              : "border-emerald-300 bg-emerald-50 text-emerald-950"
+          className={`notice fixed right-5 top-20 z-50 max-w-md items-center shadow-[var(--shadow-lg)] ${
+            toast.tone === "error" ? "notice-danger" : "notice-success"
           }`}
         >
           {toast.tone === "error" ? (
-            <AlertCircle
-              className="h-4 w-4 shrink-0 text-rose-700"
-              aria-hidden="true"
-            />
+            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
           ) : (
-            <CheckCircle2
-              className="h-4 w-4 shrink-0 text-emerald-700"
-              aria-hidden="true"
-            />
+            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
           )}
-          <span>{toast.message}</span>
+          <span className="flex-1 text-[12.5px] font-medium">
+            {toast.message}
+          </span>
           <button
             type="button"
             onClick={() => setToast(null)}
             aria-label="Tutup notifikasi"
-            className="ml-1 cursor-pointer rounded p-0.5 opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
+            className="btn-icon h-6 w-6 shrink-0"
           >
             <X className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
@@ -365,27 +373,27 @@ export default function AdminLeaveTypesClient({
       )}
 
       {/* Header Editorial Halaman */}
-      <header className="flex flex-col gap-4 border-b border-stone-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <header className="flex flex-col gap-4 border-b border-[var(--rule-strong)] pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
-            CMS Modul 04 · Konfigurasi Cuti Dinamis
+          <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+            CMS MODUL 04 · KONFIGURASI CUTI DINAMIS
           </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h1 className="mt-1 font-serif text-[28px] font-semibold leading-tight tracking-[-0.015em] text-[var(--ink)] sm:text-[32px]">
             Manajemen Jenis Cuti Dinamis
           </h1>
-          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-600">
+          <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[var(--ink-soft)]">
             Atur seluruh kategori cuti (Tahunan, Sakit, dan Cuti Lainnya) secara
             dinamis dari PostgreSQL beserta kuota maksimal, batas waktu H-n/H+n,
             syarat lampiran, dan masa kerja.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             disabled={isRefreshing}
             onClick={() => refreshFromApi({ silent: false })}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:bg-[#F4F2EC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn btn-sm"
           >
             <RefreshCw
               className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`}
@@ -397,48 +405,48 @@ export default function AdminLeaveTypesClient({
           <button
             type="button"
             onClick={openCreateModal}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+            className="btn btn-primary btn-sm"
           >
-            <Plus className="h-4 w-4" aria-hidden="true" />
+            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
             Tambah Jenis Cuti
           </button>
         </div>
       </header>
 
-      {/* Ringkasan Statistik Editorial */}
+      {/* Metric Strip Swiss Archival (3 Kolom) */}
       <section
         aria-label="Ringkasan kategori jenis cuti"
-        className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+        className="metric-strip lg:!grid-cols-3"
       >
-        {statCards.map((card) => {
-          const IconComponent = card.icon;
-          return (
-            <article
-              key={card.label}
-              className="flex items-start justify-between gap-4 rounded-xl border border-stone-200 bg-white p-5"
-            >
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">
-                  {card.label}
-                </p>
-                <p className="mt-2 flex items-baseline gap-1.5">
-                  <span className="text-2xl font-bold tracking-tight tabular-nums text-slate-900">
-                    {card.value}
-                  </span>
-                  <span className="text-xs font-semibold text-slate-600">
-                    {card.unit}
-                  </span>
-                </p>
-                <p className="mt-1.5 text-xs text-slate-600">{card.subtitle}</p>
-              </div>
-              <div
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${card.accentClass}`}
-              >
-                <IconComponent className="h-5 w-5" aria-hidden="true" />
-              </div>
-            </article>
-          );
-        })}
+        <div className="metric-cell">
+          <p className="metric-label">Total Jenis Cuti</p>
+          <p className="metric-val tabular-nums">
+            {stats.total} <small>Kategori</small>
+          </p>
+          <p className="metric-note">
+            {stats.deductsAnnual} kategori memotong kuota tahunan
+          </p>
+        </div>
+
+        <div className="metric-cell">
+          <p className="metric-label">Jenis Cuti Aktif</p>
+          <p className="metric-val tabular-nums text-[var(--spruce)]">
+            {stats.active} <small>Aktif</small>
+          </p>
+          <p className="metric-note">
+            {stats.inactive} kategori dinonaktifkan dari form
+          </p>
+        </div>
+
+        <div className="metric-cell">
+          <p className="metric-label">Wajib Lampiran Bukti</p>
+          <p className="metric-val tabular-nums text-[var(--ochre)]">
+            {stats.withAttachment} <small>Kategori</small>
+          </p>
+          <p className="metric-note">
+            Memerlukan unggahan surat dokter / dokumen
+          </p>
+        </div>
       </section>
 
       {/* Toolbar Pencarian, Filter & Sort */}
@@ -456,8 +464,8 @@ export default function AdminLeaveTypesClient({
         totalAll={leaveTypes.length}
       />
 
-      {/* Tabel Responsif Jenis Cuti Dinamis */}
-      <section className="overflow-hidden rounded-xl border border-stone-200 bg-white">
+      {/* Ledger Jenis Cuti Dinamis */}
+      <section className="panel overflow-hidden">
         {filteredLeaveTypes.length === 0 ? (
           <div className="p-8">
             <EmptyState
@@ -466,216 +474,302 @@ export default function AdminLeaveTypesClient({
             />
           </div>
         ) : (
-          <div
-            tabIndex={0}
-            role="region"
-            aria-labelledby={tableCaptionId}
-            className="otium-responsive-table-wrap focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-slate-900"
-          >
-            <table className="otium-responsive-table text-left text-sm">
-              <caption id={tableCaptionId} className="visually-hidden">
-                Daftar konfigurasi jenis cuti dinamis pada tabel leave_types
-              </caption>
-              <thead className="border-b border-stone-200 bg-[#FAF9F6] text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">
-                <tr>
-                  <th scope="col" className="px-5 py-3.5">
-                    Kode &amp; Nama Jenis Cuti
-                  </th>
-                  <th scope="col" className="px-4 py-3.5">
-                    Kuota Maks
-                  </th>
-                  <th scope="col" className="px-4 py-3.5">
-                    Batas Ajuan
-                  </th>
-                  <th scope="col" className="px-4 py-3.5">
-                    Lampiran
-                  </th>
-                  <th scope="col" className="px-4 py-3.5">
-                    Potong Kuota Thn
-                  </th>
-                  <th scope="col" className="px-4 py-3.5">
-                    Masa Kerja
-                  </th>
-                  <th scope="col" className="px-4 py-3.5">
-                    Status
-                  </th>
-                  <th scope="col" className="px-5 py-3.5 text-right">
-                    Aksi
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100 bg-white">
-                {filteredLeaveTypes.map((lt) => {
-                  const isRowToggling = togglingId === lt.id;
-                  return (
-                    <tr
-                      key={lt.id}
-                      className="transition-colors duration-150 hover:bg-[#FAF9F6]"
-                    >
-                      <th
-                        scope="row"
-                        className="max-w-xs px-5 py-3.5 font-normal"
+          <>
+            {/* Desktop Sortable Swiss Ledger Table */}
+            <div
+              tabIndex={0}
+              role="region"
+              aria-labelledby={tableCaptionId}
+              className="hidden overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--spruce)] md:block"
+            >
+              <table className="ledger">
+                <caption id={tableCaptionId} className="sr-only">
+                  Daftar konfigurasi jenis cuti dinamis pada tabel leave_types
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col" className="w-11 text-center">
+                      No.
+                    </th>
+                    <th scope="col" aria-sort={getAriaSort("name")}>
+                      <button
+                        type="button"
+                        onClick={() => handleColumnSort("name")}
                       >
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="inline-flex items-center gap-1 rounded border border-stone-300 bg-[#F4F2EC] px-2 py-0.5 font-mono text-[11px] font-bold text-slate-800">
-                            {lt.isCore && (
-                              <Lock
-                                className="h-2.5 w-2.5 text-slate-600"
+                        <span>Kode &amp; Nama Jenis Cuti</span>
+                        {renderSortIcon("name")}
+                      </button>
+                    </th>
+                    <th scope="col" aria-sort={getAriaSort("quota")}>
+                      <button
+                        type="button"
+                        onClick={() => handleColumnSort("quota")}
+                      >
+                        <span>Kuota Maks</span>
+                        {renderSortIcon("quota")}
+                      </button>
+                    </th>
+                    <th scope="col" aria-sort={getAriaSort("lead")}>
+                      <button
+                        type="button"
+                        onClick={() => handleColumnSort("lead")}
+                      >
+                        <span>Batas Ajuan</span>
+                        {renderSortIcon("lead")}
+                      </button>
+                    </th>
+                    <th scope="col">Lampiran</th>
+                    <th scope="col">Potong Kuota Thn</th>
+                    <th scope="col">Masa Kerja</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" className="text-right">
+                      Aksi
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLeaveTypes.map((lt, idx) => {
+                    const isRowToggling = togglingId === lt.id;
+                    return (
+                      <tr key={lt.id}>
+                        <td className="row-idx text-center">
+                          {String(idx + 1).padStart(2, "0")}
+                        </td>
+                        <th scope="row" className="max-w-xs font-normal">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="tag font-mono text-[10.5px]">
+                              {lt.isCore && (
+                                <Lock className="h-2.5 w-2.5" aria-hidden="true" />
+                              )}
+                              {lt.code}
+                            </span>
+                            <span className="text-[13px] font-semibold text-[var(--ink)]">
+                              {lt.name}
+                            </span>
+                          </div>
+                          {lt.description && (
+                            <p className="mt-1 line-clamp-1 text-[11.5px] text-[var(--ink-soft)]">
+                              {lt.description}
+                            </p>
+                          )}
+                          <p className="mt-1 flex items-center gap-1 font-mono text-[10.5px] text-[var(--ink-muted)]">
+                            <FileText
+                              className="h-3 w-3 shrink-0"
+                              aria-hidden="true"
+                            />
+                            <span className="tabular-nums">
+                              {lt.usageCount > 0
+                                ? `${lt.usageCount} riwayat pengajuan`
+                                : "Belum ada transaksi"}
+                            </span>
+                          </p>
+                        </th>
+
+                        <td className="whitespace-nowrap font-mono text-[12.5px] font-semibold tabular-nums text-[var(--ink)]">
+                          {Number(lt.maxQuota).toFixed(1)} Hari
+                        </td>
+
+                        <td className="whitespace-nowrap">
+                          <span className="tag font-mono tabular-nums">
+                            <Clock className="h-3 w-3" aria-hidden="true" />
+                            {formatSubmissionLeadTime(lt.minSubmissionDays)} (
+                            {lt.minSubmissionDays})
+                          </span>
+                        </td>
+
+                        <td className="whitespace-nowrap">
+                          {lt.requiresAttachment ? (
+                            <span className="tag tag-pending">
+                              <Paperclip className="h-3 w-3" aria-hidden="true" />
+                              Wajib
+                            </span>
+                          ) : (
+                            <span className="text-[12px] text-[var(--ink-muted)]">
+                              Tidak
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="whitespace-nowrap">
+                          {lt.deductsAnnualQuota ? (
+                            <span className="tag tag-leader">
+                              Ya (Kuota 12 Hr)
+                            </span>
+                          ) : (
+                            <span className="text-[12px] text-[var(--ink-muted)]">
+                              Tidak
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="whitespace-nowrap text-[12px]">
+                          {lt.requiresMinOneYearTenure ? (
+                            <span className="inline-flex items-center gap-1 font-medium text-[var(--ink)]">
+                              <ShieldCheck
+                                className="h-3.5 w-3.5 text-[var(--spruce)]"
                                 aria-hidden="true"
                               />
+                              &gt;= 1 Tahun
+                            </span>
+                          ) : (
+                            <span className="text-[var(--ink-muted)]">Bebas</span>
+                          )}
+                        </td>
+
+                        <td className="whitespace-nowrap">
+                          <StatusBadge
+                            status={lt.isActive ? "Aktif" : "Nonaktif"}
+                          />
+                        </td>
+
+                        <td className="whitespace-nowrap text-right">
+                          <div className="inline-flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(lt)}
+                              disabled={isRowToggling}
+                              className="btn btn-sm"
+                            >
+                              <Pencil className="h-3 w-3" aria-hidden="true" />
+                              Edit
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleToggleActive(lt)}
+                              disabled={togglingId !== null}
+                              aria-label={
+                                lt.isActive
+                                  ? `Nonaktifkan ${lt.name}`
+                                  : `Aktifkan ${lt.name}`
+                              }
+                              className={`btn btn-sm ${
+                                lt.isActive ? "" : "btn-primary"
+                              }`}
+                            >
+                              {isRowToggling ? (
+                                <Loader2
+                                  className="h-3 w-3 animate-spin"
+                                  aria-hidden="true"
+                                />
+                              ) : (
+                                <Power className="h-3 w-3" aria-hidden="true" />
+                              )}
+                              {lt.isActive ? "Nonaktifkan" : "Aktifkan"}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Ledger Cards (< md) */}
+            <div className="divide-y divide-[var(--rule)] md:hidden">
+              {filteredLeaveTypes.map((lt, idx) => {
+                const isRowToggling = togglingId === lt.id;
+                return (
+                  <article key={lt.id} className="ledger-card">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="tag font-mono text-[10px]">
+                            {lt.isCore && (
+                              <Lock className="h-2.5 w-2.5" aria-hidden="true" />
                             )}
                             {lt.code}
                           </span>
-                          <span className="font-semibold text-slate-900">
-                            {lt.name}
-                          </span>
+                          <StatusBadge
+                            status={lt.isActive ? "Aktif" : "Nonaktif"}
+                          />
                         </div>
+                        <p className="mt-1.5 font-serif text-[17px] font-semibold text-[var(--ink)]">
+                          {lt.name}
+                        </p>
                         {lt.description && (
-                          <p className="mt-1 line-clamp-1 text-xs text-slate-600">
+                          <p className="mt-0.5 text-[12px] text-[var(--ink-soft)]">
                             {lt.description}
                           </p>
                         )}
-                        <p className="mt-1 flex items-center gap-1 text-[11px] text-slate-500">
-                          <FileText
-                            className="h-3 w-3 shrink-0"
-                            aria-hidden="true"
-                          />
-                          <span className="tabular-nums">
-                            {lt.usageCount > 0
-                              ? `${lt.usageCount} riwayat pengajuan`
-                              : "Belum ada transaksi"}
-                          </span>
-                        </p>
-                      </th>
+                      </div>
+                      <span className="font-mono text-[10.5px] text-[var(--ink-muted)]">
+                        #{String(idx + 1).padStart(2, "0")}
+                      </span>
+                    </div>
 
-                      <td
-                        data-label="Kuota Maks"
-                        className="whitespace-nowrap px-4 py-3.5 text-xs font-bold tabular-nums text-slate-900"
-                      >
-                        {Number(lt.maxQuota).toFixed(1)} Hari
-                      </td>
-
-                      <td
-                        data-label="Batas Ajuan"
-                        className="whitespace-nowrap px-4 py-3.5"
-                      >
-                        <span className="inline-flex items-center gap-1 rounded border border-stone-300 bg-[#F4F2EC] px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-800">
-                          <Clock
-                            className="h-3 w-3 text-slate-600"
-                            aria-hidden="true"
-                          />
+                    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-[var(--rule)] pt-3 text-[12px]">
+                      <div>
+                        <dt className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--ink-muted)]">
+                          Kuota Maks
+                        </dt>
+                        <dd className="mt-0.5 font-mono font-semibold tabular-nums text-[var(--ink)]">
+                          {Number(lt.maxQuota).toFixed(1)} Hari
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--ink-muted)]">
+                          Batas Ajuan
+                        </dt>
+                        <dd className="mt-0.5 font-mono text-[11.5px] tabular-nums text-[var(--ink)]">
                           {formatSubmissionLeadTime(lt.minSubmissionDays)} (
                           {lt.minSubmissionDays})
-                        </span>
-                      </td>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--ink-muted)]">
+                          Lampiran / Masa Kerja
+                        </dt>
+                        <dd className="mt-0.5 text-[11.5px] text-[var(--ink-soft)]">
+                          {lt.requiresAttachment ? "Wajib" : "Opsional"} ·{" "}
+                          {lt.requiresMinOneYearTenure ? "≥ 1 Thn" : "Bebas"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--ink-muted)]">
+                          Potong Kuota Thn
+                        </dt>
+                        <dd className="mt-0.5 text-[11.5px] text-[var(--ink-soft)]">
+                          {lt.deductsAnnualQuota ? "Ya (12 Hr)" : "Tidak"}
+                        </dd>
+                      </div>
+                    </dl>
 
-                      <td
-                        data-label="Lampiran"
-                        className="whitespace-nowrap px-4 py-3.5"
+                    <div className="mt-3 flex items-center justify-end gap-2 border-t border-[var(--rule)] pt-3">
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(lt)}
+                        disabled={isRowToggling}
+                        className="btn btn-sm"
                       >
-                        {lt.requiresAttachment ? (
-                          <span className="inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-900">
-                            <Paperclip className="h-3 w-3" aria-hidden="true" />
-                            Wajib
-                          </span>
+                        <Pencil className="h-3 w-3" aria-hidden="true" />
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleActive(lt)}
+                        disabled={togglingId !== null}
+                        className={`btn btn-sm ${
+                          lt.isActive ? "" : "btn-primary"
+                        }`}
+                      >
+                        {isRowToggling ? (
+                          <Loader2
+                            className="h-3 w-3 animate-spin"
+                            aria-hidden="true"
+                          />
                         ) : (
-                          <span className="text-xs text-slate-600">Tidak</span>
+                          <Power className="h-3 w-3" aria-hidden="true" />
                         )}
-                      </td>
-
-                      <td
-                        data-label="Potong Kuota Thn"
-                        className="whitespace-nowrap px-4 py-3.5"
-                      >
-                        {lt.deductsAnnualQuota ? (
-                          <span className="inline-flex items-center rounded border border-slate-300 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-900">
-                            Ya (Kuota 12 Hr)
-                          </span>
-                        ) : (
-                          <span className="text-xs text-slate-600">Tidak</span>
-                        )}
-                      </td>
-
-                      <td
-                        data-label="Masa Kerja"
-                        className="whitespace-nowrap px-4 py-3.5 text-xs"
-                      >
-                        {lt.requiresMinOneYearTenure ? (
-                          <span className="inline-flex items-center gap-1 font-semibold text-slate-900">
-                            <ShieldCheck
-                              className="h-3.5 w-3.5 text-slate-700"
-                              aria-hidden="true"
-                            />
-                            &gt;= 1 Tahun
-                          </span>
-                        ) : (
-                          <span className="text-slate-600">Bebas</span>
-                        )}
-                      </td>
-
-                      <td
-                        data-label="Status"
-                        className="whitespace-nowrap px-4 py-3.5"
-                      >
-                        <StatusBadge
-                          status={lt.isActive ? "Aktif" : "Nonaktif"}
-                        />
-                      </td>
-
-                      <td
-                        data-label="Aksi"
-                        className="whitespace-nowrap px-5 py-3.5 text-right"
-                      >
-                        <div className="inline-flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(lt)}
-                            disabled={isRowToggling}
-                            className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:bg-[#F4F2EC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <Pencil
-                              className="h-3.5 w-3.5"
-                              aria-hidden="true"
-                            />
-                            Edit
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleToggleActive(lt)}
-                            disabled={togglingId !== null}
-                            aria-label={
-                              lt.isActive
-                                ? `Nonaktifkan ${lt.name}`
-                                : `Aktifkan ${lt.name}`
-                            }
-                            className={`inline-flex cursor-pointer items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60 ${
-                              lt.isActive
-                                ? "border-stone-300 bg-[#FAF9F6] text-slate-700 hover:bg-stone-200/70 hover:text-slate-900"
-                                : "border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
-                            }`}
-                          >
-                            {isRowToggling ? (
-                              <Loader2
-                                className="h-3.5 w-3.5 animate-spin"
-                                aria-hidden="true"
-                              />
-                            ) : (
-                              <Power
-                                className="h-3.5 w-3.5"
-                                aria-hidden="true"
-                              />
-                            )}
-                            {lt.isActive ? "Nonaktifkan" : "Aktifkan"}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        {lt.isActive ? "Nonaktifkan" : "Aktifkan"}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </>
         )}
       </section>
 

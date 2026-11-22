@@ -4,17 +4,16 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
-  AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   CheckCircle2,
   Loader2,
   Lock,
   Pencil,
   RefreshCw,
-  Shield,
   Trash2,
-  UserCheck,
   UserPlus,
-  Users,
   X,
 } from "lucide-react";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -29,7 +28,7 @@ import {
 } from "@/actions/user-actions";
 
 /**
- * Workspace CMS Modul 1: Manajemen Pengguna (/admin/users) — Pure Production.
+ * Workspace CMS Modul 1: Manajemen Pengguna (/admin/users) — Swiss Archival.
  * Terhubung ke PostgreSQL via Server Component initial load, Server Actions (mutasi),
  * dan Route Handler GET /api/admin/users (sinkronisasi realtime).
  */
@@ -252,6 +251,10 @@ export default function AdminUsersClient({
             b.divisionName || "zzzz",
             "id"
           );
+        case "quota_desc":
+          return Number(b.remainingLeaveQuota) - Number(a.remainingLeaveQuota);
+        case "quota_asc":
+          return Number(a.remainingLeaveQuota) - Number(b.remainingLeaveQuota);
         case "name_asc":
         default:
           return a.fullName.localeCompare(b.fullName, "id");
@@ -281,6 +284,53 @@ export default function AdminUsersClient({
     setStatusFilter("ALL");
     setTenureFilter("ALL");
     setSortBy("name_asc");
+  }
+
+  function handleColumnSort(col) {
+    if (col === "name") {
+      setSortBy((prev) => (prev === "name_asc" ? "name_desc" : "name_asc"));
+    } else if (col === "division") {
+      setSortBy("division_asc");
+    } else if (col === "join") {
+      setSortBy((prev) =>
+        prev === "join_newest" ? "join_oldest" : "join_newest"
+      );
+    } else if (col === "quota") {
+      setSortBy((prev) => (prev === "quota_desc" ? "quota_asc" : "quota_desc"));
+    }
+  }
+
+  function getAriaSort(col) {
+    if (col === "name") {
+      if (sortBy === "name_asc") return "ascending";
+      if (sortBy === "name_desc") return "descending";
+    }
+    if (col === "division" && sortBy === "division_asc") return "ascending";
+    if (col === "join") {
+      if (sortBy === "join_oldest") return "ascending";
+      if (sortBy === "join_newest") return "descending";
+    }
+    if (col === "quota") {
+      if (sortBy === "quota_asc") return "ascending";
+      if (sortBy === "quota_desc") return "descending";
+    }
+    return "none";
+  }
+
+  function renderSortIcon(col) {
+    const dir = getAriaSort(col);
+    if (dir === "ascending") {
+      return <ArrowUp className="h-3 w-3 shrink-0" aria-hidden="true" />;
+    }
+    if (dir === "descending") {
+      return <ArrowDown className="h-3 w-3 shrink-0" aria-hidden="true" />;
+    }
+    return (
+      <ArrowUpDown
+        className="h-3 w-3 shrink-0 opacity-45"
+        aria-hidden="true"
+      />
+    );
   }
 
   function openCreateModal() {
@@ -415,41 +465,8 @@ export default function AdminUsersClient({
     { value: "join_newest", label: "Tgl Bergabung (Terbaru)" },
     { value: "join_oldest", label: "Tgl Bergabung (Terlama)" },
     { value: "division_asc", label: "Divisi (A–Z)" },
-  ];
-
-  const statCards = [
-    {
-      label: "Total Pengguna",
-      value: `${stats.total}`,
-      unit: "Akun",
-      subtitle: "Terdaftar lintas 4 role RBAC",
-      icon: Users,
-      accentClass: "text-slate-900 bg-[#F4F2EC] border-stone-200",
-    },
-    {
-      label: "Akun Aktif",
-      value: `${stats.active}`,
-      unit: "Aktif",
-      subtitle: `${stats.inactive} akun berstatus Nonaktif`,
-      icon: UserCheck,
-      accentClass: "text-emerald-800 bg-emerald-50 border-emerald-200/80",
-    },
-    {
-      label: "Masa Kerja < 1 Thn",
-      value: `${stats.ineligible}`,
-      unit: "Karyawan",
-      subtitle: "Belum eligible Cuti Tahunan",
-      icon: AlertTriangle,
-      accentClass: "text-amber-800 bg-amber-50 border-amber-200/80",
-    },
-    {
-      label: "Akun Diproteksi",
-      value: `${stats.protectedCount}`,
-      unit: "Akun",
-      subtitle: "Role Admin & HRD tidak dapat dihapus",
-      icon: Shield,
-      accentClass: "text-slate-800 bg-stone-100 border-stone-300/80",
-    },
+    { value: "quota_desc", label: "Sisa Kuota (Terbanyak)" },
+    { value: "quota_asc", label: "Sisa Kuota (Tersedikit)" },
   ];
 
   return (
@@ -459,23 +476,23 @@ export default function AdminUsersClient({
         <div
           role={toast.tone === "error" ? "alert" : "status"}
           aria-live={toast.tone === "error" ? "assertive" : "polite"}
-          className={`fixed right-5 top-20 z-50 flex max-w-md items-center gap-2.5 rounded-lg border px-4 py-3 text-xs font-semibold shadow-lg ${
-            toast.tone === "error"
-              ? "border-rose-300 bg-rose-50 text-rose-950"
-              : "border-emerald-300 bg-emerald-50 text-emerald-950"
+          className={`notice fixed right-5 top-20 z-50 max-w-md items-center shadow-[var(--shadow-lg)] ${
+            toast.tone === "error" ? "notice-danger" : "notice-success"
           }`}
         >
           {toast.tone === "error" ? (
-            <AlertCircle className="h-4 w-4 shrink-0 text-rose-700" aria-hidden="true" />
+            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
           ) : (
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
+            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
           )}
-          <span>{toast.message}</span>
+          <span className="flex-1 text-[12.5px] font-medium">
+            {toast.message}
+          </span>
           <button
             type="button"
             onClick={() => setToast(null)}
             aria-label="Tutup notifikasi"
-            className="ml-1 cursor-pointer rounded p-0.5 opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
+            className="btn-icon h-6 w-6 shrink-0"
           >
             <X className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
@@ -483,27 +500,27 @@ export default function AdminUsersClient({
       )}
 
       {/* Header Editorial Halaman */}
-      <header className="flex flex-col gap-4 border-b border-stone-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <header className="flex flex-col gap-4 border-b border-[var(--rule-strong)] pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
-            CMS Modul 01 · Master Data Pengguna
+          <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+            CMS MODUL 01 · MASTER DATA PENGGUNA
           </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h1 className="mt-1 font-serif text-[28px] font-semibold leading-tight tracking-[-0.015em] text-[var(--ink)] sm:text-[32px]">
             Manajemen Pengguna
           </h1>
-          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-600">
+          <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[var(--ink-soft)]">
             Kelola akun lintas 4 role, kuota cuti tahunan awal, tanggal
             bergabung, serta proteksi penghapusan akun Admin &amp; HRD secara
             langsung di PostgreSQL.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             disabled={isRefreshing}
             onClick={() => refreshFromApi({ silent: false })}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:bg-[#F4F2EC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn btn-sm"
           >
             <RefreshCw
               className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`}
@@ -515,50 +532,49 @@ export default function AdminUsersClient({
           <button
             type="button"
             onClick={openCreateModal}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+            className="btn btn-primary btn-sm"
           >
-            <UserPlus className="h-4 w-4" aria-hidden="true" />
+            <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
             Tambah Pengguna
           </button>
         </div>
       </header>
 
-      {/* Ringkasan Statistik Editorial */}
-      <section
-        aria-label="Ringkasan statistik pengguna"
-        className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4"
-      >
-        {statCards.map((card) => {
-          const IconComponent = card.icon;
-          return (
-            <div
-              key={card.label}
-              className="flex flex-col justify-between rounded-xl border border-stone-200 bg-white p-4 transition-colors duration-150 hover:border-stone-300"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">
-                    {card.label}
-                  </p>
-                  <p className="mt-2 flex items-baseline gap-1.5 text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
-                    <span>{card.value}</span>
-                    <span className="text-xs font-medium text-slate-600">
-                      {card.unit}
-                    </span>
-                  </p>
-                </div>
-                <div
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${card.accentClass}`}
-                >
-                  <IconComponent className="h-4 w-4" aria-hidden="true" />
-                </div>
-              </div>
-              <p className="mt-2.5 border-t border-stone-100 pt-2 text-xs text-slate-600">
-                {card.subtitle}
-              </p>
-            </div>
-          );
-        })}
+      {/* Metric Strip Swiss Archival (4 Kolom) */}
+      <section aria-label="Ringkasan statistik pengguna" className="metric-strip">
+        <div className="metric-cell">
+          <p className="metric-label">Total Pengguna</p>
+          <p className="metric-val tabular-nums">
+            {stats.total} <small>Akun</small>
+          </p>
+          <p className="metric-note">Terdaftar lintas 4 role RBAC</p>
+        </div>
+
+        <div className="metric-cell">
+          <p className="metric-label">Akun Aktif</p>
+          <p className="metric-val tabular-nums text-[var(--spruce)]">
+            {stats.active} <small>Aktif</small>
+          </p>
+          <p className="metric-note">
+            {stats.inactive} akun berstatus Nonaktif
+          </p>
+        </div>
+
+        <div className="metric-cell">
+          <p className="metric-label">Masa Kerja &lt; 1 Thn</p>
+          <p className="metric-val tabular-nums text-[var(--ochre)]">
+            {stats.ineligible} <small>Karyawan</small>
+          </p>
+          <p className="metric-note">Belum eligible Cuti Tahunan</p>
+        </div>
+
+        <div className="metric-cell">
+          <p className="metric-label">Akun Diproteksi</p>
+          <p className="metric-val tabular-nums">
+            {stats.protectedCount} <small>Akun</small>
+          </p>
+          <p className="metric-note">Role Admin &amp; HRD tidak dapat dihapus</p>
+        </div>
       </section>
 
       {/* Toolbar Pencarian, Multi-Filter & Sortir */}
@@ -576,8 +592,8 @@ export default function AdminUsersClient({
         totalAll={users.length}
       />
 
-      {/* Tabel Data Pengguna (Responsive Container Query) */}
-      <section className="overflow-hidden rounded-xl border border-stone-200 bg-white">
+      {/* Ledger Data Pengguna */}
+      <section className="panel overflow-hidden">
         {filteredUsers.length === 0 ? (
           <div className="p-8">
             <EmptyState
@@ -586,183 +602,289 @@ export default function AdminUsersClient({
             />
           </div>
         ) : (
-          <div
-            tabIndex={0}
-            role="region"
-            aria-labelledby={tableCaptionId}
-            className="otium-responsive-table-wrap focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-slate-900"
-          >
-            <table className="otium-responsive-table text-left text-sm">
-              <caption id={tableCaptionId} className="sr-only">
-                Daftar akun pengguna sistem manajemen cuti Otium
-              </caption>
-              <thead className="bg-[#F4F2EC] text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-700">
-                <tr className="border-b border-stone-200">
-                  <th scope="col" className="border-b border-stone-200 px-5 py-3.5">
-                    Nama &amp; Email
-                  </th>
-                  <th scope="col" className="border-b border-stone-200 px-4 py-3.5">
-                    Username
-                  </th>
-                  <th scope="col" className="border-b border-stone-200 px-4 py-3.5">
-                    Role &amp; Status
-                  </th>
-                  <th scope="col" className="border-b border-stone-200 px-4 py-3.5">
-                    Divisi
-                  </th>
-                  <th scope="col" className="border-b border-stone-200 px-4 py-3.5">
-                    Tgl Bergabung
-                  </th>
-                  <th scope="col" className="border-b border-stone-200 px-4 py-3.5">
-                    Sisa Kuota
-                  </th>
-                  <th
-                    scope="col"
-                    className="border-b border-stone-200 px-5 py-3.5 text-right"
-                  >
-                    Aksi
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100 bg-white">
-                {filteredUsers.map((user) => {
-                  const isSelf = Number(user.id) === Number(currentAdminId);
-                  return (
-                    <tr
-                      key={user.id}
-                      className="transition-colors duration-150 hover:bg-[#F4F2EC]/55"
-                    >
-                      <th
-                        scope="row"
-                        className="whitespace-nowrap px-5 py-3.5 font-normal"
+          <>
+            {/* Desktop Sortable Swiss Ledger Table */}
+            <div
+              tabIndex={0}
+              role="region"
+              aria-labelledby={tableCaptionId}
+              className="hidden overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--spruce)] md:block"
+            >
+              <table className="ledger">
+                <caption id={tableCaptionId} className="sr-only">
+                  Daftar akun pengguna sistem manajemen cuti Otium
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col" className="w-11 text-center">
+                      No.
+                    </th>
+                    <th scope="col" aria-sort={getAriaSort("name")}>
+                      <button
+                        type="button"
+                        onClick={() => handleColumnSort("name")}
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-stone-200 bg-[#F4F2EC] text-[11px] font-bold text-slate-800">
-                            {user.initials}
+                        <span>Nama &amp; Email</span>
+                        {renderSortIcon("name")}
+                      </button>
+                    </th>
+                    <th scope="col">Username</th>
+                    <th scope="col">Role &amp; Status</th>
+                    <th scope="col" aria-sort={getAriaSort("division")}>
+                      <button
+                        type="button"
+                        onClick={() => handleColumnSort("division")}
+                      >
+                        <span>Divisi</span>
+                        {renderSortIcon("division")}
+                      </button>
+                    </th>
+                    <th scope="col" aria-sort={getAriaSort("join")}>
+                      <button
+                        type="button"
+                        onClick={() => handleColumnSort("join")}
+                      >
+                        <span>Tgl Bergabung</span>
+                        {renderSortIcon("join")}
+                      </button>
+                    </th>
+                    <th scope="col" aria-sort={getAriaSort("quota")}>
+                      <button
+                        type="button"
+                        onClick={() => handleColumnSort("quota")}
+                      >
+                        <span>Sisa Kuota</span>
+                        {renderSortIcon("quota")}
+                      </button>
+                    </th>
+                    <th scope="col" className="text-right">
+                      Aksi
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.map((user, idx) => {
+                    const isSelf = Number(user.id) === Number(currentAdminId);
+                    return (
+                      <tr key={user.id}>
+                        <td className="row-idx text-center">
+                          {String(idx + 1).padStart(2, "0")}
+                        </td>
+                        <th scope="row" className="whitespace-nowrap font-normal">
+                          <div className="flex items-center gap-3">
+                            <div className="avatar-sq">{user.initials}</div>
+                            <div className="min-w-0">
+                              <p className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--ink)]">
+                                <span className="truncate">{user.fullName}</span>
+                                {isSelf && (
+                                  <span className="tag text-[9.5px]">Anda</span>
+                                )}
+                              </p>
+                              <p className="truncate text-[11.5px] text-[var(--ink-muted)]">
+                                {user.email}
+                              </p>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="flex items-center gap-1.5 font-semibold text-slate-900">
-                              <span className="truncate">{user.fullName}</span>
-                              {isSelf && (
-                                <span className="rounded border border-stone-300 bg-[#F4F2EC] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-700">
-                                  Anda
+                        </th>
+                        <td className="whitespace-nowrap font-mono text-[12px] text-[var(--ink-soft)]">
+                          @{user.username}
+                        </td>
+                        <td className="whitespace-nowrap">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <StatusBadge status={user.role} />
+                            <StatusBadge
+                              status={user.isActive ? "Aktif" : "Nonaktif"}
+                            />
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap text-[12.5px] text-[var(--ink)]">
+                          {user.divisionName ? (
+                            <span className="inline-flex items-center gap-1.5 font-medium">
+                              <span>{user.divisionName}</span>
+                              {user.ledDivisionName && (
+                                <span className="tag tag-leader text-[9.5px]">
+                                  Ketua
                                 </span>
                               )}
-                            </p>
-                            <p className="truncate text-xs text-slate-600">
-                              {user.email}
-                            </p>
-                          </div>
-                        </div>
-                      </th>
-                      <td
-                        data-label="Username"
-                        className="whitespace-nowrap px-4 py-3.5 font-mono text-xs text-slate-700"
-                      >
-                        {user.username}
-                      </td>
-                      <td
-                        data-label="Role & Status"
-                        className="whitespace-nowrap px-4 py-3.5"
-                      >
-                        <div className="flex flex-wrap items-center justify-end gap-1.5 sm:justify-start">
-                          <StatusBadge status={user.role} />
-                          <StatusBadge
-                            status={user.isActive ? "Aktif" : "Nonaktif"}
-                          />
-                        </div>
-                      </td>
-                      <td
-                        data-label="Divisi"
-                        className="whitespace-nowrap px-4 py-3.5 text-xs font-medium text-slate-800"
-                      >
-                        {user.divisionName ? (
-                          <span>
-                            {user.divisionName}
-                            {user.ledDivisionName && (
-                              <span className="ml-1.5 rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">
-                                Ketua
-                              </span>
-                            )}
-                          </span>
-                        ) : (
-                          <span className="italic text-slate-600">
-                            Belum ada divisi
-                          </span>
-                        )}
-                      </td>
-                      <td
-                        data-label="Tgl Bergabung"
-                        className="whitespace-nowrap px-4 py-3.5"
-                      >
-                        <div className="text-right sm:text-left">
-                          <p className="text-xs font-medium text-slate-900 tabular-nums">
+                            </span>
+                          ) : (
+                            <span className="italic text-[var(--ink-muted)]">
+                              Belum ada divisi
+                            </span>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap">
+                          <p className="font-mono text-[12px] tabular-nums text-[var(--ink)]">
                             {formatIndonesianDate(user.joinDate)}
                           </p>
-                          <div className="mt-1 flex items-center justify-end gap-1.5 sm:justify-start">
-                            <span className="text-[11px] text-slate-600">
+                          <div className="mt-1 flex items-center gap-1.5">
+                            <span className="font-mono text-[10.5px] text-[var(--ink-muted)]">
                               {user.tenure?.label}
                             </span>
                             {!user.tenure?.isEligible && (
                               <StatusBadge status="Belum Eligible" />
                             )}
                           </div>
-                        </div>
-                      </td>
-                      <td
-                        data-label="Sisa Kuota"
-                        className="whitespace-nowrap px-4 py-3.5"
-                      >
-                        <p className="text-sm font-bold text-slate-900 tabular-nums">
-                          {Number(user.remainingLeaveQuota).toFixed(1)}{" "}
-                          <span className="text-xs font-normal text-slate-600">
-                            / {Number(user.initialLeaveQuota).toFixed(1)} Hr
-                          </span>
-                        </p>
-                      </td>
-                      <td className="whitespace-nowrap px-5 py-3.5 text-right">
-                        <div className="inline-flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(user)}
-                            className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:bg-[#F4F2EC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-                          >
-                            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                            Edit
-                          </button>
+                        </td>
+                        <td className="whitespace-nowrap">
+                          <p className="font-mono text-[13px] font-semibold tabular-nums text-[var(--ink)]">
+                            {Number(user.remainingLeaveQuota).toFixed(1)}{" "}
+                            <span className="text-[11px] font-normal text-[var(--ink-muted)]">
+                              / {Number(user.initialLeaveQuota).toFixed(1)} Hr
+                            </span>
+                          </p>
+                        </td>
+                        <td className="whitespace-nowrap text-right">
+                          <div className="inline-flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(user)}
+                              className="btn btn-sm"
+                            >
+                              <Pencil className="h-3 w-3" aria-hidden="true" />
+                              Edit
+                            </button>
 
-                          {user.isProtected || isSelf ? (
-                            <button
-                              type="button"
-                              disabled
-                              title="Akun Admin dan HRD diproteksi dari penghapusan"
-                              aria-label={`Akun ${user.fullName} diproteksi dari penghapusan`}
-                              className="inline-flex cursor-not-allowed items-center gap-1 rounded-lg border border-stone-200 bg-stone-100 px-2.5 py-1.5 text-xs font-semibold text-slate-600"
-                            >
-                              <Lock className="h-3.5 w-3.5" aria-hidden="true" />
-                              Diproteksi
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setDeleteError("");
-                                setDeleteTarget(user);
-                              }}
-                              className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-800 transition-colors duration-150 hover:bg-rose-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                              Hapus
-                            </button>
-                          )}
+                            {user.isProtected || isSelf ? (
+                              <button
+                                type="button"
+                                disabled
+                                title="Akun Admin dan HRD diproteksi dari penghapusan"
+                                aria-label={`Akun ${user.fullName} diproteksi dari penghapusan`}
+                                className="btn btn-sm cursor-not-allowed opacity-60"
+                              >
+                                <Lock className="h-3 w-3" aria-hidden="true" />
+                                Diproteksi
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDeleteError("");
+                                  setDeleteTarget(user);
+                                }}
+                                className="btn btn-sm btn-danger-ghost"
+                              >
+                                <Trash2 className="h-3 w-3" aria-hidden="true" />
+                                Hapus
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Ledger Cards (< md) */}
+            <div className="divide-y divide-[var(--rule)] md:hidden">
+              {filteredUsers.map((user, idx) => {
+                const isSelf = Number(user.id) === Number(currentAdminId);
+                return (
+                  <article key={user.id} className="ledger-card">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <div className="avatar-sq">{user.initials}</div>
+                        <div className="min-w-0">
+                          <p className="flex items-center gap-1.5 text-[13.5px] font-semibold text-[var(--ink)]">
+                            <span className="truncate">{user.fullName}</span>
+                            {isSelf && (
+                              <span className="tag text-[9.5px]">Anda</span>
+                            )}
+                          </p>
+                          <p className="truncate font-mono text-[11px] text-[var(--ink-muted)]">
+                            @{user.username} · {user.email}
+                          </p>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                      <span className="font-mono text-[10.5px] text-[var(--ink-muted)]">
+                        #{String(idx + 1).padStart(2, "0")}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                      <StatusBadge status={user.role} />
+                      <StatusBadge
+                        status={user.isActive ? "Aktif" : "Nonaktif"}
+                      />
+                      {!user.tenure?.isEligible && (
+                        <StatusBadge status="Belum Eligible" />
+                      )}
+                    </div>
+
+                    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-[var(--rule)] pt-3 text-[12px]">
+                      <div>
+                        <dt className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--ink-muted)]">
+                          Divisi
+                        </dt>
+                        <dd className="mt-0.5 font-medium text-[var(--ink)]">
+                          {user.divisionName || (
+                            <span className="italic text-[var(--ink-muted)]">
+                              Belum ada divisi
+                            </span>
+                          )}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--ink-muted)]">
+                          Sisa Kuota
+                        </dt>
+                        <dd className="mt-0.5 font-mono font-semibold tabular-nums text-[var(--ink)]">
+                          {Number(user.remainingLeaveQuota).toFixed(1)} /{" "}
+                          {Number(user.initialLeaveQuota).toFixed(1)} Hr
+                        </dd>
+                      </div>
+                      <div className="col-span-2">
+                        <dt className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--ink-muted)]">
+                          Tanggal Bergabung
+                        </dt>
+                        <dd className="mt-0.5 font-mono text-[11.5px] tabular-nums text-[var(--ink-soft)]">
+                          {formatIndonesianDate(user.joinDate)} (
+                          {user.tenure?.label})
+                        </dd>
+                      </div>
+                    </dl>
+
+                    <div className="mt-3 flex items-center justify-end gap-2 border-t border-[var(--rule)] pt-3">
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(user)}
+                        className="btn btn-sm"
+                      >
+                        <Pencil className="h-3 w-3" aria-hidden="true" />
+                        Edit
+                      </button>
+                      {user.isProtected || isSelf ? (
+                        <button
+                          type="button"
+                          disabled
+                          title="Akun Admin dan HRD diproteksi dari penghapusan"
+                          className="btn btn-sm cursor-not-allowed opacity-60"
+                        >
+                          <Lock className="h-3 w-3" aria-hidden="true" />
+                          Diproteksi
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeleteError("");
+                            setDeleteTarget(user);
+                          }}
+                          className="btn btn-sm btn-danger-ghost"
+                        >
+                          <Trash2 className="h-3 w-3" aria-hidden="true" />
+                          Hapus
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </>
         )}
       </section>
 
@@ -790,70 +912,80 @@ export default function AdminUsersClient({
         className="otium-modal w-full max-w-md"
       >
         {deleteTarget && (
-          <div className="w-full overflow-hidden rounded-xl border border-stone-300 bg-white shadow-2xl">
-            <div className="flex items-start justify-between border-b border-rose-200 bg-rose-50/80 px-5 py-4">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-700">
+          <div className="w-full overflow-hidden rounded-[6px] border border-[var(--ink)] bg-[var(--paper-pure)] shadow-[var(--shadow-lg)]">
+            <div className="flex items-start justify-between gap-3 border-b border-[var(--terracotta-border)] bg-[var(--terracotta-tint)] px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[4px] border border-[var(--terracotta-border)] bg-[var(--paper-pure)] text-[var(--terracotta)]">
                   <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </div>
-                <h2
-                  id={deleteTitleId}
-                  className="text-sm font-bold text-slate-900"
-                >
-                  Hapus Akun Pengguna?
-                </h2>
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--terracotta)]">
+                    KONFIRMASI PENGHAPUSAN AKUN
+                  </p>
+                  <h2
+                    id={deleteTitleId}
+                    className="font-serif text-[18px] font-semibold leading-snug text-[var(--ink)]"
+                  >
+                    Hapus Akun Pengguna?
+                  </h2>
+                </div>
               </div>
               <button
                 type="button"
                 disabled={isDeleting}
                 onClick={() => setDeleteTarget(null)}
                 aria-label="Tutup dialog"
-                className="cursor-pointer rounded-lg p-1 text-slate-600 transition-colors hover:bg-rose-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn-icon h-7 w-7 shrink-0"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
 
-            <div className="space-y-3 px-5 py-4 text-xs leading-relaxed text-slate-700">
+            <div className="space-y-3 px-5 py-4 text-[12.5px] leading-relaxed text-[var(--ink-soft)]">
               {deleteError && (
-                <div
-                  role="alert"
-                  className="flex items-start gap-2 rounded-lg border border-rose-300 bg-rose-50 p-3 text-rose-900"
-                >
-                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-700" aria-hidden="true" />
+                <div role="alert" className="notice notice-danger">
+                  <AlertCircle
+                    className="mt-0.5 h-4 w-4 shrink-0"
+                    aria-hidden="true"
+                  />
                   <span>{deleteError}</span>
                 </div>
               )}
 
               <p>
                 Anda akan menghapus permanen akun{" "}
-                <strong className="text-slate-900">
+                <strong className="text-[var(--ink)]">
                   {deleteTarget.fullName}
                 </strong>{" "}
                 (<StatusBadge status={deleteTarget.role} />) dengan email{" "}
-                <strong className="text-slate-900">{deleteTarget.email}</strong>.
+                <strong className="font-mono text-[12px] text-[var(--ink)]">
+                  {deleteTarget.email}
+                </strong>
+                .
               </p>
 
               {(deleteTarget.role === "Ketua Divisi" ||
                 deleteTarget.ledDivisionName) && (
-                <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-950">
-                  Pengguna ini adalah <strong>Ketua Divisi</strong>
-                  {deleteTarget.ledDivisionName
-                    ? ` (${deleteTarget.ledDivisionName})`
-                    : ""}
-                  . Posisi kepemimpinan divisi akan dikosongkan otomatis dalam
-                  transaksi SQL.
+                <div className="notice notice-warn">
+                  <span>
+                    Pengguna ini adalah <strong>Ketua Divisi</strong>
+                    {deleteTarget.ledDivisionName
+                      ? ` (${deleteTarget.ledDivisionName})`
+                      : ""}
+                    . Posisi kepemimpinan divisi akan dikosongkan otomatis dalam
+                    transaksi SQL.
+                  </span>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 border-t border-stone-200 bg-[#F4F2EC] px-5 py-3">
+            <div className="flex items-center justify-end gap-2 border-t border-[var(--rule)] bg-[var(--alabaster)] px-5 py-3">
               <button
                 type="button"
                 autoFocus
                 disabled={isDeleting}
                 onClick={() => setDeleteTarget(null)}
-                className="cursor-pointer rounded-lg border border-stone-300 bg-white px-4 py-2 text-xs font-semibold text-slate-800 transition-colors hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn btn-sm"
               >
                 Batal
               </button>
@@ -861,10 +993,13 @@ export default function AdminUsersClient({
                 type="button"
                 disabled={isDeleting}
                 onClick={handleConfirmDeleteUser}
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-rose-700 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-rose-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="btn btn-sm btn-danger"
               >
                 {isDeleting && (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                  <Loader2
+                    className="h-3.5 w-3.5 animate-spin"
+                    aria-hidden="true"
+                  />
                 )}
                 {isDeleting ? "Menghapus..." : "Ya, Hapus Akun"}
               </button>

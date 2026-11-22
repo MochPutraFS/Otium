@@ -18,8 +18,8 @@ function evaluatePasswordStrength(password) {
     return {
       score: 0,
       label: "Belum diisi",
-      barColor: "bg-stone-200",
-      textColor: "text-slate-500",
+      barColor: "bg-[var(--rule)]",
+      textColor: "text-[var(--ink-muted)]",
     };
   }
 
@@ -33,31 +33,31 @@ function evaluatePasswordStrength(password) {
     return {
       score: 1,
       label: "Lemah",
-      barColor: "bg-rose-600",
-      textColor: "text-rose-700",
+      barColor: "bg-[var(--terracotta)]",
+      textColor: "text-[var(--terracotta)]",
     };
   }
   if (score === 2) {
     return {
       score: 2,
       label: "Cukup",
-      barColor: "bg-amber-500",
-      textColor: "text-amber-700",
+      barColor: "bg-[var(--ochre)]",
+      textColor: "text-[var(--ochre)]",
     };
   }
   if (score === 3) {
     return {
       score: 3,
       label: "Kuat",
-      barColor: "bg-[#1D4ED8]",
-      textColor: "text-[#1D4ED8]",
+      barColor: "bg-[var(--slate-blue)]",
+      textColor: "text-[var(--slate-blue)]",
     };
   }
   return {
     score: 4,
     label: "Sangat Kuat",
-    barColor: "bg-emerald-600",
-    textColor: "text-emerald-700",
+    barColor: "bg-[var(--spruce)]",
+    textColor: "text-[var(--spruce)]",
   };
 }
 
@@ -154,30 +154,23 @@ export default function PasswordSecurityForm({ onChangePassword }) {
   }
 
   const inputClass = (hasError) =>
-    `otium-input w-full rounded-lg border bg-white py-2.5 pl-3.5 pr-11 text-sm text-[#0F172A] transition-colors duration-150 placeholder:text-slate-400 focus-visible:outline-2 focus-visible:outline-offset-2 ${
-      hasError
-        ? "border-rose-400 focus-visible:outline-rose-600"
-        : "border-stone-300 focus:border-[#0F172A] focus-visible:outline-[#0F172A]"
-    }`;
+    `input w-full pr-10 ${hasError ? "!border-[var(--terracotta)]" : ""}`;
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-6">
-      <div className="border-b border-stone-200 pb-3">
-        <h3 className="text-sm font-semibold text-[#0F172A]">
+      <div className="border-b border-[var(--rule)] pb-3">
+        <h3 className="font-serif text-[19px] font-semibold text-[var(--ink)]">
           Perbarui Password Akun
         </h3>
-        <p className="mt-0.5 text-xs text-slate-600">
+        <p className="mt-0.5 text-[12.5px] text-[var(--ink-soft)]">
           Gunakan kombinasi huruf dan angka minimal 8 karakter untuk menjaga
           keamanan akun portal cuti Anda.
         </p>
       </div>
 
       {/* Info keamanan */}
-      <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50/70 px-3.5 py-3 text-xs text-amber-900">
-        <ShieldAlert
-          className="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
-          aria-hidden="true"
-        />
+      <div className="notice notice-warn">
+        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
         <p className="leading-relaxed">
           Gunakan password unik yang tidak dipakai di layanan lain dan jangan
           bagikan kredensial akun Anda kepada siapa pun.
@@ -189,9 +182,10 @@ export default function PasswordSecurityForm({ onChangePassword }) {
         <div>
           <label
             htmlFor="security-current-password"
-            className="mb-1.5 block text-xs font-semibold text-slate-700"
+            className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
           >
-            Password Saat Ini <span className="text-rose-600">*</span>
+            Password Saat Ini{" "}
+            <span className="text-[var(--terracotta)]">*</span>
           </label>
           <div className="relative">
             <input
@@ -223,12 +217,12 @@ export default function PasswordSecurityForm({ onChangePassword }) {
                   ? "Sembunyikan password saat ini"
                   : "Tampilkan password saat ini"
               }
-              className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded-md p-1.5 text-slate-500 transition-colors hover:bg-[#F4F2EC] hover:text-[#0F172A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A]"
+              className="absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-[2px] text-[var(--ink-muted)] transition-colors hover:bg-[var(--alabaster-deep)] hover:text-[var(--ink)]"
             >
               {visibility.current ? (
-                <EyeOff className="h-4 w-4" aria-hidden="true" />
+                <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />
               ) : (
-                <Eye className="h-4 w-4" aria-hidden="true" />
+                <Eye className="h-3.5 w-3.5" aria-hidden="true" />
               )}
             </button>
           </div>
@@ -236,7 +230,7 @@ export default function PasswordSecurityForm({ onChangePassword }) {
             <p
               id="security-current-password-error"
               role="alert"
-              className="mt-1.5 flex items-center gap-1 text-xs text-rose-700"
+              className="mt-1.5 flex items-center gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
             >
               <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               {errors.currentPassword}
@@ -248,9 +242,9 @@ export default function PasswordSecurityForm({ onChangePassword }) {
         <div>
           <label
             htmlFor="security-new-password"
-            className="mb-1.5 block text-xs font-semibold text-slate-700"
+            className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
           >
-            Password Baru <span className="text-rose-600">*</span>
+            Password Baru <span className="text-[var(--terracotta)]">*</span>
           </label>
           <div className="relative">
             <input
@@ -282,12 +276,12 @@ export default function PasswordSecurityForm({ onChangePassword }) {
                   ? "Sembunyikan password baru"
                   : "Tampilkan password baru"
               }
-              className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded-md p-1.5 text-slate-500 transition-colors hover:bg-[#F4F2EC] hover:text-[#0F172A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A]"
+              className="absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-[2px] text-[var(--ink-muted)] transition-colors hover:bg-[var(--alabaster-deep)] hover:text-[var(--ink)]"
             >
               {visibility.next ? (
-                <EyeOff className="h-4 w-4" aria-hidden="true" />
+                <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />
               ) : (
-                <Eye className="h-4 w-4" aria-hidden="true" />
+                <Eye className="h-3.5 w-3.5" aria-hidden="true" />
               )}
             </button>
           </div>
@@ -295,7 +289,7 @@ export default function PasswordSecurityForm({ onChangePassword }) {
             <p
               id="security-new-password-error"
               role="alert"
-              className="mt-1.5 flex items-center gap-1 text-xs text-rose-700"
+              className="mt-1.5 flex items-center gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
             >
               <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               {errors.newPassword}
@@ -305,13 +299,13 @@ export default function PasswordSecurityForm({ onChangePassword }) {
           {/* Indikator Kekuatan Password 4-Segmen */}
           <div
             id="security-password-rules"
-            className="mt-3 rounded-lg border border-stone-200 bg-[#F4F2EC]/60 p-3"
+            className="mt-3 rounded-[4px] border border-[var(--rule)] bg-[var(--alabaster)] p-3.5"
           >
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-medium text-slate-600">
+            <div className="flex items-center justify-between text-[12px]">
+              <span className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-[var(--ink-muted)]">
                 Kekuatan Password
               </span>
-              <span className={`font-semibold ${strength.textColor}`}>
+              <span className={`font-mono font-semibold ${strength.textColor}`}>
                 {strength.label}
               </span>
             </div>
@@ -319,17 +313,17 @@ export default function PasswordSecurityForm({ onChangePassword }) {
               {[1, 2, 3, 4].map((segment) => (
                 <div
                   key={segment}
-                  className={`h-1.5 rounded-full transition-colors duration-150 ${
+                  className={`h-1.5 rounded-[2px] transition-colors duration-150 ${
                     strength.score >= segment
                       ? strength.barColor
-                      : "bg-stone-200"
+                      : "bg-[var(--rule)]"
                   }`}
                 />
               ))}
             </div>
 
             {/* Checklist Syarat */}
-            <ul className="mt-3 grid grid-cols-1 gap-1.5 text-xs sm:grid-cols-2">
+            <ul className="mt-3 grid grid-cols-1 gap-1.5 text-[12px] sm:grid-cols-2">
               {[
                 { ok: hasMinLength, text: "Minimal 8 karakter" },
                 { ok: hasLetterAndNumber, text: "Kombinasi huruf & angka" },
@@ -342,17 +336,17 @@ export default function PasswordSecurityForm({ onChangePassword }) {
                 <li
                   key={rule.text}
                   className={`flex items-center gap-1.5 ${
-                    rule.ok ? "text-emerald-800" : "text-slate-600"
+                    rule.ok ? "text-[var(--spruce)]" : "text-[var(--ink-muted)]"
                   }`}
                 >
                   {rule.ok ? (
                     <CheckCircle2
-                      className="h-3.5 w-3.5 shrink-0 text-emerald-700"
+                      className="h-3.5 w-3.5 shrink-0"
                       aria-hidden="true"
                     />
                   ) : (
                     <Circle
-                      className="h-3.5 w-3.5 shrink-0 text-stone-400"
+                      className="h-3.5 w-3.5 shrink-0 opacity-60"
                       aria-hidden="true"
                     />
                   )}
@@ -367,9 +361,10 @@ export default function PasswordSecurityForm({ onChangePassword }) {
         <div>
           <label
             htmlFor="security-confirm-password"
-            className="mb-1.5 block text-xs font-semibold text-slate-700"
+            className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
           >
-            Konfirmasi Password Baru <span className="text-rose-600">*</span>
+            Konfirmasi Password Baru{" "}
+            <span className="text-[var(--terracotta)]">*</span>
           </label>
           <div className="relative">
             <input
@@ -401,12 +396,12 @@ export default function PasswordSecurityForm({ onChangePassword }) {
                   ? "Sembunyikan konfirmasi password"
                   : "Tampilkan konfirmasi password"
               }
-              className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded-md p-1.5 text-slate-500 transition-colors hover:bg-[#F4F2EC] hover:text-[#0F172A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A]"
+              className="absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-[2px] text-[var(--ink-muted)] transition-colors hover:bg-[var(--alabaster-deep)] hover:text-[var(--ink)]"
             >
               {visibility.confirm ? (
-                <EyeOff className="h-4 w-4" aria-hidden="true" />
+                <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />
               ) : (
-                <Eye className="h-4 w-4" aria-hidden="true" />
+                <Eye className="h-3.5 w-3.5" aria-hidden="true" />
               )}
             </button>
           </div>
@@ -414,7 +409,7 @@ export default function PasswordSecurityForm({ onChangePassword }) {
             <p
               id="security-confirm-password-error"
               role="alert"
-              className="mt-1.5 flex items-center gap-1 text-xs text-rose-700"
+              className="mt-1.5 flex items-center gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
             >
               <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               {errors.confirmPassword}
@@ -424,30 +419,30 @@ export default function PasswordSecurityForm({ onChangePassword }) {
       </div>
 
       {/* Footer Aksi */}
-      <div className="flex flex-col-reverse items-stretch justify-end gap-2.5 border-t border-stone-200 pt-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col-reverse items-stretch justify-end gap-2 border-t border-[var(--rule)] pt-4 sm:flex-row sm:items-center">
         <button
           type="button"
           onClick={handleReset}
           disabled={!isDirty || isSaving}
-          className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-[#F4F2EC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A] disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn"
         >
-          <RotateCcw className="h-4 w-4" aria-hidden="true" />
+          <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
           Reset
         </button>
 
         <button
           type="submit"
           disabled={!isDirty || isSaving}
-          className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#0F172A] px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A] disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn btn-primary"
         >
           {isSaving ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
               Memperbarui...
             </>
           ) : (
             <>
-              <KeyRound className="h-4 w-4" aria-hidden="true" />
+              <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
               Perbarui Password
             </>
           )}

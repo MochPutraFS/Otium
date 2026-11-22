@@ -152,30 +152,24 @@ export default function ProfileEditForm({
   }
 
   const editableInputClass = (hasError) =>
-    `otium-input w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-[#0F172A] transition-colors duration-150 placeholder:text-slate-400 focus-visible:outline-2 focus-visible:outline-offset-2 ${
-      hasError
-        ? "border-rose-400 focus-visible:outline-rose-600"
-        : "border-stone-300 focus:border-[#0F172A] focus-visible:outline-[#0F172A]"
-    }`;
+    `input w-full ${hasError ? "!border-[var(--terracotta)]" : ""}`;
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-6">
       {/* Bagian 1: Data Pribadi */}
       <div>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--rule)] pb-3">
           <div>
-            <h3 className="text-sm font-semibold text-[#0F172A]">
+            <h3 className="font-serif text-[19px] font-semibold text-[var(--ink)]">
               Informasi Pribadi
             </h3>
-            <p className="mt-0.5 text-xs text-slate-600">
+            <p className="mt-0.5 text-[12.5px] text-[var(--ink-soft)]">
               Data kontak dan domisili pribadi yang dapat Anda perbarui kapan
               saja.
             </p>
           </div>
           {isDirty && (
-            <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800">
-              Ada perubahan belum disimpan
-            </span>
+            <span className="tag tag-pending">Ada perubahan belum disimpan</span>
           )}
         </div>
 
@@ -183,9 +177,9 @@ export default function ProfileEditForm({
           <div>
             <label
               htmlFor="profile-fullname"
-              className="mb-1.5 block text-xs font-semibold text-slate-700"
+              className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
             >
-              Nama Lengkap <span className="text-rose-600">*</span>
+              Nama Lengkap <span className="text-[var(--terracotta)]">*</span>
             </label>
             <input
               id="profile-fullname"
@@ -205,7 +199,7 @@ export default function ProfileEditForm({
               <p
                 id="profile-fullname-error"
                 role="alert"
-                className="mt-1.5 flex items-center gap-1 text-xs text-rose-700"
+                className="mt-1.5 flex items-center gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
               >
                 <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 {errors.fullName}
@@ -216,7 +210,7 @@ export default function ProfileEditForm({
           <div>
             <label
               htmlFor="profile-phone"
-              className="mb-1.5 block text-xs font-semibold text-slate-700"
+              className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
             >
               Nomor Telepon Aktif
             </label>
@@ -235,7 +229,7 @@ export default function ProfileEditForm({
               <p
                 id="profile-phone-error"
                 role="alert"
-                className="mt-1.5 flex items-center gap-1 text-xs text-rose-700"
+                className="mt-1.5 flex items-center gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
               >
                 <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 {errors.phone}
@@ -246,7 +240,7 @@ export default function ProfileEditForm({
           <div className="sm:col-span-2">
             <label
               htmlFor="profile-address"
-              className="mb-1.5 block text-xs font-semibold text-slate-700"
+              className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
             >
               Alamat Domisili
             </label>
@@ -261,13 +255,15 @@ export default function ProfileEditForm({
                 errors.address ? "profile-address-error" : undefined
               }
               placeholder="Tuliskan alamat tempat tinggal Anda saat ini..."
-              className={editableInputClass(Boolean(errors.address))}
+              className={`textarea w-full ${
+                errors.address ? "!border-[var(--terracotta)]" : ""
+              }`}
             />
             {errors.address && (
               <p
                 id="profile-address-error"
                 role="alert"
-                className="mt-1.5 flex items-center gap-1 text-xs text-rose-700"
+                className="mt-1.5 flex items-center gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
               >
                 <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 {errors.address}
@@ -280,18 +276,18 @@ export default function ProfileEditForm({
       {/* Bagian 2: Pengaturan Administratif (Khusus Admin) atau Catatan Ringkas (Non-Admin) */}
       {isAdmin ? (
         <div>
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200 pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--rule)] pb-3">
             <div>
-              <h3 className="text-sm font-semibold text-[#0F172A]">
+              <h3 className="font-serif text-[19px] font-semibold text-[var(--ink)]">
                 Pengaturan Administratif (Khusus Admin)
               </h3>
-              <p className="mt-0.5 text-xs text-slate-600">
+              <p className="mt-0.5 text-[12.5px] text-[var(--ink-soft)]">
                 Perubahan kuota awal akan menyesuaikan sisa kuota secara
                 proporsional dalam transaksi atomik.
               </p>
             </div>
-            <span className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-xs font-medium text-purple-800">
-              <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="tag tag-leader">
+              <ShieldCheck className="h-3 w-3" aria-hidden="true" />
               Mode Edit Admin
             </span>
           </div>
@@ -300,9 +296,9 @@ export default function ProfileEditForm({
             <div>
               <label
                 htmlFor="profile-username"
-                className="mb-1.5 block text-xs font-semibold text-slate-700"
+                className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
               >
-                Username <span className="text-rose-600">*</span>
+                Username <span className="text-[var(--terracotta)]">*</span>
               </label>
               <input
                 id="profile-username"
@@ -315,13 +311,13 @@ export default function ProfileEditForm({
                 aria-describedby={
                   errors.username ? "profile-username-error" : undefined
                 }
-                className={editableInputClass(Boolean(errors.username))}
+                className={`${editableInputClass(Boolean(errors.username))} font-mono`}
               />
               {errors.username && (
                 <p
                   id="profile-username-error"
                   role="alert"
-                  className="mt-1.5 flex items-center gap-1 text-xs text-rose-700"
+                  className="mt-1.5 flex items-center gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                 >
                   <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   {errors.username}
@@ -332,9 +328,10 @@ export default function ProfileEditForm({
             <div>
               <label
                 htmlFor="profile-email"
-                className="mb-1.5 block text-xs font-semibold text-slate-700"
+                className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
               >
-                Email Perusahaan <span className="text-rose-600">*</span>
+                Email Perusahaan{" "}
+                <span className="text-[var(--terracotta)]">*</span>
               </label>
               <input
                 id="profile-email"
@@ -353,7 +350,7 @@ export default function ProfileEditForm({
                 <p
                   id="profile-email-error"
                   role="alert"
-                  className="mt-1.5 flex items-center gap-1 text-xs text-rose-700"
+                  className="mt-1.5 flex items-center gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                 >
                   <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   {errors.email}
@@ -364,7 +361,7 @@ export default function ProfileEditForm({
             <div>
               <label
                 htmlFor="profile-division"
-                className="mb-1.5 block text-xs font-semibold text-slate-700"
+                className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
               >
                 Divisi
               </label>
@@ -376,7 +373,9 @@ export default function ProfileEditForm({
                 aria-describedby={
                   errors.divisionId ? "profile-division-error" : undefined
                 }
-                className={editableInputClass(Boolean(errors.divisionId))}
+                className={`select w-full ${
+                  errors.divisionId ? "!border-[var(--terracotta)]" : ""
+                }`}
               >
                 <option value="">Tidak terikat divisi</option>
                 {divisions.map((div) => (
@@ -389,7 +388,7 @@ export default function ProfileEditForm({
                 <p
                   id="profile-division-error"
                   role="alert"
-                  className="mt-1.5 flex items-center gap-1 text-xs text-rose-700"
+                  className="mt-1.5 flex items-center gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                 >
                   <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   {errors.divisionId}
@@ -400,9 +399,10 @@ export default function ProfileEditForm({
             <div>
               <label
                 htmlFor="profile-joindate"
-                className="mb-1.5 block text-xs font-semibold text-slate-700"
+                className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
               >
-                Tanggal Bergabung <span className="text-rose-600">*</span>
+                Tanggal Bergabung{" "}
+                <span className="text-[var(--terracotta)]">*</span>
               </label>
               <input
                 id="profile-joindate"
@@ -414,13 +414,13 @@ export default function ProfileEditForm({
                 aria-describedby={
                   errors.joinDateIso ? "profile-joindate-error" : undefined
                 }
-                className={editableInputClass(Boolean(errors.joinDateIso))}
+                className={`${editableInputClass(Boolean(errors.joinDateIso))} font-mono tabular-nums`}
               />
               {errors.joinDateIso && (
                 <p
                   id="profile-joindate-error"
                   role="alert"
-                  className="mt-1.5 flex items-center gap-1 text-xs text-rose-700"
+                  className="mt-1.5 flex items-center gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                 >
                   <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   {errors.joinDateIso}
@@ -431,7 +431,7 @@ export default function ProfileEditForm({
             <div>
               <label
                 htmlFor="profile-quota"
-                className="mb-1.5 block text-xs font-semibold text-slate-700"
+                className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
               >
                 Kuota Cuti Awal (Hari/Tahun)
               </label>
@@ -451,13 +451,13 @@ export default function ProfileEditForm({
                 }
                 className={`${editableInputClass(
                   Boolean(errors.initialLeaveQuota)
-                )} tabular-nums`}
+                )} font-mono tabular-nums`}
               />
               {errors.initialLeaveQuota && (
                 <p
                   id="profile-quota-error"
                   role="alert"
-                  className="mt-1.5 flex items-center gap-1 text-xs text-rose-700"
+                  className="mt-1.5 flex items-center gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
                 >
                   <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   {errors.initialLeaveQuota}
@@ -467,11 +467,8 @@ export default function ProfileEditForm({
           </div>
         </div>
       ) : (
-        <div className="flex items-start gap-2.5 rounded-lg border border-stone-200 bg-[#F4F2EC]/60 px-3.5 py-3 text-xs text-slate-700">
-          <Info
-            className="mt-0.5 h-4 w-4 shrink-0 text-slate-500"
-            aria-hidden="true"
-          />
+        <div className="notice notice-info">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <p className="leading-relaxed">
             Atribut akun &amp; kepegawaian (Username, Email, Divisi, Tanggal
             Bergabung, dan Kuota Cuti) ditampilkan pada panel kiri dan dikelola
@@ -481,30 +478,30 @@ export default function ProfileEditForm({
       )}
 
       {/* Footer Aksi Form */}
-      <div className="flex flex-col-reverse items-stretch justify-end gap-2.5 border-t border-stone-200 pt-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col-reverse items-stretch justify-end gap-2 border-t border-[var(--rule)] pt-4 sm:flex-row sm:items-center">
         <button
           type="button"
           onClick={handleReset}
           disabled={!isDirty || isSaving}
-          className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-[#F4F2EC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A] disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn"
         >
-          <RotateCcw className="h-4 w-4" aria-hidden="true" />
+          <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
           Reset
         </button>
 
         <button
           type="submit"
           disabled={!isDirty || isSaving}
-          className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#0F172A] px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A] disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn btn-primary"
         >
           {isSaving ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
               Menyimpan...
             </>
           ) : (
             <>
-              <Save className="h-4 w-4" aria-hidden="true" />
+              <Save className="h-3.5 w-3.5" aria-hidden="true" />
               Simpan Perubahan
             </>
           )}
