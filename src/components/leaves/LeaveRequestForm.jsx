@@ -40,10 +40,9 @@ function formatFileSize(bytes) {
 }
 
 /**
- * Form Pengajuan Cuti Baru (/leaves/new) — Pure Production.
- * - Bahasa desain Warm Alabaster (#F4F2EC) — Swiss Editorial Minimalism.
- * - Validasi berlapis: Client-Side UX (pasca-interaksi) + Live Check (/api/leaves/check-availability)
- *   + Upload Lampiran (/api/upload) + Server Action Transaksional (submitLeaveRequestAction).
+ * Form Pengajuan Cuti Baru (/leaves/new) bergaya Swiss Archival (100% UI-Only).
+ * Mempertahankan penuh validasi berlapis, /api/leaves/check-availability,
+ * /api/upload, dan submitLeaveRequestAction.
  */
 export default function LeaveRequestForm({
   serverToday,
@@ -61,8 +60,6 @@ export default function LeaveRequestForm({
     [holidays]
   );
 
-  // Pilih jenis cuti awal yang paling relevan (jika belum eligible tahunan, tetap tampilkan
-  // jenis pertama dari DB agar aturan blokir Cuti Tahunan terlihat transparan sesuai PRD)
   const initialLeaveType = leaveTypes[0] || null;
   const defaultSuggestedDate = useMemo(
     () =>
@@ -95,7 +92,7 @@ export default function LeaveRequestForm({
 
   // Progressive Disclosure Lampiran (diunggah tepat saat submit agar tanpa file yatim)
   const [attachmentFile, setAttachmentFile] = useState(null);
-  const [uploadedAttachment, setUploadedAttachment] = useState(null); // { file, url }
+  const [uploadedAttachment, setUploadedAttachment] = useState(null);
   const [fileError, setFileError] = useState("");
 
   // State validasi field pasca-interaksi & respons server
@@ -110,7 +107,6 @@ export default function LeaveRequestForm({
   const [availabilityState, setAvailabilityState] = useState(null);
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
 
-  // Refs untuk focus routing ke field invalid pertama & reset file input
   const fieldRefs = useRef({
     leaveTypeId: null,
     startDate: null,
@@ -133,7 +129,6 @@ export default function LeaveRequestForm({
 
   const effectiveEndDate = isHalfDay ? startDate : endDate;
 
-  // Kalkulasi instan di klien (tanpa lag) sambil menunggu sinkronisasi server
   const localWorkingDays = useMemo(
     () =>
       calculateWorkingDays(
@@ -155,7 +150,7 @@ export default function LeaveRequestForm({
       !userProfile.isEligibleAnnualLeave
   );
 
-  // Sinkronisasi realtime dengan POST /api/leaves/check-availability (debounced + AbortController)
+  // Sinkronisasi realtime dengan POST /api/leaves/check-availability
   useEffect(() => {
     if (
       !selectedLeaveType ||
@@ -210,7 +205,6 @@ export default function LeaveRequestForm({
     };
   }, [selectedLeaveType, startDate, effectiveEndDate, isHalfDay]);
 
-  // Evaluasi kontekstual (Garda 3 s.d. 8): gunakan hasil server jika tersedia, fallback instan ke kalkulasi lokal
   const {
     totalWorkingDays,
     holidayHits,
@@ -370,8 +364,6 @@ export default function LeaveRequestForm({
     setFormBannerError("");
     clearFieldError("leaveTypeId");
 
-    // Jika user belum mengubah tanggal secara manual, sesuaikan saran hari kerja
-    // agar cocok dengan aturan lead time jenis cuti yang baru dipilih (mis. H-3 vs H-0)
     if (!hasEditedDates) {
       const nextType = leaveTypes.find((lt) => String(lt.id) === String(nextId));
       if (nextType) {
@@ -407,6 +399,14 @@ export default function LeaveRequestForm({
   function handleEndDateChange(newEnd) {
     setEndDate(newEnd);
     setHasEditedDates(true);
+    clearFieldError("endDate");
+  }
+
+  function handleCalendarRangeSelect(nextStart, nextEnd) {
+    setStartDate(nextStart);
+    setEndDate(isHalfDay ? nextStart : nextEnd);
+    setHasEditedDates(true);
+    clearFieldError("startDate");
     clearFieldError("endDate");
   }
 
@@ -472,7 +472,9 @@ export default function LeaveRequestForm({
     setFieldErrors({});
     setFormBannerError("");
     setSubmitNotice("");
-    setLiveAnnouncement("Formulir pengajuan cuti telah dikembalikan ke nilai awal.");
+    setLiveAnnouncement(
+      "Formulir pengajuan cuti telah dikembalikan ke nilai awal."
+    );
     if (fieldRefs.current.attachment) {
       fieldRefs.current.attachment.value = "";
     }
@@ -527,7 +529,6 @@ export default function LeaveRequestForm({
       return;
     }
 
-    // Validasi seluruh field form secara serentak pada submit
     const nextFieldErrors = {};
     if (!selectedLeaveType) {
       nextFieldErrors.leaveTypeId = "Jenis cuti wajib dipilih.";
@@ -536,7 +537,8 @@ export default function LeaveRequestForm({
       nextFieldErrors.reason = "Alasan cuti wajib diisi minimal 5 karakter.";
     }
     if (!handoverUserId) {
-      nextFieldErrors.handoverUserId = "Rekan pengganti satu divisi wajib dipilih.";
+      nextFieldErrors.handoverUserId =
+        "Rekan pengganti satu divisi wajib dipilih.";
     }
     if (handoverNotes.trim().length < 5) {
       nextFieldErrors.handoverNotes =
@@ -571,7 +573,6 @@ export default function LeaveRequestForm({
     setIsSubmitting(true);
 
     try {
-      // 1. Unggah lampiran tepat saat submit (hindari file yatim di public/uploads/attachments)
       let finalAttachmentUrl = null;
       if (attachmentFile) {
         if (
@@ -611,7 +612,6 @@ export default function LeaveRequestForm({
         }
       }
 
-      // 2. Eksekusi Server Action transaksional (8 Garda Validasi + Hold Kuota + Notifikasi Handover)
       const result = await submitLeaveRequestAction({
         leaveTypeId: selectedLeaveType.id,
         isHalfDay,
@@ -631,7 +631,8 @@ export default function LeaveRequestForm({
           focusFirstInvalidField(result.fieldErrors);
         }
         const errMsg =
-          result?.error || "Pengajuan cuti gagal disimpan. Periksa kembali isian Anda.";
+          result?.error ||
+          "Pengajuan cuti gagal disimpan. Periksa kembali isian Anda.";
         setFormBannerError(errMsg);
         setLiveAnnouncement(errMsg);
         setIsSubmitting(false);
@@ -661,124 +662,93 @@ export default function LeaveRequestForm({
     validationErrors.length > 0;
 
   return (
-    <div className="space-y-6">
-      {/* Live region tunggal (polite) untuk pengumuman error/status kepada screen reader */}
+    <div className="space-y-5">
+      {/* Live region tunggal (polite) untuk screen reader */}
       <div aria-live="polite" className="visually-hidden">
         {liveAnnouncement}
       </div>
 
-      {/* Header Editorial Ringkas */}
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-stone-200 pb-4">
+      {/* Header Arsip Pengajuan */}
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--rule-strong)] pb-4">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-            Pengajuan Cuti
-          </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+          <span className="panel-eyebrow">
+            Formulir Permohonan &bull; Tanggal Catat:{" "}
+            {formatIndonesianDate(serverToday)}
+          </span>
+          <h2 className="mt-1 font-serif text-[28px] font-semibold leading-tight text-[var(--ink)]">
             Ajukan Cuti Baru
-          </h1>
-          <p className="mt-1 text-xs text-slate-600">
-            Tanggal Pengajuan:{" "}
-            <span className="font-semibold text-slate-900">
-              {formatIndonesianDate(serverToday)}
-            </span>{" "}
-            <span aria-hidden="true" className="mx-1.5 text-stone-400">
-              ·
-            </span>{" "}
+          </h2>
+          <p className="mt-1 text-xs text-[var(--ink-soft)]">
             Alur Persetujuan:{" "}
-            <span className="font-semibold text-slate-900">
+            <strong className="font-semibold text-[var(--ink)]">
               {isLeaderRole
-                ? "Langsung ke HRD"
-                : `${userProfile.leaderName || "Ketua Divisi"} → HRD`}
-            </span>
+                ? "Ketua Divisi → Langsung ke HRD"
+                : `Karyawan → ${userProfile.leaderName || "Ketua Divisi"} → HRD`}
+            </strong>
           </p>
         </div>
 
-        <Link
-          href="/leaves"
-          className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-800 transition-colors duration-200 hover:bg-[#FAF9F6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-        >
+        <Link href="/leaves" className="btn btn-sm">
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-          Riwayat Cuti
+          <span>Riwayat Cuti</span>
         </Link>
       </header>
 
       {/* Banner Status Sukses / Error Global */}
       {submitNotice && (
-        <div
-          role="status"
-          className="flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-900"
-        >
-          <CheckCircle2
-            className="h-4 w-4 shrink-0 text-emerald-700"
-            aria-hidden="true"
-          />
+        <div role="status" className="notice notice-success">
+          <CheckCircle2 aria-hidden="true" />
           <span>{submitNotice}</span>
         </div>
       )}
 
       {formBannerError && (
-        <div
-          role="alert"
-          className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-900"
-        >
-          <AlertCircle
-            className="mt-0.5 h-4 w-4 shrink-0 text-rose-700"
-            aria-hidden="true"
-          />
+        <div role="alert" className="notice notice-danger">
+          <AlertCircle aria-hidden="true" />
           <span>{formBannerError}</span>
         </div>
       )}
 
-      {/* Peringatan jika user belum memiliki divisi atau belum ada rekan sedivisi */}
+      {/* Peringatan jika user belum memiliki divisi atau rekan sedivisi */}
       {(!hasDivision || colleagues.length === 0) && (
-        <div
-          role="alert"
-          className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3.5 text-xs text-amber-950"
-        >
-          <AlertCircle
-            className="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
-            aria-hidden="true"
-          />
+        <div role="alert" className="notice notice-warn">
+          <AlertCircle aria-hidden="true" />
           <div>
-            <p className="font-semibold">
+            <p className="m-0 font-semibold">
               {!hasDivision
                 ? "Akun Anda belum tergabung dalam divisi"
                 : `Belum ada rekan pengganti aktif di divisi ${userProfile.divisionName}`}
             </p>
-            <p className="mt-0.5 text-amber-900">
+            <p className="mt-0.5 text-xs">
               {!hasDivision
-                ? "Pengajuan cuti memerlukan penunjukan rekan pengganti (handover) satu divisi. Silakan hubungi Administrator untuk penempatan divisi."
-                : "Minimal terdapat 1 rekan kerja aktif lain dalam divisi yang sama untuk menerima serah terima tugas (handover)."}
+                ? "Pengajuan cuti memerlukan penunjukan rekan pengganti (handover) satu divisi. Silakan hubungi Administrator."
+                : "Minimal terdapat 1 rekan kerja aktif lain dalam divisi yang sama untuk menerima serah terima tugas."}
             </p>
           </div>
         </div>
       )}
 
-      {/* Layout 2 Kolom (8/12 Form Kiri + 4/12 Sticky Ringkasan Kanan) */}
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+      {/* Layout 2 Kolom (8/12 Form Kiri + 4/12 Sticky What-If Ruler & Kalender Kanan) */}
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
         <form
           onSubmit={handleSubmit}
           noValidate
           className="space-y-5 lg:col-span-8"
         >
-          {/* Banner Blokir Kontekstual Masa Kerja < 1 Tahun (Garda 4) */}
+          {/* Banner Blokir Masa Kerja < 1 Tahun (Garda 4) */}
           {isTenureBlocked && (
-            <div
-              role="alert"
-              className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-900"
-            >
-              <AlertCircle
-                className="mt-0.5 h-4 w-4 shrink-0 text-rose-700"
-                aria-hidden="true"
-              />
+            <div role="alert" className="notice notice-danger">
+              <AlertCircle aria-hidden="true" />
               <div>
-                <p className="font-semibold">
+                <p className="m-0 font-semibold">
                   Belum memenuhi syarat masa kerja minimal 1 tahun
                 </p>
-                <p className="mt-0.5 text-rose-800">
+                <p className="mt-0.5">
                   Tanggal bergabung Anda:{" "}
-                  <strong>{formatIndonesianDate(userProfile.joinDate)}</strong>.
-                  Cuti Tahunan baru tersedia setelah 1 tahun masa kerja. Anda
+                  <strong className="mono">
+                    {formatIndonesianDate(userProfile.joinDate)}
+                  </strong>
+                  . Cuti Tahunan baru tersedia setelah 1 tahun masa kerja. Anda
                   tetap dapat memilih <strong>Cuti Sakit</strong> atau{" "}
                   <strong>Cuti Lainnya</strong>.
                 </p>
@@ -786,95 +756,105 @@ export default function LeaveRequestForm({
             </div>
           )}
 
-          {/* KARTU 1: Jenis & Tanggal Cuti */}
-          <fieldset className="space-y-4 rounded-xl border border-stone-200 bg-white p-5">
-            <legend className="sr-only">1. Jenis dan Tanggal Cuti</legend>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-3">
-              <span
-                aria-hidden="true"
-                className="text-xs font-bold uppercase tracking-[0.06em] text-slate-900"
-              >
-                1. Jenis &amp; Tanggal Cuti
-              </span>
+          {/* PANEL 1: Jenis & Tanggal Cuti */}
+          <fieldset className="panel">
+            <legend className="visually-hidden">
+              1. Jenis dan Tanggal Cuti
+            </legend>
+            <div className="panel-head">
+              <div>
+                <span className="panel-eyebrow !mb-0">Bagian 01</span>
+                <h3 className="panel-title">Jenis &amp; Rentang Tanggal</h3>
+              </div>
               {selectedLeaveType?.ruleSummary && (
-                <span className="rounded-md border border-stone-200 bg-[#FAF9F6] px-2.5 py-1 text-[11px] font-medium text-slate-700">
-                  {selectedLeaveType.ruleSummary}
-                </span>
+                <span className="tag">{selectedLeaveType.ruleSummary}</span>
               )}
             </div>
 
-            <div>
-              <label
-                htmlFor="leave-type-select"
-                className="mb-1.5 block text-xs font-semibold text-slate-800"
-              >
-                Jenis Cuti <span className="text-rose-700" aria-hidden="true">*</span>
-              </label>
-              <select
-                ref={(el) => {
-                  fieldRefs.current.leaveTypeId = el;
-                }}
-                id="leave-type-select"
-                name="leave_type_id"
-                required
-                value={leaveTypeId}
-                onChange={(e) => handleLeaveTypeChange(e.target.value)}
-                aria-invalid={fieldErrors.leaveTypeId ? "true" : "false"}
-                aria-describedby={
-                  fieldErrors.leaveTypeId
-                    ? "leave-type-error"
-                    : selectedLeaveType?.description
-                      ? "leave-type-desc"
-                      : undefined
-                }
-                className="otium-field-input w-full cursor-pointer rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors focus:border-slate-900 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
-              >
-                {leaveTypes.map((lt) => (
-                  <option key={lt.id} value={String(lt.id)}>
-                    {lt.name} (Maks. {Number(lt.maxQuota).toFixed(1)} Hari)
-                  </option>
-                ))}
-              </select>
-              {selectedLeaveType?.description && !fieldErrors.leaveTypeId && (
-                <p id="leave-type-desc" className="mt-1.5 text-[11px] text-slate-600">
-                  {selectedLeaveType.description}
-                </p>
-              )}
-              {fieldErrors.leaveTypeId && (
-                <p
-                  id="leave-type-error"
-                  className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-rose-700"
-                >
-                  <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  {fieldErrors.leaveTypeId}
-                </p>
-              )}
-            </div>
+            <div className="panel-body space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="leave-type-select"
+                    className="text-xs font-semibold text-[var(--ink-soft)]"
+                  >
+                    Jenis Cuti{" "}
+                    <span className="text-[var(--terracotta)]" aria-hidden="true">
+                      *
+                    </span>
+                  </label>
+                  <select
+                    ref={(el) => {
+                      fieldRefs.current.leaveTypeId = el;
+                    }}
+                    id="leave-type-select"
+                    name="leave_type_id"
+                    required
+                    value={leaveTypeId}
+                    onChange={(e) => handleLeaveTypeChange(e.target.value)}
+                    aria-invalid={fieldErrors.leaveTypeId ? "true" : "false"}
+                    aria-describedby={
+                      fieldErrors.leaveTypeId
+                        ? "leave-type-error"
+                        : selectedLeaveType?.description
+                          ? "leave-type-desc"
+                          : undefined
+                    }
+                    className="otium-field-input select cursor-pointer"
+                  >
+                    {leaveTypes.map((lt) => (
+                      <option key={lt.id} value={String(lt.id)}>
+                        {lt.name} (Maks. {Number(lt.maxQuota).toFixed(1)} Hari)
+                      </option>
+                    ))}
+                  </select>
+                  {selectedLeaveType?.description && !fieldErrors.leaveTypeId && (
+                    <p
+                      id="leave-type-desc"
+                      className="text-[11px] text-[var(--ink-muted)]"
+                    >
+                      {selectedLeaveType.description}
+                    </p>
+                  )}
+                  {fieldErrors.leaveTypeId && (
+                    <p
+                      id="leave-type-error"
+                      className="flex items-center gap-1.5 text-xs font-medium text-[var(--terracotta)]"
+                    >
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                      {fieldErrors.leaveTypeId}
+                    </p>
+                  )}
+                </div>
 
-            <div className="space-y-3">
-              <label className="otium-checkbox-label inline-flex cursor-pointer select-none items-center gap-2.5 py-1">
-                <input
-                  type="checkbox"
-                  id="is-half-day"
-                  name="is_half_day"
-                  checked={isHalfDay}
-                  onChange={(e) => handleHalfDayToggle(e.target.checked)}
-                  className="otium-checkbox h-4 w-4 cursor-pointer rounded border-stone-300"
-                />
-                <span className="text-xs font-medium text-slate-800">
-                  Cuti Setengah Hari{" "}
-                  <span className="text-slate-500">(0.5 hari kerja)</span>
-                </span>
-              </label>
+                <div className="flex flex-col justify-end">
+                  <label className="otium-checkbox-label flex cursor-pointer select-none items-center gap-2.5 rounded-[2px] border border-[var(--rule-strong)] bg-[var(--alabaster)] px-3 py-2.5">
+                    <input
+                      type="checkbox"
+                      id="is-half-day"
+                      name="is_half_day"
+                      checked={isHalfDay}
+                      onChange={(e) => handleHalfDayToggle(e.target.checked)}
+                      className="otium-checkbox h-4 w-4 cursor-pointer"
+                    />
+                    <span className="text-[13px] font-medium text-[var(--ink)]">
+                      Cuti Setengah Hari (
+                      <span className="mono font-semibold">0.5</span> hari)
+                    </span>
+                  </label>
+                </div>
+              </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
                   <label
                     htmlFor="start-date"
-                    className="mb-1.5 block text-xs font-semibold text-slate-800"
+                    className="text-xs font-semibold text-[var(--ink-soft)]"
                   >
                     Tanggal Mulai{" "}
-                    <span className="text-rose-700" aria-hidden="true">*</span>
+                    <span className="text-[var(--terracotta)]" aria-hidden="true">
+                      *
+                    </span>
                   </label>
                   <input
                     ref={(el) => {
@@ -894,16 +874,19 @@ export default function LeaveRequestForm({
                         ? "date-range-error"
                         : undefined
                     }
-                    className="otium-field-input w-full cursor-pointer rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors focus:border-slate-900 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
+                    className="otium-field-input input mono cursor-pointer"
                   />
                 </div>
-                <div>
+
+                <div className="flex flex-col gap-1.5">
                   <label
                     htmlFor="end-date"
-                    className="mb-1.5 block text-xs font-semibold text-slate-800"
+                    className="text-xs font-semibold text-[var(--ink-soft)]"
                   >
                     Tanggal Selesai{" "}
-                    <span className="text-rose-700" aria-hidden="true">*</span>
+                    <span className="text-[var(--terracotta)]" aria-hidden="true">
+                      *
+                    </span>
                   </label>
                   <input
                     ref={(el) => {
@@ -923,245 +906,250 @@ export default function LeaveRequestForm({
                         ? "date-range-error"
                         : undefined
                     }
-                    className="otium-field-input w-full cursor-pointer rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors focus:border-slate-900 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-slate-500"
+                    className="otium-field-input input mono cursor-pointer"
                   />
                 </div>
               </div>
 
               {(inlineDateError || fieldErrors.startDate || fieldErrors.endDate) && (
-                <p
-                  id="date-range-error"
-                  className="flex items-start gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-800"
-                >
-                  <AlertCircle
-                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-700"
-                    aria-hidden="true"
-                  />
+                <div id="date-range-error" className="notice notice-danger">
+                  <AlertCircle aria-hidden="true" />
                   <span>
                     {fieldErrors.startDate ||
                       fieldErrors.endDate ||
                       inlineDateError}
                   </span>
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label
-                htmlFor="leave-reason"
-                className="mb-1.5 block text-xs font-semibold text-slate-800"
-              >
-                Alasan Cuti{" "}
-                <span className="text-rose-700" aria-hidden="true">*</span>
-              </label>
-              <textarea
-                ref={(el) => {
-                  fieldRefs.current.reason = el;
-                }}
-                id="leave-reason"
-                name="reason"
-                rows={3}
-                required
-                minLength={5}
-                maxLength={1000}
-                value={reason}
-                onChange={(e) => {
-                  setReason(e.target.value);
-                  if (fieldErrors.reason) clearFieldError("reason");
-                }}
-                onBlur={(e) => validateSingleField("reason", e.target.value)}
-                placeholder="Tuliskan alasan singkat dan jelas pengajuan cuti Anda..."
-                aria-invalid={fieldErrors.reason ? "true" : "false"}
-                aria-describedby={fieldErrors.reason ? "reason-error" : undefined}
-                className="otium-field-input w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-slate-900 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
-              />
-              {fieldErrors.reason && (
-                <p
-                  id="reason-error"
-                  className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-rose-700"
-                >
-                  <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  {fieldErrors.reason}
-                </p>
-              )}
-            </div>
-          </fieldset>
-
-          {/* KARTU 2: Serah Terima Tugas (Handover) */}
-          <fieldset className="space-y-4 rounded-xl border border-stone-200 bg-white p-5">
-            <legend className="sr-only">2. Serah Terima Tugas (Handover)</legend>
-            <div className="border-b border-stone-100 pb-3">
-              <span
-                aria-hidden="true"
-                className="text-xs font-bold uppercase tracking-[0.06em] text-slate-900"
-              >
-                2. Serah Terima Tugas (Handover)
-              </span>
-            </div>
-
-            <div>
-              <label
-                htmlFor="handover-user"
-                className="mb-1.5 block text-xs font-semibold text-slate-800"
-              >
-                Rekan Pengganti{" "}
-                {userProfile.divisionName ? (
-                  <span className="font-normal text-slate-600">
-                    (Divisi {userProfile.divisionName})
-                  </span>
-                ) : null}{" "}
-                <span className="text-rose-700" aria-hidden="true">*</span>
-              </label>
-              <select
-                ref={(el) => {
-                  fieldRefs.current.handoverUserId = el;
-                }}
-                id="handover-user"
-                name="handover_user_id"
-                required
-                disabled={!hasDivision || colleagues.length === 0}
-                value={handoverUserId}
-                onChange={(e) => {
-                  setHandoverUserId(e.target.value);
-                  clearFieldError("handoverUserId");
-                }}
-                onBlur={(e) =>
-                  validateSingleField("handoverUserId", e.target.value)
-                }
-                aria-invalid={fieldErrors.handoverUserId ? "true" : "false"}
-                aria-describedby={
-                  fieldErrors.handoverUserId
-                    ? "handover-user-error"
-                    : "handover-user-hint"
-                }
-                className="otium-field-input w-full cursor-pointer rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors focus:border-slate-900 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-slate-500"
-              >
-                <option value="" disabled>
-                  {colleagues.length > 0
-                    ? "Pilih rekan satu divisi..."
-                    : "Tidak ada rekan aktif di divisi ini"}
-                </option>
-                {colleagues.map((colleague) => (
-                  <option key={colleague.id} value={String(colleague.id)}>
-                    {colleague.fullName} — {colleague.role}
-                  </option>
-                ))}
-              </select>
-              {!fieldErrors.handoverUserId && (
-                <p
-                  id="handover-user-hint"
-                  className="mt-1.5 text-[11px] text-slate-500"
-                >
-                  Rekan terpilih otomatis menerima notifikasi penunjukan handover
-                  setelah pengajuan dikirim.
-                </p>
-              )}
-              {fieldErrors.handoverUserId && (
-                <p
-                  id="handover-user-error"
-                  className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-rose-700"
-                >
-                  <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  {fieldErrors.handoverUserId}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label
-                htmlFor="handover-notes"
-                className="mb-1.5 block text-xs font-semibold text-slate-800"
-              >
-                Catatan Tugas{" "}
-                <span className="text-rose-700" aria-hidden="true">*</span>
-              </label>
-              <textarea
-                ref={(el) => {
-                  fieldRefs.current.handoverNotes = el;
-                }}
-                id="handover-notes"
-                name="handover_notes"
-                rows={3}
-                required
-                minLength={5}
-                maxLength={1000}
-                value={handoverNotes}
-                onChange={(e) => {
-                  setHandoverNotes(e.target.value);
-                  if (fieldErrors.handoverNotes) clearFieldError("handoverNotes");
-                }}
-                onBlur={(e) =>
-                  validateSingleField("handoverNotes", e.target.value)
-                }
-                placeholder="Rincian pekerjaan, PIC sementara, atau jadwal penting yang perlu dipantau rekan pengganti..."
-                aria-invalid={fieldErrors.handoverNotes ? "true" : "false"}
-                aria-describedby={
-                  fieldErrors.handoverNotes ? "handover-notes-error" : undefined
-                }
-                className="otium-field-input w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-slate-900 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
-              />
-              {fieldErrors.handoverNotes && (
-                <p
-                  id="handover-notes-error"
-                  className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-rose-700"
-                >
-                  <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  {fieldErrors.handoverNotes}
-                </p>
-              )}
-            </div>
-          </fieldset>
-
-          {/* KARTU 3: Smart Collapse Kontak & Progressive Disclosure Lampiran */}
-          <fieldset className="space-y-4 rounded-xl border border-stone-200 bg-white p-5">
-            <legend className="sr-only">
-              3. Kontak Selama Cuti dan Lampiran Pendukung
-            </legend>
-
-            {/* Smart Collapse Kontak */}
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <span
-                    aria-hidden="true"
-                    className="text-xs font-bold uppercase tracking-[0.06em] text-slate-900"
-                  >
-                    3. Kontak Selama Cuti
-                  </span>
-                  <span className="ml-2 text-[11px] font-normal text-slate-500">
-                    (otomatis dari Profil)
-                  </span>
                 </div>
-                <button
-                  type="button"
-                  aria-expanded={isEditingContact}
-                  aria-controls="contact-editor-panel"
-                  onClick={() => setIsEditingContact((prev) => !prev)}
-                  className="cursor-pointer rounded-md px-2 py-1 text-xs font-semibold text-slate-800 underline decoration-stone-300 underline-offset-4 transition-colors hover:bg-[#FAF9F6] hover:decoration-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+              )}
+
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="leave-reason"
+                  className="text-xs font-semibold text-[var(--ink-soft)]"
                 >
-                  {isEditingContact ? "Selesai" : "Ubah"}
-                </button>
+                  Alasan Cuti{" "}
+                  <span className="text-[var(--terracotta)]" aria-hidden="true">
+                    *
+                  </span>
+                </label>
+                <textarea
+                  ref={(el) => {
+                    fieldRefs.current.reason = el;
+                  }}
+                  id="leave-reason"
+                  name="reason"
+                  rows={3}
+                  required
+                  minLength={5}
+                  maxLength={1000}
+                  value={reason}
+                  onChange={(e) => {
+                    setReason(e.target.value);
+                    if (fieldErrors.reason) clearFieldError("reason");
+                  }}
+                  onBlur={(e) => validateSingleField("reason", e.target.value)}
+                  placeholder="Tuliskan alasan singkat dan jelas pengajuan cuti Anda..."
+                  aria-invalid={fieldErrors.reason ? "true" : "false"}
+                  aria-describedby={fieldErrors.reason ? "reason-error" : undefined}
+                  className="otium-field-input textarea"
+                />
+                {fieldErrors.reason && (
+                  <p
+                    id="reason-error"
+                    className="flex items-center gap-1.5 text-xs font-medium text-[var(--terracotta)]"
+                  >
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    {fieldErrors.reason}
+                  </p>
+                )}
+              </div>
+            </div>
+          </fieldset>
+
+          {/* PANEL 2: Serah Terima Tugas (Handover) */}
+          <fieldset className="panel">
+            <legend className="visually-hidden">
+              2. Serah Terima Tugas (Handover)
+            </legend>
+            <div className="panel-head">
+              <div>
+                <span className="panel-eyebrow !mb-0">Bagian 02</span>
+                <h3 className="panel-title">Serah Terima Tugas (Handover)</h3>
+              </div>
+              {userProfile.divisionName && (
+                <span className="tag tag-leader">
+                  Divisi {userProfile.divisionName}
+                </span>
+              )}
+            </div>
+
+            <div className="panel-body space-y-4">
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="handover-user"
+                  className="text-xs font-semibold text-[var(--ink-soft)]"
+                >
+                  Rekan Pengganti Satu Divisi{" "}
+                  <span className="text-[var(--terracotta)]" aria-hidden="true">
+                    *
+                  </span>
+                </label>
+                <select
+                  ref={(el) => {
+                    fieldRefs.current.handoverUserId = el;
+                  }}
+                  id="handover-user"
+                  name="handover_user_id"
+                  required
+                  disabled={!hasDivision || colleagues.length === 0}
+                  value={handoverUserId}
+                  onChange={(e) => {
+                    setHandoverUserId(e.target.value);
+                    clearFieldError("handoverUserId");
+                  }}
+                  onBlur={(e) =>
+                    validateSingleField("handoverUserId", e.target.value)
+                  }
+                  aria-invalid={fieldErrors.handoverUserId ? "true" : "false"}
+                  aria-describedby={
+                    fieldErrors.handoverUserId
+                      ? "handover-user-error"
+                      : "handover-user-hint"
+                  }
+                  className="otium-field-input select cursor-pointer"
+                >
+                  <option value="" disabled>
+                    {colleagues.length > 0
+                      ? "Pilih rekan satu divisi..."
+                      : "Tidak ada rekan aktif di divisi ini"}
+                  </option>
+                  {colleagues.map((colleague) => (
+                    <option key={colleague.id} value={String(colleague.id)}>
+                      {colleague.fullName} — {colleague.role}
+                    </option>
+                  ))}
+                </select>
+                {!fieldErrors.handoverUserId && (
+                  <p
+                    id="handover-user-hint"
+                    className="text-[11px] text-[var(--ink-muted)]"
+                  >
+                    Rekan terpilih otomatis menerima notifikasi penunjukan
+                    handover setelah pengajuan dikirim.
+                  </p>
+                )}
+                {fieldErrors.handoverUserId && (
+                  <p
+                    id="handover-user-error"
+                    className="flex items-center gap-1.5 text-xs font-medium text-[var(--terracotta)]"
+                  >
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    {fieldErrors.handoverUserId}
+                  </p>
+                )}
               </div>
 
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="handover-notes"
+                  className="text-xs font-semibold text-[var(--ink-soft)]"
+                >
+                  Catatan Tugas{" "}
+                  <span className="text-[var(--terracotta)]" aria-hidden="true">
+                    *
+                  </span>
+                </label>
+                <textarea
+                  ref={(el) => {
+                    fieldRefs.current.handoverNotes = el;
+                  }}
+                  id="handover-notes"
+                  name="handover_notes"
+                  rows={3}
+                  required
+                  minLength={5}
+                  maxLength={1000}
+                  value={handoverNotes}
+                  onChange={(e) => {
+                    setHandoverNotes(e.target.value);
+                    if (fieldErrors.handoverNotes)
+                      clearFieldError("handoverNotes");
+                  }}
+                  onBlur={(e) =>
+                    validateSingleField("handoverNotes", e.target.value)
+                  }
+                  placeholder="Rincian pekerjaan, PIC sementara, atau jadwal penting yang perlu dipantau rekan pengganti..."
+                  aria-invalid={fieldErrors.handoverNotes ? "true" : "false"}
+                  aria-describedby={
+                    fieldErrors.handoverNotes ? "handover-notes-error" : undefined
+                  }
+                  className="otium-field-input textarea"
+                />
+                {fieldErrors.handoverNotes && (
+                  <p
+                    id="handover-notes-error"
+                    className="flex items-center gap-1.5 text-xs font-medium text-[var(--terracotta)]"
+                  >
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    {fieldErrors.handoverNotes}
+                  </p>
+                )}
+              </div>
+            </div>
+          </fieldset>
+
+          {/* PANEL 3: Kontak Selama Cuti & Lampiran Pendukung */}
+          <fieldset className="panel">
+            <legend className="visually-hidden">
+              3. Kontak Selama Cuti dan Lampiran Pendukung
+            </legend>
+            <div className="panel-head">
+              <div>
+                <span className="panel-eyebrow !mb-0">Bagian 03</span>
+                <h3 className="panel-title">Kontak Darurat &amp; Lampiran</h3>
+              </div>
+              <button
+                type="button"
+                aria-expanded={isEditingContact}
+                aria-controls="contact-editor-panel"
+                onClick={() => setIsEditingContact((prev) => !prev)}
+                className="btn btn-sm"
+              >
+                {isEditingContact ? "Selesai Ubah Kontak" : "Ubah Kontak"}
+              </button>
+            </div>
+
+            <div className="panel-body space-y-4">
               {!isEditingContact ? (
-                <p className="mt-2 rounded-lg border border-stone-200 bg-[#FAF9F6] px-3.5 py-2.5 text-xs text-slate-700">
-                  {leaveAddress || "-"} <span aria-hidden="true">·</span>{" "}
-                  <span className="font-medium tabular-nums">
+                <div className="border border-[var(--rule)] bg-[var(--alabaster)] px-3.5 py-2.5 text-xs text-[var(--ink-soft)]">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-[var(--ink-muted)]">
+                    Otomatis dari Profil:{" "}
+                  </span>
+                  <span className="font-medium text-[var(--ink)]">
+                    {leaveAddress || "-"}
+                  </span>{" "}
+                  &bull;{" "}
+                  <span className="mono font-medium text-[var(--ink)]">
                     {emergencyPhone || "-"}
                   </span>
-                </p>
+                </div>
               ) : (
                 <div
                   id="contact-editor-panel"
-                  className="mt-3 grid grid-cols-1 gap-3 border-t border-stone-100 pt-3.5 sm:grid-cols-2"
+                  className="grid grid-cols-1 gap-4 sm:grid-cols-2"
                 >
-                  <div>
+                  <div className="flex flex-col gap-1.5">
                     <label
                       htmlFor="leave-address"
-                      className="mb-1.5 block text-xs font-semibold text-slate-800"
+                      className="text-xs font-semibold text-[var(--ink-soft)]"
                     >
                       Alamat Selama Cuti{" "}
-                      <span className="text-rose-700" aria-hidden="true">*</span>
+                      <span
+                        className="text-[var(--terracotta)]"
+                        aria-hidden="true"
+                      >
+                        *
+                      </span>
                     </label>
                     <input
                       ref={(el) => {
@@ -1189,12 +1177,12 @@ export default function LeaveRequestForm({
                           ? "leave-address-error"
                           : undefined
                       }
-                      className="otium-field-input w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors focus:border-slate-900 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
+                      className="otium-field-input input"
                     />
                     {fieldErrors.leaveAddress && (
                       <p
                         id="leave-address-error"
-                        className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-rose-700"
+                        className="flex items-center gap-1.5 text-xs font-medium text-[var(--terracotta)]"
                       >
                         <AlertCircle
                           className="h-3.5 w-3.5 shrink-0"
@@ -1204,13 +1192,19 @@ export default function LeaveRequestForm({
                       </p>
                     )}
                   </div>
-                  <div>
+
+                  <div className="flex flex-col gap-1.5">
                     <label
                       htmlFor="emergency-phone"
-                      className="mb-1.5 block text-xs font-semibold text-slate-800"
+                      className="text-xs font-semibold text-[var(--ink-soft)]"
                     >
                       Nomor Darurat{" "}
-                      <span className="text-rose-700" aria-hidden="true">*</span>
+                      <span
+                        className="text-[var(--terracotta)]"
+                        aria-hidden="true"
+                      >
+                        *
+                      </span>
                     </label>
                     <input
                       ref={(el) => {
@@ -1240,12 +1234,12 @@ export default function LeaveRequestForm({
                           ? "emergency-phone-error"
                           : undefined
                       }
-                      className="otium-field-input w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm tabular-nums text-slate-900 transition-colors focus:border-slate-900 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
+                      className="otium-field-input input mono"
                     />
                     {fieldErrors.emergencyPhone && (
                       <p
                         id="emergency-phone-error"
-                        className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-rose-700"
+                        className="flex items-center gap-1.5 text-xs font-medium text-[var(--terracotta)]"
                       >
                         <AlertCircle
                           className="h-3.5 w-3.5 shrink-0"
@@ -1257,47 +1251,37 @@ export default function LeaveRequestForm({
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* Progressive Disclosure Lampiran (Aksesibel dengan .visually-hidden) */}
-            <div className="border-t border-stone-100 pt-4">
-              {selectedLeaveType?.requiresAttachment ? (
-                <div className="space-y-2.5 rounded-xl border border-dashed border-rose-300 bg-rose-50/50 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-rose-800">
-                      Surat Dokter / Lampiran Pendukung{" "}
-                      <span aria-hidden="true">*</span>
-                      <span className="ml-1 font-medium">(Wajib)</span>
-                    </span>
-                    <span className="text-[11px] text-slate-600">
-                      PDF, JPG, PNG · Maks. 5 MB
-                    </span>
-                  </div>
+              {/* Lampiran Dokumen + File Preview Chip */}
+              <div className="border-t border-[var(--rule)] pt-4">
+                {selectedLeaveType?.requiresAttachment ? (
+                  <div className="space-y-3 border border-dashed border-[var(--terracotta-border)] bg-[var(--terracotta-tint)] p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-[var(--terracotta)]">
+                        Surat Dokter / Lampiran Pendukung{" "}
+                        <span aria-hidden="true">*</span> (Wajib)
+                      </span>
+                      <span className="mono text-[10.5px] text-[var(--ink-muted)]">
+                        PDF, JPG, PNG &bull; Maks. 5 MB
+                      </span>
+                    </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
                     <label
                       htmlFor="leave-attachment-input"
-                      className="flex flex-1 cursor-pointer items-center justify-between gap-3 rounded-lg border border-rose-200 bg-white px-3.5 py-2.5 text-xs transition-colors hover:bg-rose-50/40 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-slate-900"
+                      className="btn w-full justify-between"
                     >
-                      <span className="inline-flex min-w-0 items-center gap-2 font-medium text-slate-800">
-                        {attachmentFile ? (
-                          <FileText
-                            className="h-4 w-4 shrink-0 text-slate-700"
-                            aria-hidden="true"
-                          />
-                        ) : (
-                          <Upload
-                            className="h-4 w-4 shrink-0 text-rose-700"
-                            aria-hidden="true"
-                          />
-                        )}
+                      <span className="inline-flex min-w-0 items-center gap-2">
+                        <Upload
+                          className="h-3.5 w-3.5 shrink-0 text-[var(--terracotta)]"
+                          aria-hidden="true"
+                        />
                         <span className="truncate">
                           {attachmentFile
-                            ? `${attachmentFile.name} (${formatFileSize(attachmentFile.size)})`
-                            : "Pilih file surat dokter atau dokumen pendukung..."}
+                            ? "Ganti berkas surat dokter..."
+                            : "Pilih berkas surat dokter / dokumen pendukung..."}
                         </span>
                       </span>
-                      <span className="shrink-0 rounded-md bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white">
+                      <span className="mono text-[11px] font-semibold text-[var(--spruce)]">
                         {attachmentFile ? "Ganti" : "Pilih File"}
                       </span>
                       <input
@@ -1324,69 +1308,92 @@ export default function LeaveRequestForm({
                     </label>
 
                     {attachmentFile && (
-                      <button
-                        type="button"
-                        onClick={handleRemoveAttachment}
-                        aria-label="Hapus file lampiran"
-                        className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-stone-300 bg-white text-slate-600 transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-                      >
-                        <X className="h-4 w-4" aria-hidden="true" />
-                      </button>
+                      <div className="file-chip">
+                        <span className="inline-flex min-w-0 items-center gap-2 font-medium">
+                          <FileText
+                            className="h-3.5 w-3.5 shrink-0"
+                            aria-hidden="true"
+                          />
+                          <span className="truncate">
+                            {attachmentFile.name} (
+                            {formatFileSize(attachmentFile.size)})
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleRemoveAttachment}
+                          aria-label="Hapus file lampiran"
+                          className="cursor-pointer rounded-[2px] p-0.5 text-[var(--spruce)] hover:bg-[var(--paper-pure)]"
+                        >
+                          <X className="h-3.5 w-3.5" aria-hidden="true" />
+                        </button>
+                      </div>
                     )}
                   </div>
-                </div>
-              ) : (
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <label
-                    htmlFor="leave-attachment-input"
-                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 text-xs font-semibold text-slate-800 underline decoration-stone-300 underline-offset-4 transition-colors hover:bg-[#FAF9F6] hover:decoration-slate-900 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-slate-900"
-                  >
-                    <Paperclip className="h-3.5 w-3.5" aria-hidden="true" />
-                    <span>+ Tambah Lampiran (Opsional · PDF/JPG/PNG, maks. 5 MB)</span>
-                    <input
-                      ref={(el) => {
-                        fieldRefs.current.attachment = el;
-                      }}
-                      id="leave-attachment-input"
-                      name="attachment"
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={handleFileChange}
-                      className="visually-hidden"
-                    />
-                  </label>
-
-                  {attachmentFile && (
-                    <span className="inline-flex items-center gap-1.5 rounded-md border border-stone-200 bg-[#FAF9F6] px-2.5 py-1 text-xs text-slate-700">
-                      <FileText
-                        className="h-3.5 w-3.5 shrink-0 text-slate-600"
-                        aria-hidden="true"
-                      />
-                      <span className="max-w-[200px] truncate">
-                        {attachmentFile.name} ({formatFileSize(attachmentFile.size)})
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleRemoveAttachment}
-                        aria-label="Hapus lampiran"
-                        className="cursor-pointer rounded p-0.5 text-slate-500 transition-colors hover:text-rose-700 focus-visible:outline-2 focus-visible:outline-slate-900"
+                ) : (
+                  <div className="space-y-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <label
+                        htmlFor="leave-attachment-input"
+                        className="btn btn-sm"
                       >
-                        <X className="h-3.5 w-3.5" aria-hidden="true" />
-                      </button>
-                    </span>
-                  )}
-                </div>
-              )}
+                        <Paperclip className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span>Tambah Lampiran (Opsional)</span>
+                        <input
+                          ref={(el) => {
+                            fieldRefs.current.attachment = el;
+                          }}
+                          id="leave-attachment-input"
+                          name="attachment"
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={handleFileChange}
+                          className="visually-hidden"
+                        />
+                      </label>
+                      <span className="mono text-[10.5px] text-[var(--ink-muted)]">
+                        PDF, JPG, PNG &bull; Maks. 5 MB
+                      </span>
+                    </div>
 
-              {(fileError || fieldErrors.attachmentUrl) && (
-                <p
-                  id="attachment-error"
-                  className="mt-2 flex items-center gap-1.5 text-xs font-medium text-rose-700"
-                >
-                  <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  {fileError || fieldErrors.attachmentUrl}
-                </p>
-              )}
+                    {attachmentFile && (
+                      <div className="file-chip">
+                        <span className="inline-flex min-w-0 items-center gap-2 font-medium">
+                          <FileText
+                            className="h-3.5 w-3.5 shrink-0"
+                            aria-hidden="true"
+                          />
+                          <span className="truncate">
+                            {attachmentFile.name} (
+                            {formatFileSize(attachmentFile.size)})
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleRemoveAttachment}
+                          aria-label="Hapus lampiran"
+                          className="cursor-pointer rounded-[2px] p-0.5 text-[var(--spruce)] hover:bg-[var(--paper-pure)]"
+                        >
+                          <X className="h-3.5 w-3.5" aria-hidden="true" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {(fileError || fieldErrors.attachmentUrl) && (
+                  <p
+                    id="attachment-error"
+                    className="mt-2 flex items-center gap-1.5 text-xs font-medium text-[var(--terracotta)]"
+                  >
+                    <AlertCircle
+                      className="h-3.5 w-3.5 shrink-0"
+                      aria-hidden="true"
+                    />
+                    {fileError || fieldErrors.attachmentUrl}
+                  </p>
+                )}
+              </div>
             </div>
           </fieldset>
 
@@ -1396,38 +1403,42 @@ export default function LeaveRequestForm({
               type="button"
               onClick={handleReset}
               disabled={isSubmitting}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 transition-colors duration-200 hover:bg-[#FAF9F6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn"
             >
               <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-              Reset
+              <span>Reset</span>
             </button>
-            <Link
-              href="/leaves"
-              className="inline-flex cursor-pointer items-center rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-800 transition-colors duration-200 hover:bg-[#FAF9F6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-            >
+            <Link href="/leaves" className="btn">
               Batal
             </Link>
             <button
               type="submit"
               disabled={isHardBlocked || isSubmitting}
-              className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-slate-900 px-5 py-2.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-45"
+              className="btn btn-primary"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                  {isUploadingFile ? "Mengunggah Lampiran..." : "Mengirim Pengajuan..."}
+                  <Loader2
+                    className="h-3.5 w-3.5 animate-spin"
+                    aria-hidden="true"
+                  />
+                  <span>
+                    {isUploadingFile
+                      ? "Mengunggah Lampiran..."
+                      : "Mengirim Pengajuan..."}
+                  </span>
                 </>
               ) : (
                 <>
                   <Send className="h-3.5 w-3.5" aria-hidden="true" />
-                  Kirim Pengajuan
+                  <span>Kirim Pengajuan</span>
                 </>
               )}
             </button>
           </div>
         </form>
 
-        {/* Kolom Kanan Sticky (4/12) */}
+        {/* Kolom Kanan Sticky (4/12): What-If Projection Ruler + Kalender Interaktif */}
         <div className="lg:col-span-4">
           <WhatIfQuotaWidget
             selectedLeaveType={selectedLeaveType}
@@ -1437,6 +1448,12 @@ export default function LeaveRequestForm({
             holidayHits={holidayHits}
             validationErrors={validationErrors}
             isCheckingAvailability={isCheckingAvailability}
+            startDate={startDate}
+            endDate={effectiveEndDate}
+            isHalfDay={isHalfDay}
+            serverToday={serverToday}
+            holidays={holidays}
+            onSelectDateRange={handleCalendarRangeSelect}
           />
         </div>
       </div>

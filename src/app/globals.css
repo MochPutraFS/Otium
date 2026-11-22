@@ -540,6 +540,132 @@
   color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
 }
+.quota-proj-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
+}
+.quota-proj-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.quota-proj-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--rule);
+  font-size: 12.5px;
+}
+.quota-proj-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* FILE PREVIEW CHIP */
+.file-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 11px;
+  border: 1px solid var(--spruce-border);
+  border-radius: 2px;
+  background: var(--spruce-tint);
+  font-size: 12px;
+  color: var(--spruce);
+}
+
+/* WHAT-IF ARCHITECTURAL CALENDAR (Interactive, Multi-Month, Monday-First, No Blackout) */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-top: 1px solid var(--rule-strong);
+  border-left: 1px solid var(--rule-strong);
+}
+.cal-dow {
+  padding: 6px 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--alabaster-deep);
+  color: var(--ink-soft);
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule-strong);
+}
+.cal-day {
+  aspect-ratio: 1.15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  background: var(--paper-pure);
+  color: var(--ink);
+  border: none;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  position: relative;
+  padding: 0;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+button.cal-day:hover:not(:disabled) {
+  background: var(--spruce-tint);
+  color: var(--spruce);
+}
+.cal-day.is-blank {
+  background: var(--alabaster);
+  cursor: default;
+}
+.cal-day.weekend {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--alabaster),
+    var(--alabaster) 4px,
+    var(--alabaster-deep) 4px,
+    var(--alabaster-deep) 8px
+  );
+  color: var(--ink-muted);
+}
+.cal-day.holiday {
+  background: var(--slate-tint);
+  color: var(--slate-blue);
+  font-weight: 600;
+}
+.cal-day.selected {
+  background: var(--spruce-btn);
+  color: var(--spruce-btn-ink);
+  font-weight: 700;
+}
+.cal-day.is-today {
+  box-shadow: inset 0 0 0 2px var(--spruce);
+}
+.cal-day.selected.is-today {
+  box-shadow: inset 0 0 0 2px var(--paper-pure);
+}
+.cal-marker {
+  font-size: 8px;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+/* MOBILE LEDGER CARD */
+.ledger-card {
+  border: 1px solid var(--rule-strong);
+  background: var(--paper-pure);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
 /* METRIC STRIP (Compact Archival Ledger KPIs) */
 .metric-strip {
@@ -717,6 +843,34 @@ table.ledger th {
   border-bottom: 1px solid var(--rule-strong);
   border-right: 1px solid var(--rule);
   white-space: nowrap;
+}
+table.ledger th:has(> button) {
+  padding: 0;
+}
+table.ledger th > button {
+  width: 100%;
+  min-height: 36px;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+table.ledger th > button:hover {
+  background: color-mix(in oklab, var(--spruce) 7%, var(--alabaster-deep));
+  color: var(--ink);
+}
+table.ledger th[aria-sort] > button {
+  color: var(--spruce);
+  background: var(--spruce-tint);
 }
 table.ledger th:last-child,
 table.ledger td:last-child {
@@ -1400,6 +1554,7 @@ progress.otium-progress::-moz-progress-bar {
   .metric-strip,
   .quota-hero,
   .wf-sheet,
+  .ledger-card,
   .notice,
   .tag,
   .btn,
@@ -1407,6 +1562,28 @@ progress.otium-progress::-moz-progress-bar {
   .select,
   .textarea {
     border: 1px solid CanvasText;
+  }
+
+  .cal-day.weekend {
+    background: Canvas;
+    color: GrayText;
+    border: 1px dotted GrayText;
+  }
+
+  .cal-day.holiday {
+    outline: 1px solid Highlight;
+    outline-offset: -3px;
+  }
+
+  .cal-day.selected {
+    background: Highlight;
+    color: HighlightText;
+    border: 2px solid HighlightText;
+  }
+
+  .cal-day.is-today {
+    outline: 2px solid CanvasText;
+    outline-offset: -2px;
   }
 
   .slip-box.is-action {
