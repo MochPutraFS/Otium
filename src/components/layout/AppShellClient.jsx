@@ -5,7 +5,7 @@ import Sidebar from "@/components/layout/Sidebar";
 import TopNavbar from "@/components/layout/TopNavbar";
 
 /**
- * Kontainer App Shell sisi klien untuk seluruh rute terproteksi (/(dashboard)/*).
+ * Kontainer App Shell sisi klien bergaya Swiss Archival untuk seluruh rute terproteksi (/(dashboard)/*).
  * Mengelola state collapse sidebar desktop, drawer mobile native <dialog>,
  * dan meneruskan data realtime dari PostgreSQL ke Sidebar & TopNavbar.
  */
@@ -20,11 +20,11 @@ export default function AppShellClient({ sessionUser, shellData, children }) {
   const upcomingHoliday = shellData?.upcomingHoliday || null;
 
   return (
-    <div className="min-h-screen bg-[#F4F2EC] text-[#0F172A]">
+    <div className="min-h-dvh bg-[var(--alabaster)] text-[var(--ink)]">
       {/* Skip Link untuk pengguna keyboard & pembaca layar */}
       <a
         href="#main-content"
-        className="visually-hidden fixed left-4 top-4 z-50 rounded-lg border border-stone-300 bg-[#0F172A] px-4 py-2 text-xs font-semibold text-white shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1D4ED8]"
+        className="visually-hidden fixed left-4 top-4 z-50 rounded-[2px] border border-[var(--spruce-btn)] bg-[var(--spruce-btn)] px-4 py-2 font-mono text-xs font-semibold text-[var(--spruce-btn-ink)] shadow-md"
       >
         Langsung ke konten utama
       </a>
@@ -39,10 +39,10 @@ export default function AppShellClient({ sessionUser, shellData, children }) {
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
 
-      {/* Konten utama: offset kiri mengikuti lebar sidebar desktop */}
+      {/* Kolom workspace utama dengan latar kertas Swiss Archival (.arch-grid-bg) */}
       <div
-        className={`flex min-h-screen flex-col transition-[padding] duration-200 ${
-          isSidebarCollapsed ? "lg:pl-20" : "lg:pl-64"
+        className={`arch-grid-bg flex min-h-dvh flex-col transition-[padding] duration-200 ${
+          isSidebarCollapsed ? "lg:pl-[76px]" : "lg:pl-[256px]"
         }`}
       >
         <TopNavbar
@@ -60,7 +60,7 @@ export default function AppShellClient({ sessionUser, shellData, children }) {
           tabIndex={-1}
           className="flex-1 px-4 py-5 outline-none sm:px-6 sm:py-6"
         >
-          <div className="mx-auto max-w-7xl">{children}</div>
+          <div className="mx-auto max-w-[1380px]">{children}</div>
         </main>
       </div>
     </div>
