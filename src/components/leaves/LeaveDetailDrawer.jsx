@@ -181,12 +181,12 @@ export default function LeaveDetailDrawer({
       closedby="any"
       aria-labelledby={titleId}
       onClose={handleDialogClose}
-      className="otium-drawer"
+      className="otium-modal-landscape"
     >
       {active && (
-        <div className="flex h-full w-full flex-col border-l border-[var(--ink)] bg-[var(--paper-pure)] text-[var(--ink)] shadow-2xl">
+        <div className="flex max-h-[calc(100dvh-2.5rem)] w-full flex-col rounded-[2px] border border-[var(--ink)] bg-[var(--paper-pure)] text-[var(--ink)] shadow-2xl">
           {/* Header Arsip dengan Logo Otium Asli */}
-          <div className="flex items-start justify-between gap-3 border-b border-[var(--rule-strong)] bg-[var(--paper)] px-5 py-4">
+          <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--rule-strong)] bg-[var(--paper)] px-5 py-4">
             <div className="flex min-w-0 items-start gap-3">
               <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[2px] border border-[var(--rule-strong)] bg-[var(--paper-pure)] p-1.5">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -231,10 +231,10 @@ export default function LeaveDetailDrawer({
             </button>
           </div>
 
-          {/* Body Scrollable */}
-          <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 text-xs">
+          {/* Body Scrollable — Tata Letak Landscape 2 Kolom */}
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 text-xs">
             {/* Status & Tanggal Diajukan */}
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--rule)] pb-3.5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-[var(--rule)] pb-3.5">
               <div className="flex items-center gap-2">
                 <StatusBadge
                   status={active.status}
@@ -256,208 +256,216 @@ export default function LeaveDetailDrawer({
             </div>
 
             {detailError && (
-              <div role="alert" className="notice notice-warn">
+              <div role="alert" className="notice notice-warn mb-4">
                 <AlertCircle aria-hidden="true" />
                 <span>{detailError}</span>
               </div>
             )}
 
-            {/* KARTU ROUTING SLIP + STEMPEL TINTA */}
-            <article className="slip">
-              {renderInkStamp(active.status)}
-              <div className="slip-head">
-                <div>
-                  <span className="panel-eyebrow !mb-0">
-                    Lembar Edaran Persetujuan
-                  </span>
-                  <p className="text-xs font-semibold text-[var(--ink)]">
-                    {isDirectToHrd
-                      ? "Jalur Ketua Divisi → Final HRD"
-                      : "Jalur Karyawan → Ketua Divisi → Final HRD"}
-                  </p>
-                </div>
-              </div>
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+              {/* Kolom Kiri (7/12): Routing Slip + Alasan Penolakan/Pembatalan */}
+              <div className="space-y-4 lg:col-span-7">
+                {/* KARTU ROUTING SLIP + STEMPEL TINTA */}
+                <article className="slip">
+                  {renderInkStamp(active.status)}
+                  <div className="slip-head">
+                    <div>
+                      <span className="panel-eyebrow !mb-0">
+                        Lembar Edaran Persetujuan
+                      </span>
+                      <p className="text-xs font-semibold text-[var(--ink)]">
+                        {isDirectToHrd
+                          ? "Jalur Ketua Divisi → Final HRD"
+                          : "Jalur Karyawan → Ketua Divisi → Final HRD"}
+                      </p>
+                    </div>
+                  </div>
 
-              <div className="slip-meta">
-                <span>
-                  <strong className="text-[var(--ink)]">Dampak Kuota:</strong>{" "}
-                  {active.quotaDeducted ? (
-                    <span className="mono font-semibold text-[var(--ochre)]">
-                      Memotong {Number(active.totalDays).toFixed(1)} hr
+                  <div className="slip-meta">
+                    <span>
+                      <strong className="text-[var(--ink)]">Dampak Kuota:</strong>{" "}
+                      {active.quotaDeducted ? (
+                        <span className="mono font-semibold text-[var(--ochre)]">
+                          Memotong {Number(active.totalDays).toFixed(1)} hr
+                        </span>
+                      ) : active.status === "Cancelled" ||
+                        active.status === "Rejected" ? (
+                        <span className="inline-flex items-center gap-1 font-medium text-[var(--spruce)]">
+                          <RotateCcw className="h-3 w-3" aria-hidden="true" />
+                          Tidak Memotong / Sudah Refund
+                        </span>
+                      ) : (
+                        <span>Tidak Memotong Kuota</span>
+                      )}
                     </span>
-                  ) : active.status === "Cancelled" ||
-                    active.status === "Rejected" ? (
-                    <span className="inline-flex items-center gap-1 font-medium text-[var(--spruce)]">
-                      <RotateCcw className="h-3 w-3" aria-hidden="true" />
-                      Tidak Memotong / Sudah Refund
-                    </span>
-                  ) : (
-                    <span>Tidak Memotong Kuota</span>
+                  </div>
+
+                  {timeline.length > 0 && (
+                    <div
+                      className="grid grid-cols-1 divide-y divide-[var(--rule)]"
+                      role="list"
+                      aria-label="Urutan paraf persetujuan"
+                    >
+                      {timeline.map((step, idx) => {
+                        const boxStateClass =
+                          step.state === "active"
+                            ? "is-action"
+                            : step.state === "rejected"
+                              ? "is-rejected"
+                              : step.state === "cancelled"
+                                ? "is-skipped"
+                                : "";
+                        const symbol =
+                          step.state === "done"
+                            ? "✓"
+                            : step.state === "rejected"
+                              ? "✕"
+                              : step.state === "cancelled"
+                                ? "—"
+                                : "○";
+
+                        return (
+                          <div
+                            key={`${step.stage}-${idx}`}
+                            role="listitem"
+                            className={`slip-box !min-h-0 !border-r-0 ${boxStateClass}`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
+                                {String(idx + 1).padStart(2, "0")} &bull;{" "}
+                                {step.stage}
+                              </span>
+                              <span className="mono text-[10.5px] text-[var(--ink-muted)]">
+                                {step.time}
+                              </span>
+                            </div>
+                            <div className="text-[13px] font-semibold text-[var(--ink)]">
+                              {symbol} {step.actor}
+                            </div>
+                            {step.notes && (
+                              <p className="mt-1 border-l-2 border-[var(--rule-strong)] pl-2.5 italic text-[var(--ink-soft)]">
+                                &ldquo;{step.notes}&rdquo;
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
-                </span>
+                </article>
+
+                {/* Alasan Penolakan (Jika Rejected) */}
+                {active.status === "Rejected" && active.rejectionReason && (
+                  <div className="notice notice-danger">
+                    <AlertCircle aria-hidden="true" />
+                    <div>
+                      <p className="m-0 font-semibold">
+                        Alasan Penolakan ({active.rejectedByRole || "Approver"})
+                      </p>
+                      <p className="mt-0.5 leading-relaxed">
+                        {active.rejectionReason}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Alasan Pembatalan (Jika Cancelled) */}
+                {active.status === "Cancelled" && active.cancellationReason && (
+                  <div className="notice notice-info">
+                    <RotateCcw aria-hidden="true" />
+                    <div>
+                      <p className="m-0 font-semibold">
+                        Alasan Pembatalan Pemohon
+                      </p>
+                      <p className="mt-0.5 leading-relaxed">
+                        {active.cancellationReason}
+                      </p>
+                      {active.cancelledAt && (
+                        <p className="mono mt-1 text-[10.5px]">
+                          Dibatalkan pada {active.cancelledAt}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {timeline.length > 0 && (
-                <div
-                  className="grid grid-cols-1 divide-y divide-[var(--rule)]"
-                  role="list"
-                  aria-label="Urutan paraf persetujuan"
-                >
-                  {timeline.map((step, idx) => {
-                    const boxStateClass =
-                      step.state === "active"
-                        ? "is-action"
-                        : step.state === "rejected"
-                          ? "is-rejected"
-                          : step.state === "cancelled"
-                            ? "is-skipped"
-                            : "";
-                    const symbol =
-                      step.state === "done"
-                        ? "✓"
-                        : step.state === "rejected"
-                          ? "✕"
-                          : step.state === "cancelled"
-                            ? "—"
-                            : "○";
-
-                    return (
-                      <div
-                        key={`${step.stage}-${idx}`}
-                        role="listitem"
-                        className={`slip-box !min-h-0 !border-r-0 ${boxStateClass}`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
-                            {String(idx + 1).padStart(2, "0")} &bull;{" "}
-                            {step.stage}
-                          </span>
-                          <span className="mono text-[10.5px] text-[var(--ink-muted)]">
-                            {step.time}
-                          </span>
-                        </div>
-                        <div className="text-[13px] font-semibold text-[var(--ink)]">
-                          {symbol} {step.actor}
-                        </div>
-                        {step.notes && (
-                          <p className="mt-1 border-l-2 border-[var(--rule-strong)] pl-2.5 italic text-[var(--ink-soft)]">
-                            &ldquo;{step.notes}&rdquo;
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </article>
-
-            {/* Alasan Penolakan (Jika Rejected) */}
-            {active.status === "Rejected" && active.rejectionReason && (
-              <div className="notice notice-danger">
-                <AlertCircle aria-hidden="true" />
-                <div>
-                  <p className="m-0 font-semibold">
-                    Alasan Penolakan ({active.rejectedByRole || "Approver"})
+              {/* Kolom Kanan (5/12): Alasan Cuti, Handover, Kontak, & Lampiran */}
+              <div className="space-y-4 lg:col-span-5">
+                {/* Alasan Cuti */}
+                <section className="space-y-1 border border-[var(--rule)] bg-[var(--paper-pure)] p-3.5">
+                  <h3 className="panel-eyebrow">Alasan Cuti</h3>
+                  <p className="leading-relaxed text-[var(--ink)]">
+                    {active.reason || "-"}
                   </p>
-                  <p className="mt-0.5 leading-relaxed">
-                    {active.rejectionReason}
-                  </p>
-                </div>
-              </div>
-            )}
+                </section>
 
-            {/* Alasan Pembatalan (Jika Cancelled) */}
-            {active.status === "Cancelled" && active.cancellationReason && (
-              <div className="notice notice-info">
-                <RotateCcw aria-hidden="true" />
-                <div>
-                  <p className="m-0 font-semibold">
-                    Alasan Pembatalan Pemohon
-                  </p>
-                  <p className="mt-0.5 leading-relaxed">
-                    {active.cancellationReason}
-                  </p>
-                  {active.cancelledAt && (
-                    <p className="mono mt-1 text-[10.5px]">
-                      Dibatalkan pada {active.cancelledAt}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Alasan Cuti */}
-            <section className="space-y-1">
-              <h3 className="panel-eyebrow">Alasan Cuti</h3>
-              <p className="leading-relaxed text-[var(--ink)]">
-                {active.reason || "-"}
-              </p>
-            </section>
-
-            {/* Serah Terima Tugas (Handover) */}
-            <section className="space-y-1.5 border border-[var(--rule)] bg-[var(--paper)] p-3.5">
-              <h3 className="panel-eyebrow">Serah Terima Tugas (Handover)</h3>
-              <p className="flex items-center gap-1.5 font-semibold text-[var(--ink)]">
-                <UserCheck
-                  className="h-3.5 w-3.5 text-[var(--spruce)]"
-                  aria-hidden="true"
-                />
-                <span>{active.handoverUserName || "-"}</span>
-              </p>
-              <p className="leading-relaxed text-[var(--ink-soft)]">
-                {active.handoverNotes || "-"}
-              </p>
-            </section>
-
-            {/* Kontak Selama Cuti */}
-            <section className="space-y-1.5">
-              <h3 className="panel-eyebrow">Kontak Selama Cuti</h3>
-              <p className="flex items-start gap-2 text-[var(--ink-soft)]">
-                <MapPin
-                  className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--ink-muted)]"
-                  aria-hidden="true"
-                />
-                <span>{active.leaveAddress || "-"}</span>
-              </p>
-              <p className="flex items-center gap-2 text-[var(--ink-soft)]">
-                <Phone
-                  className="h-3.5 w-3.5 shrink-0 text-[var(--ink-muted)]"
-                  aria-hidden="true"
-                />
-                <span className="mono">{active.emergencyPhone || "-"}</span>
-              </p>
-            </section>
-
-            {/* Lampiran Asli (Jika Ada) */}
-            {active.attachmentUrl && (
-              <section className="space-y-1.5">
-                <h3 className="panel-eyebrow">Dokumen Lampiran</h3>
-                <div className="file-chip">
-                  <span className="inline-flex min-w-0 items-center gap-2 font-medium">
-                    <Paperclip
-                      className="h-3.5 w-3.5 shrink-0"
+                {/* Serah Terima Tugas (Handover) */}
+                <section className="space-y-1.5 border border-[var(--rule)] bg-[var(--paper)] p-3.5">
+                  <h3 className="panel-eyebrow">Serah Terima Tugas (Handover)</h3>
+                  <p className="flex items-center gap-1.5 font-semibold text-[var(--ink)]">
+                    <UserCheck
+                      className="h-3.5 w-3.5 text-[var(--spruce)]"
                       aria-hidden="true"
                     />
-                    <span className="truncate">
-                      {active.attachmentName || "Lampiran Pendukung"}
-                    </span>
-                  </span>
-                  <a
-                    href={active.attachmentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mono inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold underline"
-                  >
-                    <span>Buka</span>
-                    <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                  </a>
-                </div>
-              </section>
-            )}
+                    <span>{active.handoverUserName || "-"}</span>
+                  </p>
+                  <p className="leading-relaxed text-[var(--ink-soft)]">
+                    {active.handoverNotes || "-"}
+                  </p>
+                </section>
+
+                {/* Kontak Selama Cuti */}
+                <section className="space-y-1.5 border border-[var(--rule)] bg-[var(--paper-pure)] p-3.5">
+                  <h3 className="panel-eyebrow">Kontak Selama Cuti</h3>
+                  <p className="flex items-start gap-2 text-[var(--ink-soft)]">
+                    <MapPin
+                      className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--ink-muted)]"
+                      aria-hidden="true"
+                    />
+                    <span>{active.leaveAddress || "-"}</span>
+                  </p>
+                  <p className="flex items-center gap-2 text-[var(--ink-soft)]">
+                    <Phone
+                      className="h-3.5 w-3.5 shrink-0 text-[var(--ink-muted)]"
+                      aria-hidden="true"
+                    />
+                    <span className="mono">{active.emergencyPhone || "-"}</span>
+                  </p>
+                </section>
+
+                {/* Lampiran Asli (Jika Ada) */}
+                {active.attachmentUrl && (
+                  <section className="space-y-1.5">
+                    <h3 className="panel-eyebrow">Dokumen Lampiran</h3>
+                    <div className="file-chip">
+                      <span className="inline-flex min-w-0 items-center gap-2 font-medium">
+                        <Paperclip
+                          className="h-3.5 w-3.5 shrink-0"
+                          aria-hidden="true"
+                        />
+                        <span className="truncate">
+                          {active.attachmentName || "Lampiran Pendukung"}
+                        </span>
+                      </span>
+                      <a
+                        href={active.attachmentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mono inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold underline"
+                      >
+                        <span>Buka</span>
+                        <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                      </a>
+                    </div>
+                  </section>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Footer Aksi Kontekstual */}
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-[var(--rule)] bg-[var(--alabaster)] px-5 py-3.5">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-[var(--rule)] bg-[var(--alabaster)] px-5 py-3.5">
             {active.status === "Pending" && (
               <button
                 type="button"

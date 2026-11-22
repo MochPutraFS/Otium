@@ -827,17 +827,20 @@ export default function LeaveRequestForm({
                   )}
                 </div>
 
-                <div className="flex flex-col justify-end">
-                  <label className="otium-checkbox-label flex cursor-pointer select-none items-center gap-2.5 rounded-[2px] border border-[var(--rule-strong)] bg-[var(--alabaster)] px-3 py-2.5">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold text-[var(--ink-soft)]">
+                    Opsi Durasi
+                  </span>
+                  <label className="otium-checkbox-label flex min-h-[40px] cursor-pointer select-none items-center gap-2.5 rounded-[2px] border border-[var(--rule-strong)] bg-[var(--alabaster)] px-3 py-2 transition-colors hover:border-[var(--ink)]">
                     <input
                       type="checkbox"
                       id="is-half-day"
                       name="is_half_day"
                       checked={isHalfDay}
                       onChange={(e) => handleHalfDayToggle(e.target.checked)}
-                      className="otium-checkbox h-4 w-4 cursor-pointer"
+                      className="otium-checkbox h-4 w-4 shrink-0 cursor-pointer"
                     />
-                    <span className="text-[13px] font-medium text-[var(--ink)]">
+                    <span className="text-[13px] font-medium leading-tight text-[var(--ink)]">
                       Cuti Setengah Hari (
                       <span className="mono font-semibold">0.5</span> hari)
                     </span>
