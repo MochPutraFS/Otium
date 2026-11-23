@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   CalendarDays,
   CalendarPlus,
   CheckCircle2,
@@ -19,7 +22,10 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import CancelLeaveModal from "@/components/ui/CancelLeaveModal";
 import LeaveDetailDrawer from "@/components/leaves/LeaveDetailDrawer";
-import { formatIndonesianDateRange } from "@/lib/date-utils";
+import {
+  formatIndonesianDate,
+  formatIndonesianDateRange,
+} from "@/lib/date-utils";
 import { cancelLeaveRequestAction } from "@/actions/leave-request-actions";
 
 const STATUS_TABS = [
@@ -30,12 +36,27 @@ const STATUS_TABS = [
   { key: "Cancelled", label: "Dibatalkan" },
 ];
 
+function SortIndicator({ columnKey, sortConfig }) {
+  if (sortConfig.key !== columnKey) {
+    return (
+      <ArrowUpDown
+        className="h-3 w-3 shrink-0 opacity-45"
+        aria-hidden="true"
+      />
+    );
+  }
+  return sortConfig.direction === "ascending" ? (
+    <ArrowUp className="h-3 w-3 shrink-0" aria-hidden="true" />
+  ) : (
+    <ArrowDown className="h-3 w-3 shrink-0" aria-hidden="true" />
+  );
+}
+
 /**
- * Halaman Riwayat Pengajuan & Pembatalan Cuti (/leaves) — Pure Production.
- * Menggunakan desain Warm Alabaster Swiss Editorial Minimalism, satu tabel semantik
- * `.otium-responsive-table` berbasis `@container`, tab status `.otium-tab` satu baris,
- * filter status/jenis/rentang tanggal/pencarian/sortir, native `<dialog>` untuk
- * `LeaveDetailDrawer` & `CancelLeaveModal`, serta mutasi atomik `cancelLeaveRequestAction`.
+ * Halaman Riwayat Pengajuan & Pembatalan Cuti (/leaves) bergaya Swiss Archival (100% UI-Only).
+ * - Desktop (md+): Sortable Swiss Ledger Table dengan React state + aria-sort
+ * - Mobile (< md): Mobile Ledger Cards (.ledger-card)
+ * - Drawer Detail bergaya Routing Slip + Stempel Tinta & Modal Pembatalan Atomik
  */
 export default function LeaveHistoryClient({
   initialUserProfile,
@@ -67,7 +88,11 @@ export default function LeaveHistoryClient({
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("submitted_desc");
+  const [sortConfig, setSortConfig] = useState({
+    key: "submissionDate",
+    direction: "descending",
+  });
+  const [sortStatusText, setSortStatusText] = useState("");
 
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [cancelTarget, setCancelTarget] = useState(null);
@@ -75,11 +100,10 @@ export default function LeaveHistoryClient({
   const [cancelServerError, setCancelServerError] = useState("");
 
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [toast, setToast] = useState(null); // { message, tone: "success" | "error" }
+  const [toast, setToast] = useState(null);
 
   const isLeaderRole = userProfile?.role === "Ketua Divisi";
 
-  // Sinkronisasi props ketika Server Component melakukan revalidatePath / router.refresh()
   useEffect(() => {
     setUserProfile(initialUserProfile);
   }, [initialUserProfile]);
@@ -139,6 +163,21 @@ export default function LeaveHistoryClient({
     }
   }
 
+  function handleSortColumn(key, label) {
+    setSortConfig((prev) => {
+      const nextDirection =
+        prev.key === key && prev.direction === "descending"
+          ? "ascending"
+          : "descending";
+      setSortStatusText(
+        `Diurutkan berdasarkan ${label} (${
+          nextDirection === "ascending" ? "naik" : "turun"
+        }).`
+      );
+      return { key, direction: nextDirection };
+    });
+  }
+
   const hasActiveFilters =
     activeTab !== "ALL" ||
     leaveTypeFilter !== "ALL" ||
@@ -188,14 +227,35 @@ export default function LeaveHistoryClient({
       return true;
     });
 
+    const dir = sortConfig.direction === "ascending" ? 1 : -1;
+
     return [...list].sort((a, b) => {
-      if (sortBy === "start_desc") {
-        return b.startDate.localeCompare(a.startDate) || b.id - a.id;
+      if (sortConfig.key === "totalDays") {
+        return (Number(a.totalDays) - Number(b.totalDays)) * dir || (b.id - a.id);
       }
-      if (sortBy === "start_asc") {
-        return a.startDate.localeCompare(b.startDate) || a.id - b.id;
+      if (sortConfig.key === "leaveTypeName") {
+        return (
+          String(a.leaveTypeName || "").localeCompare(
+            String(b.leaveTypeName || "")
+          ) * dir
+        );
       }
-      return b.submissionDate.localeCompare(a.submissionDate) || b.id - a.id;
+      if (sortConfig.key === "status") {
+        return (
+          String(a.status || "").localeCompare(String(b.status || "")) * dir
+        );
+      }
+      if (sortConfig.key === "startDate") {
+        return (
+          String(a.startDate || "").localeCompare(String(b.startDate || "")) *
+            dir || (b.id - a.id) * dir
+        );
+      }
+      return (
+        String(a.submissionDate || "").localeCompare(
+          String(b.submissionDate || "")
+        ) * dir || (b.id - a.id) * dir
+      );
     });
   }, [
     requests,
@@ -205,7 +265,7 @@ export default function LeaveHistoryClient({
     dateTo,
     dateRangeInvalid,
     searchQuery,
-    sortBy,
+    sortConfig,
   ]);
 
   function getSubStatusText(request) {
@@ -224,7 +284,7 @@ export default function LeaveHistoryClient({
     setDateFrom("");
     setDateTo("");
     setSearchQuery("");
-    setSortBy("submitted_desc");
+    setSortConfig({ key: "submissionDate", direction: "descending" });
   }
 
   function handleTabKeyDown(event, index) {
@@ -261,7 +321,8 @@ export default function LeaveHistoryClient({
 
       if (!result?.ok) {
         const errMsg =
-          result?.error || "Gagal membatalkan pengajuan cuti. Silakan coba lagi.";
+          result?.error ||
+          "Gagal membatalkan pengajuan cuti. Silakan coba lagi.";
         setCancelServerError(errMsg);
         showToast(errMsg, "error");
         return;
@@ -289,32 +350,27 @@ export default function LeaveHistoryClient({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      <div className="visually-hidden" role="status" aria-live="polite">
+        {sortStatusText}
+      </div>
+
       {/* Header Editorial & Ringkasan Kuota */}
-      <header className="flex flex-col justify-between gap-4 border-b border-stone-200 pb-5 sm:flex-row sm:items-end">
+      <header className="flex flex-col justify-between gap-4 border-b border-[var(--rule-strong)] pb-4 sm:flex-row sm:items-end">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-            Modul 5 &bull; Transaksi Cuti Pribadi
-          </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+          <span className="panel-eyebrow">
+            Arsip Transaksi Cuti Pribadi
+            {userProfile?.divisionName ? ` • ${userProfile.divisionName}` : ""}
+          </span>
+          <h2 className="mt-1 font-serif text-[28px] font-semibold leading-tight text-[var(--ink)]">
             Riwayat Cuti Saya
-          </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
-            <span>
-              Sisa Kuota Cuti Tahunan:{" "}
-              <strong className="font-semibold tabular-nums text-slate-900">
-                {Number(userProfile?.remainingLeaveQuota ?? 0).toFixed(1)} Hari
-              </strong>
-            </span>
-            {userProfile?.divisionName && (
-              <span className="text-slate-500">
-                Divisi:{" "}
-                <strong className="font-medium text-slate-700">
-                  {userProfile.divisionName}
-                </strong>
-              </span>
-            )}
-          </div>
+          </h2>
+          <p className="mt-1.5 text-xs text-[var(--ink-soft)]">
+            Sisa Kuota Cuti Tahunan:{" "}
+            <strong className="mono font-semibold text-[var(--spruce)]">
+              {Number(userProfile?.remainingLeaveQuota ?? 0).toFixed(1)} Hari
+            </strong>
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -322,7 +378,7 @@ export default function LeaveHistoryClient({
             type="button"
             onClick={() => refreshFromServer({ silent: false })}
             disabled={isRefreshing}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 transition-colors duration-150 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn btn-sm"
           >
             <RefreshCw
               className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`}
@@ -331,27 +387,24 @@ export default function LeaveHistoryClient({
             <span>Sinkronkan</span>
           </button>
 
-          <Link
-            href="/leaves/new"
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-          >
-            <CalendarPlus className="h-4 w-4" aria-hidden="true" />
+          <Link href="/leaves/new" className="btn btn-primary btn-sm">
+            <CalendarPlus className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Ajukan Cuti Baru</span>
           </Link>
         </div>
       </header>
 
-      {/* Panel Kontrol: Quick Status Tabs (Single Row) + Filter Ringkas */}
+      {/* Panel Ledger Riwayat: Tabs + Filter Toolbar + Table/Mobile Cards */}
       <section
-        aria-label="Filter dan navigasi status riwayat cuti"
-        className="rounded-xl border border-stone-200 bg-white"
+        aria-label="Filter dan daftar riwayat cuti"
+        className="panel overflow-hidden"
       >
-        {/* Bar Tab Status Cepat — satu baris horizontal scroll, tahan forced-colors */}
-        <div className="border-b border-stone-200 px-4 pt-2 sm:px-5">
+        {/* Tab Status Cepat (Single Row) */}
+        <div className="border-b border-[var(--rule)] bg-[var(--paper)] px-4 pt-2.5 sm:px-5">
           <div
             role="tablist"
             aria-label="Filter berdasarkan status pengajuan cuti"
-            className="flex flex-nowrap items-center gap-1 overflow-x-auto"
+            className="flex flex-nowrap items-center gap-5 overflow-x-auto"
           >
             {STATUS_TABS.map((tab, index) => {
               const isActive = activeTab === tab.key;
@@ -369,18 +422,18 @@ export default function LeaveHistoryClient({
                   tabIndex={isActive ? 0 : -1}
                   onClick={() => setActiveTab(tab.key)}
                   onKeyDown={(e) => handleTabKeyDown(e, index)}
-                  className={`otium-tab inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap px-3.5 py-2.5 text-xs font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-slate-900 ${
+                  className={`otium-tab mono inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap pb-3 pt-1 text-xs font-semibold uppercase tracking-[0.04em] transition-colors duration-150 ${
                     isActive
-                      ? "text-slate-900"
-                      : "text-slate-500 hover:text-slate-800"
+                      ? "text-[var(--spruce)]"
+                      : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
                   }`}
                 >
                   <span>{tab.label}</span>
                   <span
-                    className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
+                    className={`border px-1.5 py-0 text-[10px] ${
                       isActive
-                        ? "bg-slate-900 text-white"
-                        : "bg-stone-100 text-slate-600"
+                        ? "border-[var(--spruce-border)] bg-[var(--spruce-tint)] text-[var(--spruce)]"
+                        : "border-[var(--rule)] bg-[var(--paper-pure)] text-[var(--ink-muted)]"
                     }`}
                   >
                     {tabCount}
@@ -391,15 +444,14 @@ export default function LeaveHistoryClient({
           </div>
         </div>
 
-        {/* Bar Filter: Pencarian, Jenis Cuti, Rentang Tanggal, Sortir */}
-        <div className="grid grid-cols-1 gap-3 bg-[#faf9f6] p-4 sm:grid-cols-2 lg:grid-cols-12 sm:px-5">
-          {/* Pencarian */}
-          <div className="relative lg:col-span-3">
+        {/* Toolbar Filter Arsip */}
+        <div className="toolbar grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-12">
+          <div className="relative lg:col-span-4">
             <label htmlFor={searchInputId} className="visually-hidden">
               Cari alasan atau rekan pengganti
             </label>
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--ink-muted)]"
               aria-hidden="true"
             />
             <input
@@ -408,17 +460,16 @@ export default function LeaveHistoryClient({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari alasan / rekan handover..."
-              className="w-full rounded-lg border border-stone-300 bg-white py-2 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 transition-colors focus:border-slate-900 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
+              className="input !py-1.5 !pl-8 !pr-3 !text-xs"
             />
           </div>
 
-          {/* Filter Jenis Cuti */}
           <div className="lg:col-span-3">
             <select
               aria-label="Filter jenis cuti"
               value={leaveTypeFilter}
               onChange={(e) => setLeaveTypeFilter(e.target.value)}
-              className="w-full cursor-pointer rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs font-medium text-slate-800 transition-colors focus:border-slate-900 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
+              className="select cursor-pointer !py-1.5 !text-xs"
             >
               <option value="ALL">Semua Jenis Cuti</option>
               {leaveTypes.map((lt) => (
@@ -430,9 +481,8 @@ export default function LeaveHistoryClient({
             </select>
           </div>
 
-          {/* Filter Rentang Tanggal (Dari – Sampai) */}
-          <div className="flex items-center gap-1.5 sm:col-span-2 lg:col-span-4">
-            <div className="relative flex-1">
+          <div className="flex items-center gap-1.5 sm:col-span-2 lg:col-span-5">
+            <div className="flex-1">
               <label htmlFor={dateFromId} className="visually-hidden">
                 Dari tanggal cuti
               </label>
@@ -442,13 +492,13 @@ export default function LeaveHistoryClient({
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
                 aria-label="Filter dari tanggal"
-                className="w-full rounded-lg border border-stone-300 bg-white px-2.5 py-2 text-xs text-slate-800 transition-colors focus:border-slate-900 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
+                className="input mono !py-1.5 !text-xs"
               />
             </div>
-            <span className="shrink-0 text-xs text-slate-400" aria-hidden="true">
+            <span className="text-xs text-[var(--ink-muted)]" aria-hidden="true">
               &ndash;
             </span>
-            <div className="relative flex-1">
+            <div className="flex-1">
               <label htmlFor={dateToId} className="visually-hidden">
                 Sampai tanggal cuti
               </label>
@@ -459,33 +509,19 @@ export default function LeaveHistoryClient({
                 min={dateFrom || undefined}
                 onChange={(e) => setDateTo(e.target.value)}
                 aria-label="Filter sampai tanggal"
-                className="w-full rounded-lg border border-stone-300 bg-white px-2.5 py-2 text-xs text-slate-800 transition-colors focus:border-slate-900 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
+                className="input mono !py-1.5 !text-xs"
               />
             </div>
           </div>
-
-          {/* Sortir */}
-          <div className="lg:col-span-2">
-            <select
-              aria-label="Urutkan riwayat cuti"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="w-full cursor-pointer rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs font-medium text-slate-800 transition-colors focus:border-slate-900 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
-            >
-              <option value="submitted_desc">Terbaru Diajukan</option>
-              <option value="start_desc">Tgl Mulai Terbaru</option>
-              <option value="start_asc">Tgl Mulai Terlama</option>
-            </select>
-          </div>
         </div>
 
-        {/* Peringatan jika rentang tanggal terbalik + Indikator jumlah hasil & tombol Reset */}
+        {/* Status Filter & Reset */}
         {(dateRangeInvalid || hasActiveFilters) && (
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-stone-200 bg-white px-4 py-2.5 text-xs sm:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--rule)] bg-[var(--paper-pure)] px-5 py-2.5 text-xs">
             {dateRangeInvalid ? (
               <p
                 role="alert"
-                className="inline-flex items-center gap-1.5 font-medium text-rose-700"
+                className="inline-flex items-center gap-1.5 font-medium text-[var(--terracotta)]"
               >
                 <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 <span>
@@ -493,13 +529,12 @@ export default function LeaveHistoryClient({
                 </span>
               </p>
             ) : (
-              <p className="text-slate-600">
+              <p className="mono text-[11px] text-[var(--ink-muted)]">
                 Menampilkan{" "}
-                <strong className="font-semibold tabular-nums text-slate-900">
+                <strong className="font-semibold text-[var(--ink)]">
                   {filteredRequests.length}
                 </strong>{" "}
-                dari{" "}
-                <span className="tabular-nums">{requests.length}</span> pengajuan
+                dari {requests.length} pengajuan
               </p>
             )}
 
@@ -507,7 +542,7 @@ export default function LeaveHistoryClient({
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="inline-flex cursor-pointer items-center gap-1 font-semibold text-slate-700 transition-colors hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+                className="btn btn-sm !min-h-[26px]"
               >
                 <RotateCcw className="h-3 w-3" aria-hidden="true" />
                 <span>Reset Filter</span>
@@ -515,173 +550,350 @@ export default function LeaveHistoryClient({
             )}
           </div>
         )}
-      </section>
 
-      {/* Tabel Riwayat Semantik (Satu Struktur DOM: Tabel 4 Kolom Desktop -> Stacked Card @container < 640px) */}
-      {filteredRequests.length === 0 ? (
-        <EmptyState
-          icon={<CalendarDays className="h-5 w-5" aria-hidden="true" />}
-          title={
-            hasActiveFilters
-              ? "Tidak ada pengajuan yang cocok"
-              : "Belum ada riwayat pengajuan cuti"
-          }
-          description={
-            hasActiveFilters
-              ? "Coba ubah tab status, jenis cuti, rentang tanggal, atau kata kunci pencarian Anda."
-              : "Pengajuan cuti yang Anda kirim akan tercatat secara otomatis di halaman ini beserta status persetujuannya."
-          }
-          actionLabel={hasActiveFilters ? undefined : "Ajukan Cuti Baru"}
-          actionHref={hasActiveFilters ? undefined : "/leaves/new"}
-        />
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-stone-200 bg-white">
-          <div
-            tabIndex={0}
-            role="region"
-            aria-labelledby={tableCaptionId}
-            className="otium-responsive-table-wrap focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-slate-900"
-          >
-            <table className="otium-responsive-table text-left">
-              <caption id={tableCaptionId} className="visually-hidden">
-                Daftar riwayat pengajuan cuti pribadi
-              </caption>
-
-              <thead>
-                <tr className="border-b border-stone-200 bg-[#faf9f6] text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                  <th scope="col" className="px-5 py-3.5">
-                    Jenis &amp; Periode
-                  </th>
-                  <th scope="col" className="px-5 py-3.5">
-                    Durasi
-                  </th>
-                  <th scope="col" className="px-5 py-3.5">
-                    Status
-                  </th>
-                  <th scope="col" className="px-5 py-3.5 text-right">
-                    Aksi
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-stone-100 text-sm">
-                {filteredRequests.map((req) => {
-                  const subStatus = getSubStatusText(req);
-                  return (
-                    <tr
-                      key={req.id}
-                      onClick={() => setSelectedRequest(req)}
-                      className="cursor-pointer transition-colors duration-150 hover:bg-[#faf9f6]"
+        {/* Konten Utama: EmptyState atau Sortable Table (Desktop) + Mobile Cards */}
+        {filteredRequests.length === 0 ? (
+          <div className="panel-body">
+            <EmptyState
+              icon={<CalendarDays className="h-5 w-5" aria-hidden="true" />}
+              title={
+                hasActiveFilters
+                  ? "Tidak ada pengajuan yang cocok"
+                  : "Belum ada riwayat pengajuan cuti"
+              }
+              description={
+                hasActiveFilters
+                  ? "Coba ubah tab status, jenis cuti, rentang tanggal, atau kata kunci pencarian Anda."
+                  : "Pengajuan cuti yang Anda kirim akan tercatat secara otomatis di halaman ini beserta status persetujuannya."
+              }
+              actionLabel={hasActiveFilters ? undefined : "Ajukan Cuti Baru"}
+              actionHref={hasActiveFilters ? undefined : "/leaves/new"}
+            />
+          </div>
+        ) : (
+          <>
+            {/* DESKTOP: Sortable Swiss Ledger Table */}
+            <div
+              tabIndex={0}
+              role="region"
+              aria-labelledby={tableCaptionId}
+              className="sheet-wrap hidden md:block"
+            >
+              <table className="ledger text-left">
+                <caption id={tableCaptionId} className="visually-hidden">
+                  Daftar riwayat pengajuan cuti pribadi yang dapat diurutkan
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col" className="row-idx">
+                      #
+                    </th>
+                    <th
+                      scope="col"
+                      aria-sort={
+                        sortConfig.key === "leaveTypeName"
+                          ? sortConfig.direction
+                          : undefined
+                      }
                     >
-                      <th
-                        scope="row"
-                        className="px-5 py-4 text-left font-normal"
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleSortColumn("leaveTypeName", "Jenis Cuti")
+                        }
                       >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-semibold text-slate-900">
-                            {req.leaveTypeName}
-                          </span>
-                          {req.isHalfDay && (
-                            <span className="rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-blue-800">
-                              0.5 Hr
+                        <span>Jenis Cuti</span>
+                        <SortIndicator
+                          columnKey="leaveTypeName"
+                          sortConfig={sortConfig}
+                        />
+                      </button>
+                    </th>
+                    <th
+                      scope="col"
+                      aria-sort={
+                        sortConfig.key === "startDate"
+                          ? sortConfig.direction
+                          : undefined
+                      }
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleSortColumn("startDate", "Periode Cuti")
+                        }
+                      >
+                        <span>Periode</span>
+                        <SortIndicator
+                          columnKey="startDate"
+                          sortConfig={sortConfig}
+                        />
+                      </button>
+                    </th>
+                    <th
+                      scope="col"
+                      aria-sort={
+                        sortConfig.key === "totalDays"
+                          ? sortConfig.direction
+                          : undefined
+                      }
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleSortColumn("totalDays", "Durasi")}
+                      >
+                        <span>Durasi</span>
+                        <SortIndicator
+                          columnKey="totalDays"
+                          sortConfig={sortConfig}
+                        />
+                      </button>
+                    </th>
+                    <th
+                      scope="col"
+                      aria-sort={
+                        sortConfig.key === "submissionDate"
+                          ? sortConfig.direction
+                          : undefined
+                      }
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleSortColumn("submissionDate", "Tanggal Diajukan")
+                        }
+                      >
+                        <span>Diajukan</span>
+                        <SortIndicator
+                          columnKey="submissionDate"
+                          sortConfig={sortConfig}
+                        />
+                      </button>
+                    </th>
+                    <th
+                      scope="col"
+                      aria-sort={
+                        sortConfig.key === "status"
+                          ? sortConfig.direction
+                          : undefined
+                      }
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleSortColumn("status", "Status")}
+                      >
+                        <span>Status</span>
+                        <SortIndicator
+                          columnKey="status"
+                          sortConfig={sortConfig}
+                        />
+                      </button>
+                    </th>
+                    <th scope="col" className="text-right">
+                      Aksi
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRequests.map((req, idx) => {
+                    const subStatus = getSubStatusText(req);
+                    return (
+                      <tr
+                        key={req.id}
+                        onClick={() => setSelectedRequest(req)}
+                        className="cursor-pointer"
+                      >
+                        <td className="row-idx">
+                          {String(idx + 1).padStart(2, "0")}
+                        </td>
+                        <th scope="row" className="font-normal">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-[var(--ink)]">
+                              {req.leaveTypeName}
                             </span>
+                            {req.isHalfDay && (
+                              <span className="tag tag-leader !py-0 !text-[10px]">
+                                0.5 Hr
+                              </span>
+                            )}
+                            {req.attachmentUrl && (
+                              <span
+                                title="Memiliki dokumen lampiran"
+                                className="tag !py-0 !text-[10px]"
+                              >
+                                <Paperclip
+                                  className="h-3 w-3"
+                                  aria-hidden="true"
+                                />
+                                <span>Lampiran</span>
+                              </span>
+                            )}
+                          </div>
+                          {req.handoverUserName && (
+                            <p className="mt-0.5 text-[11px] text-[var(--ink-muted)]">
+                              Handover: {req.handoverUserName}
+                            </p>
                           )}
-                          {req.attachmentUrl && (
-                            <span
-                              title="Memiliki dokumen lampiran"
-                              className="inline-flex items-center gap-1 rounded border border-stone-200 bg-[#f8f7f4] px-1.5 py-0.5 text-[10px] font-medium text-slate-600"
-                            >
-                              <Paperclip
-                                className="h-3 w-3"
-                                aria-hidden="true"
-                              />
-                              <span>Lampiran</span>
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-1 text-xs text-slate-600">
+                        </th>
+                        <td className="mono whitespace-nowrap text-xs text-[var(--ink-soft)]">
                           {formatIndonesianDateRange(
                             req.startDate,
                             req.endDate,
                             req.isHalfDay
                           )}
-                        </p>
-                      </th>
+                        </td>
+                        <td className="mono whitespace-nowrap text-xs font-semibold text-[var(--ink)]">
+                          {Number(req.totalDays).toFixed(1)} hr
+                        </td>
+                        <td className="mono whitespace-nowrap text-xs text-[var(--ink-muted)]">
+                          {formatIndonesianDate(req.submissionDate)}
+                        </td>
+                        <td>
+                          <div className="inline-flex flex-col items-start gap-1">
+                            <StatusBadge
+                              status={req.status}
+                              rejectedByRole={req.rejectedByRole}
+                            />
+                            {subStatus && (
+                              <span className="text-[11px] text-[var(--ink-muted)]">
+                                {subStatus}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td
+                          className="whitespace-nowrap text-right"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="inline-flex items-center gap-1.5">
+                            {req.status === "Pending" && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCancelServerError("");
+                                  setCancelTarget(req);
+                                }}
+                                className="btn btn-danger-ghost btn-sm"
+                              >
+                                Batalkan
+                              </button>
+                            )}
 
-                      <td
-                        data-label="Durasi"
-                        className="whitespace-nowrap px-5 py-4 text-xs font-semibold tabular-nums text-slate-800"
-                      >
-                        {Number(req.totalDays).toFixed(1)} Hari
-                      </td>
+                            {req.status === "Approved" && (
+                              <a
+                                href={`/api/leaves/${req.id}/pdf`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-primary btn-sm"
+                              >
+                                <FileDown
+                                  className="h-3.5 w-3.5"
+                                  aria-hidden="true"
+                                />
+                                <span>PDF</span>
+                              </a>
+                            )}
 
-                      <td data-label="Status" className="px-5 py-4">
-                        <div className="inline-flex flex-col items-end gap-1 sm:items-start">
-                          <StatusBadge
-                            status={req.status}
-                            rejectedByRole={req.rejectedByRole}
-                          />
-                          {subStatus && (
-                            <span className="text-[11px] text-slate-500">
-                              {subStatus}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedRequest(req)}
+                              className="btn btn-sm"
+                            >
+                              Detail
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* MOBILE (< md): Mobile Ledger Cards */}
+            <div className="flex flex-col gap-3 bg-[var(--alabaster)] p-3.5 md:hidden">
+              {filteredRequests.map((req, idx) => {
+                const subStatus = getSubStatusText(req);
+                return (
+                  <article key={req.id} className="ledger-card">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="mono text-[10.5px] font-semibold text-[var(--ink-muted)]">
+                            #{String(idx + 1).padStart(2, "0")}
+                          </span>
+                          <h3 className="text-sm font-semibold text-[var(--ink)]">
+                            {req.leaveTypeName}
+                          </h3>
+                          {req.isHalfDay && (
+                            <span className="tag tag-leader !py-0 !text-[10px]">
+                              0.5 Hr
                             </span>
                           )}
                         </div>
-                      </td>
+                        <p className="mono mt-1 text-xs text-[var(--ink-soft)]">
+                          {formatIndonesianDateRange(
+                            req.startDate,
+                            req.endDate,
+                            req.isHalfDay
+                          )}{" "}
+                          ({Number(req.totalDays).toFixed(1)} hr)
+                        </p>
+                      </div>
+                      <StatusBadge
+                        status={req.status}
+                        rejectedByRole={req.rejectedByRole}
+                      />
+                    </div>
 
-                      <td
-                        data-label="Aksi"
-                        className="whitespace-nowrap px-5 py-4 text-right"
-                        onClick={(e) => e.stopPropagation()}
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--rule)] pt-2 text-[11px] text-[var(--ink-muted)]">
+                      <span>
+                        Diajukan: {formatIndonesianDate(req.submissionDate)}
+                      </span>
+                      {subStatus && <span>{subStatus}</span>}
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-end gap-1.5 pt-1">
+                      {req.status === "Pending" && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCancelServerError("");
+                            setCancelTarget(req);
+                          }}
+                          className="btn btn-danger-ghost btn-sm"
+                        >
+                          Batalkan
+                        </button>
+                      )}
+                      {req.status === "Approved" && (
+                        <a
+                          href={`/api/leaves/${req.id}/pdf`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-primary btn-sm"
+                        >
+                          <FileDown className="h-3.5 w-3.5" aria-hidden="true" />
+                          <span>PDF</span>
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedRequest(req)}
+                        className="btn btn-sm"
                       >
-                        <div className="inline-flex items-center gap-1.5">
-                          {req.status === "Pending" && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setCancelServerError("");
-                                setCancelTarget(req);
-                              }}
-                              className="cursor-pointer rounded-lg border border-rose-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-rose-700 transition-colors duration-150 hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700"
-                            >
-                              Batalkan
-                            </button>
-                          )}
+                        Detail
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </section>
 
-                          {req.status === "Approved" && (
-                            <a
-                              href={`/api/leaves/${req.id}/pdf`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-emerald-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-emerald-800 transition-colors duration-150 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-                            >
-                              <FileDown
-                                className="h-3.5 w-3.5"
-                                aria-hidden="true"
-                              />
-                              <span>PDF</span>
-                            </a>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => setSelectedRequest(req)}
-                            className="cursor-pointer rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-                          >
-                            Detail
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Slide-Over Drawer Detail & Timeline (Native <dialog className="otium-drawer">) */}
+      {/* Slide-Over Drawer Detail & Routing Slip */}
       <LeaveDetailDrawer
         request={selectedRequest}
         isOpen={Boolean(selectedRequest)}
@@ -692,7 +904,7 @@ export default function LeaveHistoryClient({
         }}
       />
 
-      {/* Modal Pembatalan Cuti (Native <dialog className="otium-modal">, khusus Pending) */}
+      {/* Modal Pembatalan Cuti (khusus Pending) */}
       <CancelLeaveModal
         isOpen={Boolean(cancelTarget)}
         request={cancelTarget}
@@ -707,34 +919,28 @@ export default function LeaveHistoryClient({
         onConfirm={handleConfirmCancel}
       />
 
-      {/* Toast Umpan Balik Aksesibel */}
+      {/* Toast Umpan Balik Swiss Archival */}
       {toast && (
         <div
           role={toast.tone === "error" ? "alert" : "status"}
           aria-live={toast.tone === "error" ? "assertive" : "polite"}
-          className={`fixed bottom-5 right-5 z-50 flex max-w-sm items-center gap-2.5 rounded-xl border px-4 py-3 text-xs font-medium shadow-xl ${
+          className={`fixed bottom-5 right-5 z-50 flex max-w-md items-center gap-2.5 rounded-[2px] border px-4 py-3 font-mono text-xs shadow-xl ${
             toast.tone === "error"
-              ? "border-rose-300 bg-rose-950 text-rose-50"
-              : "border-stone-700 bg-slate-900 text-white"
+              ? "border-[var(--terracotta)] bg-[var(--terracotta-btn)] text-[var(--spruce-btn-ink)]"
+              : "border-[var(--ink)] bg-[var(--ink)] text-[var(--paper-pure)]"
           }`}
         >
           {toast.tone === "error" ? (
-            <AlertCircle
-              className="h-4 w-4 shrink-0 text-rose-300"
-              aria-hidden="true"
-            />
+            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
           ) : (
-            <CheckCircle2
-              className="h-4 w-4 shrink-0 text-emerald-400"
-              aria-hidden="true"
-            />
+            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
           )}
           <span className="leading-snug">{toast.message}</span>
           <button
             type="button"
             onClick={() => setToast(null)}
             aria-label="Tutup notifikasi"
-            className="ml-1 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            className="ml-1 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-[2px] opacity-80 hover:opacity-100"
           >
             <X className="h-3.5 w-3.5" aria-hidden="true" />
           </button>

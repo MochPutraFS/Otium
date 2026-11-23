@@ -4,6 +4,9 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   Building2,
   CheckCircle2,
   Crown,
@@ -26,7 +29,7 @@ import {
 } from "@/actions/division-member-actions";
 
 /**
- * Workspace CMS Modul 3: Manajemen Anggota Divisi (/admin/division-members) — Pure Production.
+ * Workspace CMS Modul 3: Manajemen Anggota Divisi (/admin/division-members) — Swiss Archival.
  * Terhubung ke PostgreSQL via Server Component initial load, Server Actions (assignMembersAction &
  * removeMemberAction), dan Route Handler GET /api/admin/division-members.
  */
@@ -248,6 +251,9 @@ export default function AdminDivisionMembersClient({
       if (sortBy === "quota_desc") {
         return Number(b.remainingLeaveQuota) - Number(a.remainingLeaveQuota);
       }
+      if (sortBy === "quota_asc") {
+        return Number(a.remainingLeaveQuota) - Number(b.remainingLeaveQuota);
+      }
       return a.fullName.localeCompare(b.fullName, "id");
     });
   }, [
@@ -269,6 +275,42 @@ export default function AdminDivisionMembersClient({
     setRoleFilter("ALL");
     setStatusFilter("ALL");
     setSortBy("leader_first");
+  }
+
+  function handleColumnSort(col) {
+    if (col === "name") {
+      setSortBy((prev) => (prev === "name_asc" ? "name_desc" : "name_asc"));
+    } else if (col === "quota") {
+      setSortBy((prev) => (prev === "quota_desc" ? "quota_asc" : "quota_desc"));
+    }
+  }
+
+  function getAriaSort(col) {
+    if (col === "name") {
+      if (sortBy === "name_asc") return "ascending";
+      if (sortBy === "name_desc") return "descending";
+    }
+    if (col === "quota") {
+      if (sortBy === "quota_asc") return "ascending";
+      if (sortBy === "quota_desc") return "descending";
+    }
+    return "none";
+  }
+
+  function renderSortIcon(col) {
+    const dir = getAriaSort(col);
+    if (dir === "ascending") {
+      return <ArrowUp className="h-3 w-3 shrink-0" aria-hidden="true" />;
+    }
+    if (dir === "descending") {
+      return <ArrowDown className="h-3 w-3 shrink-0" aria-hidden="true" />;
+    }
+    return (
+      <ArrowUpDown
+        className="h-3 w-3 shrink-0 opacity-45"
+        aria-hidden="true"
+      />
+    );
   }
 
   async function handleAssignMembers(userIds) {
@@ -357,6 +399,7 @@ export default function AdminDivisionMembersClient({
     { value: "name_asc", label: "Nama (A–Z)" },
     { value: "name_desc", label: "Nama (Z–A)" },
     { value: "quota_desc", label: "Sisa Kuota Terbanyak" },
+    { value: "quota_asc", label: "Sisa Kuota Tersedikit" },
   ];
 
   return (
@@ -366,29 +409,23 @@ export default function AdminDivisionMembersClient({
         <div
           role={toast.tone === "error" ? "alert" : "status"}
           aria-live={toast.tone === "error" ? "assertive" : "polite"}
-          className={`fixed right-5 top-20 z-50 flex max-w-md items-center gap-2.5 rounded-lg border px-4 py-3 text-xs font-semibold shadow-lg ${
-            toast.tone === "error"
-              ? "border-rose-300 bg-rose-50 text-rose-950"
-              : "border-emerald-300 bg-emerald-50 text-emerald-950"
+          className={`notice fixed right-5 top-20 z-50 max-w-md items-center shadow-[var(--shadow-lg)] ${
+            toast.tone === "error" ? "notice-danger" : "notice-success"
           }`}
         >
           {toast.tone === "error" ? (
-            <AlertCircle
-              className="h-4 w-4 shrink-0 text-rose-700"
-              aria-hidden="true"
-            />
+            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
           ) : (
-            <CheckCircle2
-              className="h-4 w-4 shrink-0 text-emerald-700"
-              aria-hidden="true"
-            />
+            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
           )}
-          <span>{toast.message}</span>
+          <span className="flex-1 text-[12.5px] font-medium">
+            {toast.message}
+          </span>
           <button
             type="button"
             onClick={() => setToast(null)}
             aria-label="Tutup notifikasi"
-            className="ml-1 cursor-pointer rounded p-0.5 opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
+            className="btn-icon h-6 w-6 shrink-0"
           >
             <X className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
@@ -396,15 +433,15 @@ export default function AdminDivisionMembersClient({
       )}
 
       {/* Header Editorial Halaman */}
-      <header className="flex flex-col gap-4 border-b border-stone-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <header className="flex flex-col gap-4 border-b border-[var(--rule-strong)] pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
-            CMS Modul 03 · Struktur Keanggotaan
+          <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+            CMS MODUL 03 · STRUKTUR KEANGGOTAAN
           </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h1 className="mt-1 font-serif text-[28px] font-semibold leading-tight tracking-[-0.015em] text-[var(--ink)] sm:text-[32px]">
             Manajemen Anggota Divisi
           </h1>
-          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-600">
+          <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[var(--ink-soft)]">
             Pilih divisi aktif untuk menempatkan (<em>Assign</em>) atau melepas
             anggota secara atomik di PostgreSQL tanpa menghapus akun pengguna.
           </p>
@@ -414,7 +451,7 @@ export default function AdminDivisionMembersClient({
           type="button"
           disabled={isRefreshing}
           onClick={() => refreshFromApi({ silent: false })}
-          className="inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:bg-[#F4F2EC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+          className="btn btn-sm w-fit"
         >
           <RefreshCw
             className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`}
@@ -425,88 +462,98 @@ export default function AdminDivisionMembersClient({
       </header>
 
       {/* Kartu Selector Divisi Aktif */}
-      <section className="rounded-xl border border-stone-200 bg-white p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex-1 space-y-2">
-            <label
-              htmlFor={selectorId}
-              className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-700"
-            >
-              <Building2 className="h-4 w-4 text-slate-800" aria-hidden="true" />
-              Pilih Divisi Aktif
-            </label>
-            <select
-              id={selectorId}
-              value={selectedDivisionId ? String(selectedDivisionId) : ""}
-              onChange={(e) =>
-                setSelectedDivisionId(
-                  e.target.value ? Number(e.target.value) : null
-                )
-              }
-              className="w-full max-w-xl cursor-pointer rounded-lg border border-stone-300 bg-[#F4F2EC]/55 px-3.5 py-2.5 text-sm font-semibold text-slate-900 transition-colors duration-150 focus-visible:border-slate-900 focus-visible:bg-white focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-slate-900"
-            >
-              {divisions.length === 0 && (
-                <option value="">Belum ada divisi tersedia</option>
-              )}
-              {divisions.map((div) => {
-                const count = users.filter((u) => u.divisionId === div.id).length;
-                return (
-                  <option key={div.id} value={String(div.id)}>
-                    {div.name} (Ketua:{" "}
-                    {div.leader ? div.leader.fullName : "Belum Ada"} — {count}{" "}
-                    Anggota)
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-950 tabular-nums">
-              <Info className="h-3.5 w-3.5 text-amber-700" aria-hidden="true" />
-              <span>
-                <strong>{unassignedEmployeesCount}</strong> karyawan belum punya
-                divisi
-              </span>
+      <section className="panel">
+        <div className="panel-body">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex-1 space-y-2">
+              <label
+                htmlFor={selectorId}
+                className="flex items-center gap-1.5 font-mono text-[10.5px] font-medium uppercase tracking-[0.12em] text-[var(--ink-muted)]"
+              >
+                <Building2 className="h-3.5 w-3.5 text-[var(--spruce)]" aria-hidden="true" />
+                Pilih Divisi Aktif
+              </label>
+              <select
+                id={selectorId}
+                value={selectedDivisionId ? String(selectedDivisionId) : ""}
+                onChange={(e) =>
+                  setSelectedDivisionId(
+                    e.target.value ? Number(e.target.value) : null
+                  )
+                }
+                className="select w-full max-w-xl font-medium"
+              >
+                {divisions.length === 0 && (
+                  <option value="">Belum ada divisi tersedia</option>
+                )}
+                {divisions.map((div) => {
+                  const count = users.filter((u) => u.divisionId === div.id).length;
+                  return (
+                    <option key={div.id} value={String(div.id)}>
+                      {div.name} (Ketua:{" "}
+                      {div.leader ? div.leader.fullName : "Belum Ada"} — {count}{" "}
+                      Anggota)
+                    </option>
+                  );
+                })}
+              </select>
             </div>
 
-            <button
-              type="button"
-              disabled={!activeDivision}
-              onClick={() => {
-                setAssignError("");
-                setIsAssignOpen(true);
-              }}
-              className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:bg-slate-400"
-            >
-              <UserPlus className="h-4 w-4" aria-hidden="true" />
-              Assign Anggota
-            </button>
-          </div>
-        </div>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="notice notice-warn !py-1.5 !px-3 text-[12px] tabular-nums">
+                <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span>
+                  <strong>{unassignedEmployeesCount}</strong> karyawan belum
+                  punya divisi
+                </span>
+              </div>
 
-        {/* Ringkasan Info Divisi Terpilih */}
-        {activeDivision && (
-          <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-stone-200 pt-4 text-xs text-slate-700">
-            <span className="inline-flex items-center gap-1.5">
-              <Crown className="h-4 w-4 text-slate-800" aria-hidden="true" />
-              Ketua:{" "}
-              <strong className="text-slate-900">
-                {activeLeader ? activeLeader.fullName : "Belum Ditetapkan"}
-              </strong>
-            </span>
-            <span className="inline-flex items-center gap-1.5 tabular-nums">
-              <Users className="h-4 w-4 text-emerald-700" aria-hidden="true" />
-              Total Anggota:{" "}
-              <strong className="text-slate-900">
-                {divisionMembers.length} Orang
-              </strong>
-            </span>
-            {activeDivision.description && (
-              <span className="text-slate-600">{activeDivision.description}</span>
-            )}
+              <button
+                type="button"
+                disabled={!activeDivision}
+                onClick={() => {
+                  setAssignError("");
+                  setIsAssignOpen(true);
+                }}
+                className="btn btn-primary btn-sm"
+              >
+                <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
+                Assign Anggota
+              </button>
+            </div>
           </div>
-        )}
+
+          {/* Ringkasan Info Divisi Terpilih */}
+          {activeDivision && (
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[var(--rule)] pt-4 text-[12.5px] text-[var(--ink-soft)]">
+              <span className="inline-flex items-center gap-1.5">
+                <Crown
+                  className="h-3.5 w-3.5 text-[var(--ochre)]"
+                  aria-hidden="true"
+                />
+                Ketua:{" "}
+                <strong className="text-[var(--ink)]">
+                  {activeLeader ? activeLeader.fullName : "Belum Ditetapkan"}
+                </strong>
+              </span>
+              <span className="inline-flex items-center gap-1.5 tabular-nums">
+                <Users
+                  className="h-3.5 w-3.5 text-[var(--spruce)]"
+                  aria-hidden="true"
+                />
+                Total Anggota:{" "}
+                <strong className="font-mono text-[var(--ink)]">
+                  {divisionMembers.length} Orang
+                </strong>
+              </span>
+              {activeDivision.description && (
+                <span className="text-[var(--ink-muted)]">
+                  {activeDivision.description}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </section>
 
       {/* Toolbar Filter Anggota */}
@@ -526,8 +573,8 @@ export default function AdminDivisionMembersClient({
         />
       )}
 
-      {/* Tabel Anggota Divisi (Responsive Container Query) */}
-      <section className="overflow-hidden rounded-xl border border-stone-200 bg-white">
+      {/* Ledger Anggota Divisi */}
+      <section className="panel overflow-hidden">
         {!activeDivision ? (
           <div className="p-8">
             <EmptyState
@@ -543,134 +590,187 @@ export default function AdminDivisionMembersClient({
             />
           </div>
         ) : (
-          <div
-            tabIndex={0}
-            role="region"
-            aria-labelledby={tableCaptionId}
-            className="otium-responsive-table-wrap focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-slate-900"
-          >
-            <table className="otium-responsive-table text-left text-sm">
-              <caption id={tableCaptionId} className="sr-only">
-                Daftar anggota pada divisi {activeDivision.name}
-              </caption>
-              <thead className="bg-[#F4F2EC] text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-700">
-                <tr>
-                  <th scope="col" className="border-b border-stone-200 px-5 py-3.5">
-                    Nama Lengkap
-                  </th>
-                  <th scope="col" className="border-b border-stone-200 px-4 py-3.5">
-                    Email
-                  </th>
-                  <th scope="col" className="border-b border-stone-200 px-4 py-3.5">
-                    Role
-                  </th>
-                  <th scope="col" className="border-b border-stone-200 px-4 py-3.5">
-                    Sisa Kuota
-                  </th>
-                  <th scope="col" className="border-b border-stone-200 px-4 py-3.5">
-                    Status
-                  </th>
-                  <th
-                    scope="col"
-                    className="border-b border-stone-200 px-5 py-3.5 text-right"
-                  >
-                    Aksi
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100 bg-white">
-                {filteredMembers.map((member) => {
-                  const isDivisionLeader =
-                    member.id === activeDivision.leaderId;
-                  return (
-                    <tr
-                      key={member.id}
-                      className="transition-colors duration-150 hover:bg-[#F4F2EC]/45"
-                    >
-                      <th
-                        scope="row"
-                        className="whitespace-nowrap px-5 py-3.5 font-normal"
+          <>
+            {/* Desktop Sortable Swiss Ledger Table */}
+            <div
+              tabIndex={0}
+              role="region"
+              aria-labelledby={tableCaptionId}
+              className="hidden overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--spruce)] md:block"
+            >
+              <table className="ledger">
+                <caption id={tableCaptionId} className="sr-only">
+                  Daftar anggota pada divisi {activeDivision.name}
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col" className="w-11 text-center">
+                      No.
+                    </th>
+                    <th scope="col" aria-sort={getAriaSort("name")}>
+                      <button
+                        type="button"
+                        onClick={() => handleColumnSort("name")}
                       >
-                        <p className="font-semibold text-slate-900">
+                        <span>Nama Lengkap</span>
+                        {renderSortIcon("name")}
+                      </button>
+                    </th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Role</th>
+                    <th scope="col" aria-sort={getAriaSort("quota")}>
+                      <button
+                        type="button"
+                        onClick={() => handleColumnSort("quota")}
+                      >
+                        <span>Sisa Kuota</span>
+                        {renderSortIcon("quota")}
+                      </button>
+                    </th>
+                    <th scope="col">Status</th>
+                    <th scope="col" className="text-right">
+                      Aksi
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMembers.map((member, idx) => {
+                    const isDivisionLeader =
+                      member.id === activeDivision.leaderId;
+                    return (
+                      <tr key={member.id}>
+                        <td className="row-idx text-center">
+                          {String(idx + 1).padStart(2, "0")}
+                        </td>
+                        <th scope="row" className="whitespace-nowrap font-normal">
+                          <p className="text-[13px] font-semibold text-[var(--ink)]">
+                            {member.fullName}
+                          </p>
+                          <p className="font-mono text-[11px] text-[var(--ink-muted)]">
+                            @{member.username}
+                          </p>
+                        </th>
+                        <td className="whitespace-nowrap font-mono text-[12px] text-[var(--ink-soft)]">
+                          {member.email}
+                        </td>
+                        <td className="whitespace-nowrap">
+                          <StatusBadge status={member.role} />
+                        </td>
+                        <td className="whitespace-nowrap font-mono text-[12.5px] font-semibold tabular-nums text-[var(--ink)]">
+                          {Number(member.remainingLeaveQuota).toFixed(1)} Hari
+                        </td>
+                        <td className="whitespace-nowrap">
+                          <StatusBadge
+                            status={member.isActive ? "Aktif" : "Nonaktif"}
+                          />
+                        </td>
+                        <td className="whitespace-nowrap text-right">
+                          {isDivisionLeader ? (
+                            <span
+                              title="Ganti Ketua Divisi melalui Modul 2 (Manajemen Divisi) terlebih dahulu"
+                              className="tag tag-leader w-[112px] justify-center"
+                            >
+                              <Crown className="h-3 w-3" aria-hidden="true" />
+                              Ketua Divisi
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRemoveError("");
+                                setRemoveTarget(member);
+                              }}
+                              className="btn btn-sm btn-danger-ghost w-[112px] justify-center"
+                            >
+                              <UserMinus
+                                className="h-3 w-3"
+                                aria-hidden="true"
+                              />
+                              Keluarkan
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Ledger Cards (< md) */}
+            <div className="divide-y divide-[var(--rule)] md:hidden">
+              {filteredMembers.map((member, idx) => {
+                const isDivisionLeader = member.id === activeDivision.leaderId;
+                return (
+                  <article key={member.id} className="ledger-card">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-[13.5px] font-semibold text-[var(--ink)]">
                           {member.fullName}
                         </p>
-                        <p className="font-mono text-[11px] text-slate-600">
-                          @{member.username}
+                        <p className="truncate font-mono text-[11px] text-[var(--ink-muted)]">
+                          @{member.username} · {member.email}
                         </p>
-                      </th>
-                      <td
-                        data-label="Email"
-                        className="whitespace-nowrap px-4 py-3.5 text-xs text-slate-700"
-                      >
-                        {member.email}
-                      </td>
-                      <td
-                        data-label="Role"
-                        className="whitespace-nowrap px-4 py-3.5"
-                      >
-                        <StatusBadge status={member.role} />
-                      </td>
-                      <td
-                        data-label="Sisa Kuota"
-                        className="whitespace-nowrap px-4 py-3.5 text-xs font-bold text-slate-900 tabular-nums"
-                      >
-                        {Number(member.remainingLeaveQuota).toFixed(1)} Hari
-                      </td>
-                      <td
-                        data-label="Status"
-                        className="whitespace-nowrap px-4 py-3.5"
-                      >
-                        <StatusBadge
-                          status={member.isActive ? "Aktif" : "Nonaktif"}
-                        />
-                      </td>
-                      <td
-                        data-label="Aksi"
-                        className="whitespace-nowrap px-5 py-3.5 text-right"
-                      >
-                        {isDivisionLeader ? (
-                          <span
-                            title="Ganti Ketua Divisi melalui Modul 2 (Manajemen Divisi) terlebih dahulu"
-                            className="inline-flex items-center gap-1 rounded-lg border border-stone-300 bg-[#F4F2EC] px-2.5 py-1.5 text-xs font-semibold text-slate-800"
-                          >
-                            <Crown className="h-3.5 w-3.5" aria-hidden="true" />
-                            Ketua Divisi
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setRemoveError("");
-                              setRemoveTarget(member);
-                            }}
-                            className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-800 transition-colors duration-150 hover:bg-rose-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-rose-700"
-                          >
-                            <UserMinus
-                              className="h-3.5 w-3.5"
-                              aria-hidden="true"
-                            />
-                            Keluarkan
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                      <span className="font-mono text-[10.5px] text-[var(--ink-muted)]">
+                        #{String(idx + 1).padStart(2, "0")}
+                      </span>
+                    </div>
+
+                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                      <StatusBadge status={member.role} />
+                      <StatusBadge
+                        status={member.isActive ? "Aktif" : "Nonaktif"}
+                      />
+                      <span className="tag font-mono tabular-nums">
+                        Sisa: {Number(member.remainingLeaveQuota).toFixed(1)} Hr
+                      </span>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-end border-t border-[var(--rule)] pt-3">
+                      {isDivisionLeader ? (
+                        <span className="tag tag-leader">
+                          <Crown className="h-3 w-3" aria-hidden="true" />
+                          Ketua Divisi
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRemoveError("");
+                            setRemoveTarget(member);
+                          }}
+                          className="btn btn-sm btn-danger-ghost"
+                        >
+                          <UserMinus className="h-3 w-3" aria-hidden="true" />
+                          Keluarkan
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </>
         )}
 
         {/* Catatan Invarian Modul 3 */}
-        <div className="flex items-center gap-2 border-t border-stone-200 bg-[#F4F2EC]/70 px-5 py-3 text-xs text-slate-700">
+        <div className="flex items-center gap-2 border-t border-[var(--rule)] bg-[var(--alabaster)] px-5 py-3 text-[12px] text-[var(--ink-soft)]">
           <ShieldCheck
-            className="h-4 w-4 shrink-0 text-emerald-700"
+            className="h-4 w-4 shrink-0 text-[var(--spruce)]"
             aria-hidden="true"
           />
           <span>
-            Tombol <strong>Keluarkan</strong> hanya melepas atribut divisi (
-            <code>UPDATE users SET division_id = NULL</code>) dan{" "}
-            <strong>TIDAK menghapus akun pengguna</strong>.
+            Tombol <strong className="text-[var(--ink)]">Keluarkan</strong> hanya
+            melepas atribut divisi (
+            <code className="font-mono text-[11px] text-[var(--ink)]">
+              UPDATE users SET division_id = NULL
+            </code>
+            ) dan{" "}
+            <strong className="text-[var(--ink)]">
+              TIDAK menghapus akun pengguna
+            </strong>
+            .
           </span>
         </div>
       </section>
@@ -700,38 +800,40 @@ export default function AdminDivisionMembersClient({
         className="otium-modal w-full max-w-md"
       >
         {removeTarget && activeDivision && (
-          <div className="w-full overflow-hidden rounded-xl border border-stone-300 bg-white shadow-2xl">
-            <div className="flex items-start justify-between gap-3 border-b border-stone-200 bg-[#F4F2EC] px-5 py-4">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-amber-50 text-amber-800">
+          <div className="w-full overflow-hidden rounded-[6px] border border-[var(--ink)] bg-[var(--paper-pure)] shadow-[var(--shadow-lg)]">
+            <div className="flex items-start justify-between gap-3 border-b border-[var(--ochre-border)] bg-[var(--ochre-tint)] px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[4px] border border-[var(--ochre-border)] bg-[var(--paper-pure)] text-[var(--ochre)]">
                   <UserMinus className="h-4 w-4" aria-hidden="true" />
                 </div>
-                <h2
-                  id={removeTitleId}
-                  className="text-sm font-bold tracking-tight text-slate-900"
-                >
-                  Keluarkan dari Divisi {activeDivision.name}?
-                </h2>
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--ochre)]">
+                    LEPAS KEANGGOTAAN DIVISI
+                  </p>
+                  <h2
+                    id={removeTitleId}
+                    className="font-serif text-[18px] font-semibold leading-snug text-[var(--ink)]"
+                  >
+                    Keluarkan dari {activeDivision.name}?
+                  </h2>
+                </div>
               </div>
               <button
                 type="button"
                 disabled={isRemoving}
                 onClick={() => setRemoveTarget(null)}
                 aria-label="Tutup modal konfirmasi keluarkan anggota"
-                className="cursor-pointer rounded-lg p-1 text-slate-600 transition-colors duration-150 hover:bg-stone-200/80 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn-icon h-7 w-7 shrink-0"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
 
-            <div className="space-y-3 px-5 py-4 text-xs leading-relaxed text-slate-700">
+            <div className="space-y-3 px-5 py-4 text-[12.5px] leading-relaxed text-[var(--ink-soft)]">
               {removeError && (
-                <div
-                  role="alert"
-                  className="flex items-start gap-2 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2.5 font-medium text-rose-950"
-                >
+                <div role="alert" className="notice notice-danger">
                   <AlertCircle
-                    className="mt-0.5 h-4 w-4 shrink-0 text-rose-700"
+                    className="mt-0.5 h-4 w-4 shrink-0"
                     aria-hidden="true"
                   />
                   <span>{removeError}</span>
@@ -739,29 +841,34 @@ export default function AdminDivisionMembersClient({
               )}
 
               <p>
-                <strong className="text-slate-900">
+                <strong className="text-[var(--ink)]">
                   {removeTarget.fullName}
                 </strong>{" "}
                 akan dilepas dari divisi{" "}
-                <strong className="text-slate-900">
+                <strong className="text-[var(--ink)]">
                   {activeDivision.name}
                 </strong>
                 .
               </p>
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-emerald-950">
-                Akun pengguna <strong>tidak akan dihapus</strong>. Pengguna
-                hanya memiliki <code>division_id = NULL</code> dan dapat
-                di-assign kembali ke divisi mana pun.
+              <div className="notice notice-success">
+                <span>
+                  Akun pengguna <strong>tidak akan dihapus</strong>. Pengguna
+                  hanya memiliki{" "}
+                  <code className="font-mono text-[11px]">
+                    division_id = NULL
+                  </code>{" "}
+                  dan dapat di-assign kembali ke divisi mana pun.
+                </span>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 border-t border-stone-200 bg-[#F4F2EC]/70 px-5 py-3">
+            <div className="flex items-center justify-end gap-2 border-t border-[var(--rule)] bg-[var(--alabaster)] px-5 py-3">
               <button
                 type="button"
                 autoFocus
                 disabled={isRemoving}
                 onClick={() => setRemoveTarget(null)}
-                className="cursor-pointer rounded-lg border border-stone-300 bg-white px-4 py-2 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn btn-sm"
               >
                 Batal
               </button>
@@ -769,10 +876,13 @@ export default function AdminDivisionMembersClient({
                 type="button"
                 disabled={isRemoving}
                 onClick={handleConfirmRemoveMember}
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-rose-700 px-4 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:bg-rose-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 disabled:cursor-not-allowed disabled:bg-rose-300"
+                className="btn btn-sm btn-danger"
               >
                 {isRemoving ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                  <Loader2
+                    className="h-3.5 w-3.5 animate-spin"
+                    aria-hidden="true"
+                  />
                 ) : (
                   <UserMinus className="h-3.5 w-3.5" aria-hidden="true" />
                 )}

@@ -202,14 +202,17 @@ export default function ProfilePageView({ initialProfile, divisions = [] }) {
   }
 
   return (
-    <div className="space-y-5">
-      {/* Deskripsi Ringkas Halaman */}
-      <div className="flex flex-col gap-1 border-b border-stone-300/80 pb-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="space-y-6">
+      {/* Header Editorial Halaman */}
+      <header className="flex flex-col gap-1 border-b border-[var(--rule-strong)] pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight text-[#0F172A]">
+          <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+            IDENTITAS &amp; KEAMANAN AKUN
+          </p>
+          <h1 className="mt-1 font-serif text-[28px] font-semibold leading-tight tracking-[-0.015em] text-[var(--ink)] sm:text-[32px]">
             Pengaturan Akun &amp; Identitas
-          </h2>
-          <p className="mt-1 text-sm text-slate-600">
+          </h1>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--ink-soft)]">
             Kelola informasi pribadi, foto profil,{" "}
             {hasLeaveQuotaAccess
               ? "pantau sisa kuota cuti tahunan realtime, "
@@ -217,40 +220,32 @@ export default function ProfilePageView({ initialProfile, divisions = [] }) {
             dan perbarui keamanan password Anda.
           </p>
         </div>
-      </div>
+      </header>
 
       {/* Status / Error Banner dengan aria-live */}
       {banner && (
         <div
           role={banner.type === "error" ? "alert" : "status"}
           aria-live={banner.type === "error" ? "assertive" : "polite"}
-          className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
-            banner.type === "error"
-              ? "border-rose-200 bg-rose-50 text-rose-800"
-              : "border-emerald-200 bg-emerald-50 text-emerald-900"
+          className={`notice items-center justify-between ${
+            banner.type === "error" ? "notice-danger" : "notice-success"
           }`}
         >
           <div className="flex items-center gap-2.5">
             {banner.type === "error" ? (
-              <AlertCircle
-                className="h-4 w-4 shrink-0 text-rose-600"
-                aria-hidden="true"
-              />
+              <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
             ) : (
-              <CheckCircle2
-                className="h-4 w-4 shrink-0 text-emerald-700"
-                aria-hidden="true"
-              />
+              <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
             )}
-            <span className="font-medium">{banner.text}</span>
+            <span className="text-[13px] font-medium">{banner.text}</span>
           </div>
           <button
             type="button"
             onClick={() => setBanner(null)}
             aria-label="Tutup pemberitahuan"
-            className="cursor-pointer rounded-lg p-1 text-current opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A]"
+            className="btn-icon h-6 w-6 shrink-0"
           >
-            <X className="h-4 w-4" aria-hidden="true" />
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
         </div>
       )}
@@ -285,12 +280,12 @@ export default function ProfilePageView({ initialProfile, divisions = [] }) {
         </div>
 
         {/* Kolom Kanan: Tabbed Workspace */}
-        <section className="overflow-hidden rounded-xl border border-stone-200 bg-white lg:col-span-8">
+        <section className="panel overflow-hidden lg:col-span-8">
           {/* Bar Navigasi Tab (WAI-ARIA Tablist + Keyboard Arrows) */}
           <div
             role="tablist"
             aria-label="Pengaturan profil"
-            className="flex items-center gap-1 overflow-x-auto border-b border-stone-200 bg-[#F4F2EC]/40 px-4 pt-2 sm:px-6"
+            className="flex items-center gap-1 overflow-x-auto border-b border-[var(--rule)] bg-[var(--alabaster)] px-4 pt-2 sm:px-6"
           >
             {PROFILE_TABS.map((tab, index) => {
               const Icon = tab.icon;
@@ -309,13 +304,13 @@ export default function ProfilePageView({ initialProfile, divisions = [] }) {
                   tabIndex={isActive ? 0 : -1}
                   onClick={() => setActiveTab(tab.key)}
                   onKeyDown={(e) => handleTabKeyDown(e, index)}
-                  className={`otium-tab inline-flex shrink-0 cursor-pointer items-center gap-2 px-3.5 py-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#0F172A] ${
+                  className={`otium-tab inline-flex shrink-0 cursor-pointer items-center gap-2 px-3.5 py-3 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--spruce)] ${
                     isActive
-                      ? "text-[#0F172A]"
-                      : "text-slate-600 hover:text-[#0F172A]"
+                      ? "text-[var(--ink)]"
+                      : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
                   }`}
                 >
-                  <Icon className="h-4 w-4" aria-hidden="true" />
+                  <Icon className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>{tab.label}</span>
                 </button>
               );

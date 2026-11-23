@@ -20,17 +20,41 @@ import {
   formatIndonesianDateRange,
 } from "@/lib/date-utils";
 
+function renderInkStamp(status) {
+  if (status === "Approved") {
+    return (
+      <div className="ink-stamp ink-stamp-approved" aria-label="Stempel: Disetujui">
+        DISETUJUI
+      </div>
+    );
+  }
+  if (status === "Rejected") {
+    return (
+      <div className="ink-stamp ink-stamp-rejected" aria-label="Stempel: Ditolak">
+        DITOLAK
+      </div>
+    );
+  }
+  if (status === "Cancelled") {
+    return (
+      <div className="ink-stamp ink-stamp-cancelled" aria-label="Stempel: Dibatalkan">
+        DIBATALKAN
+      </div>
+    );
+  }
+  return null;
+}
+
 /**
- * Slide-Over Drawer kanan untuk inspeksi detail pengajuan pada Portal Ketua Divisi & HRD.
- * Menggunakan native `<dialog className="otium-drawer" closedby="any">` + `showModal()`,
- * fallback light-dismiss untuk browser tanpa `closedBy`, fetch live `GET /api/leaves/[id]`
- * untuk ID numerik PostgreSQL (dengan fallback aman bagi data preview), pratinjau lampiran nyata
- * (`/uploads/...`), dan unduh Surat Cuti Resmi PDF untuk status `Approved`.
+ * Slide-Over Drawer Kanan Detail Pengajuan pada Portal Ketua Divisi & HRD bergaya Swiss Archival.
+ * Menggunakan native `<dialog className="otium-drawer" closedby="any">`, memuat live `GET /api/leaves/[id]`,
+ * menampilkan Logo Otium asli, Routing Slip + Stempel Tinta, lampiran, dan cetak PDF.
  */
 export default function ApprovalDetailDrawer({
   request,
   isOpen,
   canTakeAction = false,
+  canDownloadPdf = false,
   onClose,
   onOpenApprove,
   onOpenReject,
@@ -43,7 +67,6 @@ export default function ApprovalDetailDrawer({
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState("");
 
-  // Sinkronisasi native <dialog> top-layer
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -57,7 +80,6 @@ export default function ApprovalDetailDrawer({
     }
   }, [isOpen, request]);
 
-  // Fetch detail terbaru + audit timeline `leave_approvals` dari GET /api/leaves/[id] (hanya ID numerik DB)
   useEffect(() => {
     if (!isOpen || !request) return undefined;
 
@@ -108,7 +130,6 @@ export default function ApprovalDetailDrawer({
     return () => controller.abort();
   }, [isOpen, request]);
 
-  // Fallback light-dismiss wajib untuk browser tanpa dukungan `closedby` (mis. Safari)
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog || !isOpen) return undefined;
@@ -141,41 +162,38 @@ export default function ApprovalDetailDrawer({
       closedby="any"
       aria-labelledby={titleId}
       onClose={() => onClose?.()}
-      className="otium-drawer"
+      className="otium-modal-landscape"
     >
       {active && (
-        <aside className="flex h-full w-full flex-col border-l border-stone-200 bg-white shadow-2xl">
-          {/* Header */}
-          <div className="flex items-start justify-between gap-3 border-b border-stone-200 bg-[#F4F2EC]/70 px-5 py-4">
-            <div className="flex items-start gap-3 min-w-0">
-              {active.applicantAvatar ? (
+        <aside className="flex max-h-[calc(100dvh-2.5rem)] w-full flex-col rounded-[2px] border border-[var(--ink)] bg-[var(--paper-pure)] text-[var(--ink)] shadow-2xl">
+          {/* Header Arsip dengan Logo Otium Asli */}
+          <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--rule-strong)] bg-[var(--paper)] px-5 py-4">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[2px] border border-[var(--rule-strong)] bg-[var(--paper-pure)] p-1.5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={active.applicantAvatar}
-                  alt={`Foto profil ${active.applicantName}`}
-                  className="h-10 w-10 shrink-0 rounded-full border border-stone-200 object-cover bg-white"
+                  src="/images/otium-logo.svg"
+                  alt="Logo Otium"
+                  className="h-full w-full object-contain"
                 />
-              ) : (
-                <div
-                  aria-hidden="true"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-stone-200 bg-white text-xs font-bold text-slate-800"
-                >
-                  {active.applicantInitials || "KR"}
-                </div>
-              )}
+              </div>
 
               <div className="min-w-0">
+                <span className="panel-eyebrow !mb-0">
+                  OTIUM / VERIFIKASI #{String(active.id).padStart(4, "0")}
+                </span>
                 <h3
                   id={titleId}
-                  className="truncate text-sm font-bold tracking-tight text-slate-900"
+                  className="mt-0.5 truncate font-serif text-2xl font-semibold leading-tight text-[var(--ink)]"
                 >
                   {active.applicantName}
                 </h3>
-                <p className="mt-0.5 text-xs text-slate-600">
-                  {active.applicantRole} • {active.divisionName || "-"}
+                <p className="text-xs text-[var(--ink-soft)]">
+                  {active.applicantRole} &bull; {active.divisionName || "-"}
                 </p>
-                <p className="mt-1 text-xs font-semibold text-slate-900 tabular-nums">
+                <p className="mono mt-1 text-[11px] font-medium text-[var(--spruce)]">
                   {active.leaveTypeName} ({Number(active.totalDays).toFixed(1)}{" "}
-                  Hari) •{" "}
+                  hr) &bull;{" "}
                   {formatIndonesianDateRange(
                     active.startDate,
                     active.endDate,
@@ -187,334 +205,299 @@ export default function ApprovalDetailDrawer({
 
             <button
               type="button"
+              autoFocus
               onClick={() => dialogRef.current?.close()}
               aria-label="Tutup panel detail pengajuan"
-              className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-stone-300 bg-white text-slate-600 transition-colors hover:border-slate-900 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+              className="btn btn-icon shrink-0"
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
 
-          {/* Body */}
-          <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 text-xs">
-            {/* Loading / Error sinkronisasi live */}
+          {/* Body Scrollable — Tata Letak Landscape 2 Kolom */}
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 text-xs">
             {isLoadingDetail && (
-              <div className="flex items-center gap-2 rounded-lg border border-stone-200 bg-[#F4F2EC]/60 px-3 py-2 text-[11px] text-slate-600">
-                <Loader2
-                  className="h-3.5 w-3.5 animate-spin text-slate-700"
-                  aria-hidden="true"
-                />
+              <div className="mono mb-4 flex items-center gap-2 border border-[var(--rule)] bg-[var(--paper)] px-3 py-2 text-[11px] text-[var(--ink-muted)]">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
                 <span>Menyegarkan detail &amp; riwayat audit terbaru...</span>
               </div>
             )}
 
             {detailError && (
-              <div
-                role="alert"
-                className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900"
-              >
-                <AlertCircle
-                  className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700"
-                  aria-hidden="true"
-                />
+              <div role="alert" className="notice notice-warn mb-4">
+                <AlertCircle aria-hidden="true" />
                 <span>{detailError}</span>
               </div>
             )}
 
             {/* Status & Tanggal Diajukan */}
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-[var(--rule)] pb-3">
               <StatusBadge
                 status={active.status}
                 rejectedByRole={active.rejectedByRole}
               />
-              <span className="text-[11px] text-slate-500">
+              <span className="mono text-[11px] text-[var(--ink-muted)]">
                 Diajukan {formatIndonesianDate(active.submissionDate)}
               </span>
             </div>
 
-            {/* Info Kuota Pemohon */}
-            <div className="rounded-lg border border-stone-200 bg-[#F4F2EC]/60 p-3.5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-slate-600">
-                  Status Kuota Tahunan Pemohon
-                </span>
-                <span className="font-bold text-slate-900 tabular-nums">
-                  {active.deductsAnnualQuota
-                    ? `Sisa ${Number(active.remainingQuota ?? 0).toFixed(1)} Hari`
-                    : "Tidak Memotong Kuota"}
-                </span>
-              </div>
-              {active.deductsAnnualQuota && (
-                <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
-                  {active.quotaDeducted
-                    ? `Kuota sebesar ${Number(active.totalDays).toFixed(1)} hari sedang ditahan (Hold) untuk pengajuan ini.`
-                    : "Kuota telah dikembalikan otomatis (Auto-Refund) ke saldo pemohon."}
-                </p>
-              )}
-            </div>
-
-            {/* Alasan Penolakan (jika Rejected) */}
-            {active.status === "Rejected" && active.rejectionReason && (
-              <div className="rounded-lg border border-rose-200 bg-rose-50 p-3.5 text-rose-900">
-                <p className="font-semibold">
-                  Alasan Penolakan ({active.rejectedByRole || "Approver"})
-                </p>
-                <p className="mt-1 leading-relaxed text-rose-800">
-                  {active.rejectionReason}
-                </p>
-              </div>
-            )}
-
-            {/* Alasan Pembatalan (jika Cancelled) */}
-            {active.status === "Cancelled" && active.cancellationReason && (
-              <div className="rounded-lg border border-stone-300 bg-[#F4F2EC] p-3.5 text-slate-800">
-                <p className="font-semibold text-slate-900">
-                  Alasan Pembatalan Pemohon
-                </p>
-                <p className="mt-1 leading-relaxed text-slate-700">
-                  {active.cancellationReason}
-                </p>
-              </div>
-            )}
-
-            {/* Alasan Cuti */}
-            <div className="space-y-1.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                Alasan Cuti
-              </p>
-              <p className="leading-relaxed text-slate-800">{active.reason}</p>
-            </div>
-
-            {/* Serah Terima Tugas (Handover) */}
-            <div className="space-y-2 rounded-lg border border-stone-200 bg-[#F4F2EC]/50 p-3.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                Serah Terima Tugas (Handover)
-              </p>
-              <div className="flex items-center gap-1.5 font-semibold text-slate-900">
-                <UserCheck
-                  className="h-3.5 w-3.5 shrink-0 text-slate-700"
-                  aria-hidden="true"
-                />
-                <span>Rekan Pengganti: {active.handoverUserName || "-"}</span>
-              </div>
-              <p className="leading-relaxed text-slate-700">
-                {active.handoverNotes || "-"}
-              </p>
-            </div>
-
-            {/* Kontak Darurat & Lampiran */}
-            <div className="space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                Kontak Selama Cuti &amp; Lampiran
-              </p>
-              <div className="space-y-1.5 text-slate-700">
-                <p className="flex items-start gap-2">
-                  <MapPin
-                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-500"
-                    aria-hidden="true"
-                  />
-                  <span>{active.leaveAddress || "-"}</span>
-                </p>
-                <p className="flex items-center gap-2">
-                  <Phone
-                    className="h-3.5 w-3.5 shrink-0 text-slate-500"
-                    aria-hidden="true"
-                  />
-                  <span>{active.emergencyPhone || "-"}</span>
-                </p>
-              </div>
-
-              {hasRealAttachmentUrl ? (
-                <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2.5">
-                  <span className="flex min-w-0 items-center gap-1.5 font-semibold text-sky-900">
-                    <Paperclip
-                      className="h-3.5 w-3.5 shrink-0"
-                      aria-hidden="true"
-                    />
-                    <span className="truncate">
-                      {active.attachmentName || "Lampiran Dokumen"}
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+              {/* Kolom Kiri (7/12): Routing Slip + Jejak Audit + Alasan Penolakan/Pembatalan */}
+              <div className="space-y-4 lg:col-span-7">
+                {/* Kartu Routing Slip + Stempel Tinta */}
+                <article className="slip">
+                  {renderInkStamp(active.status)}
+                  <div className="slip-head">
+                    <div>
+                      <span className="panel-eyebrow !mb-0">
+                        Lembar Edaran &amp; Audit Kuota
+                      </span>
+                      <p className="text-xs font-semibold text-[var(--ink)]">
+                        {isLeaderApplicant
+                          ? "Jalur 2: Ketua Divisi → Final HRD"
+                          : "Jalur 1: Karyawan → Ketua Divisi → Final HRD"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="slip-meta">
+                    <span>
+                      <strong className="text-[var(--ink)]">Kuota Pemohon:</strong>{" "}
+                      <span className="mono font-semibold text-[var(--spruce)]">
+                        {active.deductsAnnualQuota
+                          ? `Sisa ${Number(active.remainingQuota ?? 0).toFixed(1)} hr`
+                          : "Non-Potong Kuota"}
+                      </span>
                     </span>
-                  </span>
-                  <a
-                    href={active.attachmentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex shrink-0 cursor-pointer items-center gap-1 text-[11px] font-semibold text-sky-900 underline underline-offset-2 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-                  >
-                    <span>Buka Lampiran</span>
-                    <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                  </a>
-                </div>
-              ) : active.attachmentName ? (
-                <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2.5">
-                  <span className="flex min-w-0 items-center gap-1.5 font-semibold text-sky-900">
-                    <Paperclip
-                      className="h-3.5 w-3.5 shrink-0"
-                      aria-hidden="true"
-                    />
-                    <span className="truncate">{active.attachmentName}</span>
-                  </span>
-                  {onPreviewAttachment && (
-                    <button
-                      type="button"
-                      onClick={() => onPreviewAttachment(active.attachmentName)}
-                      className="shrink-0 cursor-pointer text-[11px] font-semibold text-sky-900 underline underline-offset-2 hover:text-slate-900"
-                    >
-                      Pratinjau
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <p className="text-[11px] text-slate-500">
-                  Lampiran dokumen: Tidak ada / tidak diperlukan
-                </p>
-              )}
-            </div>
+                    {active.deductsAnnualQuota && (
+                      <span>
+                        {active.quotaDeducted
+                          ? `Hold ${Number(active.totalDays).toFixed(1)} hr`
+                          : "Auto-Refund selesai"}
+                      </span>
+                    )}
+                  </div>
+                </article>
 
-            {/* Timeline Persetujuan 2 Jalur */}
-            <div className="space-y-3 border-t border-stone-200 pt-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                Timeline Persetujuan (
-                {isLeaderApplicant
-                  ? "Jalur 2: Langsung HRD"
-                  : "Jalur 1: Berjenjang 2 Tahap"}
-                )
-              </p>
+                {/* Alasan Penolakan (jika Rejected) */}
+                {active.status === "Rejected" && active.rejectionReason && (
+                  <div className="notice notice-danger">
+                    <AlertCircle aria-hidden="true" />
+                    <div>
+                      <p className="m-0 font-semibold">
+                        Alasan Penolakan ({active.rejectedByRole || "Approver"})
+                      </p>
+                      <p className="mt-0.5 leading-relaxed">
+                        {active.rejectionReason}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
-              {Array.isArray(active.timeline) && active.timeline.length > 0 ? (
-                <ol className="space-y-3 border-l-2 border-stone-200 pl-4">
-                  {active.timeline.map((item, idx) => {
-                    const dotColor =
-                      item.state === "done"
-                        ? "bg-emerald-600"
-                        : item.state === "rejected"
-                          ? "bg-rose-600"
-                          : item.state === "active"
-                            ? "bg-amber-500"
-                            : item.state === "cancelled"
-                              ? "bg-slate-500"
-                              : "bg-stone-300";
+                {/* Alasan Pembatalan (jika Cancelled) */}
+                {active.status === "Cancelled" && active.cancellationReason && (
+                  <div className="notice notice-info">
+                    <AlertCircle aria-hidden="true" />
+                    <div>
+                      <p className="m-0 font-semibold">
+                        Alasan Pembatalan Pemohon
+                      </p>
+                      <p className="mt-0.5 leading-relaxed">
+                        {active.cancellationReason}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
-                    return (
-                      <li key={`${item.stage}-${idx}`} className="relative">
-                        <span
-                          className={`absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full ring-4 ring-white ${dotColor}`}
-                          aria-hidden="true"
-                        />
-                        <p className="font-semibold text-slate-900">
-                          {item.stage} — {item.actor}
+                {/* Timeline Persetujuan */}
+                <section className="space-y-2">
+                  <h4 className="panel-eyebrow">Jejak Audit Persetujuan</h4>
+
+                  {Array.isArray(active.timeline) && active.timeline.length > 0 ? (
+                    <div className="divide-y divide-[var(--rule)] border border-[var(--rule)]">
+                      {active.timeline.map((item, idx) => (
+                        <div
+                          key={`${item.stage}-${idx}`}
+                          className={`slip-box !min-h-0 !border-r-0 ${
+                            item.state === "active"
+                              ? "is-action"
+                              : item.state === "rejected"
+                                ? "is-rejected"
+                                : item.state === "cancelled"
+                                  ? "is-skipped"
+                                  : ""
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
+                              {String(idx + 1).padStart(2, "0")} &bull; {item.stage}
+                            </span>
+                            <span className="mono text-[10.5px] text-[var(--ink-muted)]">
+                              {item.time}
+                            </span>
+                          </div>
+                          <p className="font-semibold text-[var(--ink)]">
+                            {item.actor}
+                          </p>
+                          {item.notes && (
+                            <p className="mt-1 border-l-2 border-[var(--rule-strong)] pl-2.5 italic text-[var(--ink-soft)]">
+                              &ldquo;{item.notes}&rdquo;
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-[var(--rule)] border border-[var(--rule)]">
+                      <div className="slip-box !min-h-0 !border-r-0">
+                        <span className="mono text-[10px] uppercase text-[var(--ink-muted)]">
+                          01 &bull; Pemohon
+                        </span>
+                        <p className="font-semibold text-[var(--ink)]">
+                          {active.applicantName}
                         </p>
-                        <p className="text-[11px] text-slate-600">
-                          {item.time}
+                        <p className="mono text-[11px] text-[var(--spruce)]">
+                          ✓ {formatIndonesianDate(active.submissionDate)}
                         </p>
-                        {item.notes && (
-                          <p className="mt-1 rounded-md border border-stone-200 bg-[#F4F2EC]/60 px-2.5 py-1.5 text-[11px] text-slate-700">
-                            &ldquo;{item.notes}&rdquo;
+                      </div>
+
+                      {!isLeaderApplicant && (
+                        <div className="slip-box !min-h-0 !border-r-0">
+                          <span className="mono text-[10px] uppercase text-[var(--ink-muted)]">
+                            02 &bull; Ketua Divisi
+                          </span>
+                          <p className="font-semibold text-[var(--ink)]">
+                            {active.leaderApproverName || "Menunggu Verifikasi"}
+                          </p>
+                          {active.leaderApprovedAt && (
+                            <p className="mono text-[11px] text-[var(--ink-soft)]">
+                              {active.leaderApprovedAt}
+                              {active.leaderNotes ? ` • "${active.leaderNotes}"` : ""}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="slip-box !min-h-0 !border-r-0">
+                        <span className="mono text-[10px] uppercase text-[var(--ink-muted)]">
+                          03 &bull; Final HRD
+                        </span>
+                        <p className="font-semibold text-[var(--ink)]">
+                          {active.hrdApproverName || "Menunggu Otorisasi HRD"}
+                        </p>
+                        {active.hrdApprovedAt && (
+                          <p className="mono text-[11px] text-[var(--ink-soft)]">
+                            {active.hrdApprovedAt}
+                            {active.hrdNotes ? ` • "${active.hrdNotes}"` : ""}
                           </p>
                         )}
-                      </li>
-                    );
-                  })}
-                </ol>
-              ) : (
-                <ol className="space-y-3 border-l-2 border-stone-200 pl-4">
-                  {/* Step 1: Pengajuan */}
-                  <li className="relative">
-                    <span
-                      className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-emerald-600 ring-4 ring-white"
+                      </div>
+                    </div>
+                  )}
+                </section>
+              </div>
+
+              {/* Kolom Kanan (5/12): Alasan Cuti, Handover, Kontak & Lampiran */}
+              <div className="space-y-4 lg:col-span-5">
+                {/* Alasan Cuti */}
+                <section className="space-y-1 border border-[var(--rule)] bg-[var(--paper-pure)] p-3.5">
+                  <h4 className="panel-eyebrow">Alasan Cuti</h4>
+                  <p className="leading-relaxed text-[var(--ink)]">
+                    {active.reason || "-"}
+                  </p>
+                </section>
+
+                {/* Serah Terima Tugas (Handover) */}
+                <section className="space-y-1.5 border border-[var(--rule)] bg-[var(--paper)] p-3.5">
+                  <h4 className="panel-eyebrow">Serah Terima Tugas (Handover)</h4>
+                  <p className="flex items-center gap-1.5 font-semibold text-[var(--ink)]">
+                    <UserCheck
+                      className="h-3.5 w-3.5 shrink-0 text-[var(--spruce)]"
                       aria-hidden="true"
                     />
-                    <p className="font-semibold text-slate-900">
-                      Diajukan — {active.applicantName}
-                    </p>
-                    <p className="text-[11px] text-slate-600">
-                      {formatIndonesianDate(active.submissionDate)}
-                    </p>
-                  </li>
+                    <span>Rekan Pengganti: {active.handoverUserName || "-"}</span>
+                  </p>
+                  <p className="leading-relaxed text-[var(--ink-soft)]">
+                    {active.handoverNotes || "-"}
+                  </p>
+                </section>
 
-                  {/* Step 2: Ketua Divisi (Hanya Jalur 1 / Karyawan) */}
-                  {!isLeaderApplicant && (
-                    <li className="relative">
-                      <span
-                        className={`absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full ring-4 ring-white ${
-                          active.rejectedByRole === "Ketua Divisi"
-                            ? "bg-rose-600"
-                            : active.leaderApproverName
-                              ? "bg-emerald-600"
-                              : active.status === "Pending"
-                                ? "bg-amber-500"
-                                : "bg-stone-300"
-                        }`}
+                {/* Kontak Selama Cuti & Lampiran */}
+                <section className="space-y-2 border border-[var(--rule)] bg-[var(--paper-pure)] p-3.5">
+                  <h4 className="panel-eyebrow">Kontak Selama Cuti &amp; Lampiran</h4>
+                  <div className="space-y-1.5 text-[var(--ink-soft)]">
+                    <p className="flex items-start gap-2">
+                      <MapPin
+                        className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--ink-muted)]"
                         aria-hidden="true"
                       />
-                      <p className="font-semibold text-slate-900">
-                        Verifikasi Ketua Divisi{" "}
-                        {active.leaderApproverName
-                          ? `— ${active.leaderApproverName}`
-                          : "(Menunggu)"}
-                      </p>
-                      {active.leaderApprovedAt ? (
-                        <p className="text-[11px] text-slate-600">
-                          {active.leaderApprovedAt}
-                          {active.leaderNotes ? ` • "${active.leaderNotes}"` : ""}
-                        </p>
-                      ) : (
-                        <p className="text-[11px] text-slate-500">
-                          Menunggu tindakan Ketua Divisi {active.divisionName}
-                        </p>
-                      )}
-                    </li>
-                  )}
-
-                  {/* Step Final: HRD */}
-                  <li className="relative">
-                    <span
-                      className={`absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full ring-4 ring-white ${
-                        active.rejectedByRole === "HRD"
-                          ? "bg-rose-600"
-                          : active.status === "Approved"
-                            ? "bg-emerald-600"
-                            : "bg-stone-300"
-                      }`}
-                      aria-hidden="true"
-                    />
-                    <p className="font-semibold text-slate-900">
-                      Persetujuan Final HRD{" "}
-                      {active.hrdApproverName
-                        ? `— ${active.hrdApproverName}`
-                        : "(Menunggu)"}
+                      <span>{active.leaveAddress || "-"}</span>
                     </p>
-                    {active.hrdApprovedAt ? (
-                      <p className="text-[11px] text-slate-600">
-                        {active.hrdApprovedAt}
-                        {active.hrdNotes ? ` • "${active.hrdNotes}"` : ""}
-                      </p>
-                    ) : (
-                      <p className="text-[11px] text-slate-500">
-                        {active.status === "Rejected"
-                          ? "Dihentikan karena ditolak pada tahap sebelumnya"
-                          : active.status === "Cancelled"
-                            ? "Dibatalkan oleh pemohon"
-                            : "Menunggu persetujuan final HRD"}
-                      </p>
-                    )}
-                  </li>
-                </ol>
-              )}
+                    <p className="flex items-center gap-2">
+                      <Phone
+                        className="h-3.5 w-3.5 shrink-0 text-[var(--ink-muted)]"
+                        aria-hidden="true"
+                      />
+                      <span className="mono">{active.emergencyPhone || "-"}</span>
+                    </p>
+                  </div>
+
+                  {hasRealAttachmentUrl ? (
+                    <div className="file-chip mt-2">
+                      <span className="flex min-w-0 items-center gap-1.5 font-medium">
+                        <Paperclip className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        <span className="truncate">
+                          {active.attachmentName || "Lampiran Dokumen"}
+                        </span>
+                      </span>
+                      <a
+                        href={active.attachmentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mono inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold underline"
+                      >
+                        <span>Buka</span>
+                        <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                      </a>
+                    </div>
+                  ) : active.attachmentName ? (
+                    <div className="file-chip mt-2">
+                      <span className="flex min-w-0 items-center gap-1.5 font-medium">
+                        <Paperclip className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        <span className="truncate">{active.attachmentName}</span>
+                      </span>
+                      {onPreviewAttachment && (
+                        <button
+                          type="button"
+                          onClick={() => onPreviewAttachment(active.attachmentName)}
+                          className="mono shrink-0 cursor-pointer text-[11px] font-semibold underline"
+                        >
+                          Pratinjau
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-[var(--ink-muted)]">
+                      Lampiran dokumen: Tidak ada / tidak diperlukan
+                    </p>
+                  )}
+                </section>
+              </div>
             </div>
           </div>
 
           {/* Footer Actions */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-stone-200 bg-[#F4F2EC]/70 px-5 py-3.5">
-            {active.status === "Approved" && Number.isInteger(Number(active.id)) ? (
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-[var(--rule)] bg-[var(--alabaster)] px-5 py-3.5">
+            {canDownloadPdf &&
+            active.status === "Approved" &&
+            Number.isInteger(Number(active.id)) ? (
               <a
                 href={`/api/leaves/${active.id}/pdf`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-800 transition-colors hover:border-slate-900 hover:bg-[#F4F2EC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                className="btn btn-sm"
               >
                 <FileDown className="h-3.5 w-3.5" aria-hidden="true" />
-                Surat Cuti PDF
+                <span>Surat Cuti PDF</span>
               </a>
             ) : (
               <span />
@@ -529,10 +512,10 @@ export default function ApprovalDetailDrawer({
                       dialogRef.current?.close();
                       onOpenReject?.(active);
                     }}
-                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-800 transition-colors hover:border-rose-700 hover:bg-rose-700 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-700"
+                    className="btn btn-danger-ghost btn-sm"
                   >
                     <XCircle className="h-3.5 w-3.5" aria-hidden="true" />
-                    Tolak
+                    <span>Tolak</span>
                   </button>
                   <button
                     type="button"
@@ -540,17 +523,17 @@ export default function ApprovalDetailDrawer({
                       dialogRef.current?.close();
                       onOpenApprove?.(active);
                     }}
-                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                    className="btn btn-primary btn-sm"
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-                    Setujui
+                    <span>Setujui</span>
                   </button>
                 </>
               ) : (
                 <button
                   type="button"
                   onClick={() => dialogRef.current?.close()}
-                  className="cursor-pointer rounded-lg border border-stone-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-900 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                  className="btn btn-sm"
                 >
                   Tutup
                 </button>

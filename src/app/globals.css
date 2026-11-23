@@ -3,37 +3,175 @@
 @tailwind utilities;
 
 :root {
-  --otium-ink: #0f172a;
-  --otium-alabaster: #f4f2ec;
-  --otium-autofill-bg: #f8f7f4;
-  --otium-accent: #1d4ed8;
+  color-scheme: light;
+
+  /* Raw Light & Dark Swiss Archival Tokens */
+  --alabaster-l: #F4F1EA;       --alabaster-d: #141311;
+  --alabaster-deep-l: #EAE4D8;  --alabaster-deep-d: #1C1A17;
+  --paper-l: #FAF8F4;           --paper-d: #1F1D1A;
+  --paper-pure-l: #FDFCFA;      --paper-pure-d: #26231F;
+  --rule-l: #D6D0C4;            --rule-d: #3B3730;
+  --rule-strong-l: #8F877A;     --rule-strong-d: #7D766B;
+  --ink-l: #191816;             --ink-d: #F0EBE2;
+  --ink-soft-l: #49453E;        --ink-soft-d: #C2BBB0;
+  --ink-muted-l: #655F56;       --ink-muted-d: #A39B8F;
+  --tint-base-l: #FFFFFF;       --tint-base-d: #141311;
+
+  --spruce-l: #1A3A2F;          --spruce-d: #7CC4A6;
+  --spruce-btn-l: #1A3A2F;      --spruce-btn-d: #2A634E;
+  --spruce-btn-hover-l: #122A22;--spruce-btn-hover-d: #21503E;
+  --spruce-btn-ink-l: #FDFCFA;  --spruce-btn-ink-d: #FDFCFA;
+
+  --ochre-l: #7A541C;           --ochre-d: #E2B366;
+  --terracotta-l: #8F2D27;      --terracotta-d: #F08A82;
+  --terracotta-btn-l: #8F2D27;  --terracotta-btn-d: #A93831;
+  --terracotta-hover-l: #70201B;--terracotta-hover-d: #8D2B25;
+  --slate-blue-l: #24425E;      --slate-blue-d: #8AB5DC;
+
+  /* Active Light Defaults (Fallback for browsers without light-dark()) */
+  --alabaster: var(--alabaster-l);
+  --alabaster-deep: var(--alabaster-deep-l);
+  --paper: var(--paper-l);
+  --paper-pure: var(--paper-pure-l);
+  --rule: var(--rule-l);
+  --rule-strong: var(--rule-strong-l);
+  --ink: var(--ink-l);
+  --ink-soft: var(--ink-soft-l);
+  --ink-muted: var(--ink-muted-l);
+  --tint-base: var(--tint-base-l);
+  --spruce: var(--spruce-l);
+  --spruce-btn: var(--spruce-btn-l);
+  --spruce-hover: var(--spruce-btn-hover-l);
+  --spruce-btn-ink: var(--spruce-btn-ink-l);
+  --ochre: var(--ochre-l);
+  --terracotta: var(--terracotta-l);
+  --terracotta-btn: var(--terracotta-btn-l);
+  --terracotta-hover: var(--terracotta-hover-l);
+  --slate-blue: var(--slate-blue-l);
+
+  /* Dynamic Tints via color-mix(in oklab, ...) adapting to both light & dark */
+  --spruce-tint: color-mix(in oklab, var(--spruce) 13%, var(--tint-base));
+  --spruce-tint-strong: color-mix(in oklab, var(--spruce) 22%, var(--tint-base));
+  --spruce-border: color-mix(in oklab, var(--spruce) 38%, var(--tint-base));
+
+  --ochre-tint: color-mix(in oklab, var(--ochre) 14%, var(--tint-base));
+  --ochre-border: color-mix(in oklab, var(--ochre) 40%, var(--tint-base));
+
+  --terracotta-tint: color-mix(in oklab, var(--terracotta) 13%, var(--tint-base));
+  --terracotta-border: color-mix(in oklab, var(--terracotta) 38%, var(--tint-base));
+
+  --slate-tint: color-mix(in oklab, var(--slate-blue) 13%, var(--tint-base));
+  --slate-border: color-mix(in oklab, var(--slate-blue) 38%, var(--tint-base));
+
+  /* Typography Stack (bound to next/font/google variables) */
+  --font-serif: var(--font-cormorant), Georgia, serif;
+  --font-sans: var(--font-ibm-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: var(--font-ibm-mono), ui-monospace, SFMono-Regular, monospace;
+
+  /* App Shell Dimensions */
+  --sidebar-w: 256px;
+  --sidebar-collapsed-w: 76px;
+  --topbar-h: 60px;
+
+  /* Legacy aliases for unmigrated pages (Tahap 2+) */
+  --otium-ink: var(--ink);
+  --otium-alabaster: var(--alabaster);
+  --otium-autofill-bg: var(--paper);
+  --otium-accent: var(--spruce);
+
+  accent-color: var(--spruce);
+  scrollbar-color: var(--rule-strong) var(--alabaster);
 }
 
-/* Pola grid arsitektural halus untuk panel editorial Otium */
-.otium-architectural-grid {
-  background-color: var(--otium-alabaster);
-  background-image:
-    linear-gradient(to right, rgba(15, 23, 42, 0.045) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(15, 23, 42, 0.045) 1px, transparent 1px);
-  background-size: 40px 40px;
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"],
+  :root[data-theme="dark"] {
+    --alabaster: var(--alabaster-d);
+    --alabaster-deep: var(--alabaster-deep-d);
+    --paper: var(--paper-d);
+    --paper-pure: var(--paper-pure-d);
+    --rule: var(--rule-d);
+    --rule-strong: var(--rule-strong-d);
+    --ink: var(--ink-d);
+    --ink-soft: var(--ink-soft-d);
+    --ink-muted: var(--ink-muted-d);
+    --tint-base: var(--tint-base-d);
+    --spruce: var(--spruce-d);
+    --spruce-btn: var(--spruce-btn-d);
+    --spruce-hover: var(--spruce-btn-hover-d);
+    --spruce-btn-ink: var(--spruce-btn-ink-d);
+    --ochre: var(--ochre-d);
+    --terracotta: var(--terracotta-d);
+    --terracotta-btn: var(--terracotta-btn-d);
+    --terracotta-hover: var(--terracotta-hover-d);
+    --slate-blue: var(--slate-blue-d);
+  }
 }
 
-/* Styling autofill editorial: indikator non-warna (inset ring 2px) tanpa pergeseran layout */
-.otium-input:is(:autofill, :-webkit-autofill) {
-  border-color: var(--otium-ink);
-  box-shadow:
-    inset 0 0 0 2px var(--otium-ink),
-    inset 0 0 0 100vmax var(--otium-autofill-bg);
-  -webkit-text-fill-color: var(--otium-ink);
-  caret-color: var(--otium-ink);
+@supports (color: light-dark(white, black)) {
+  :root {
+    --alabaster: light-dark(var(--alabaster-l), var(--alabaster-d));
+    --alabaster-deep: light-dark(var(--alabaster-deep-l), var(--alabaster-deep-d));
+    --paper: light-dark(var(--paper-l), var(--paper-d));
+    --paper-pure: light-dark(var(--paper-pure-l), var(--paper-pure-d));
+    --rule: light-dark(var(--rule-l), var(--rule-d));
+    --rule-strong: light-dark(var(--rule-strong-l), var(--rule-strong-d));
+    --ink: light-dark(var(--ink-l), var(--ink-d));
+    --ink-soft: light-dark(var(--ink-soft-l), var(--ink-soft-d));
+    --ink-muted: light-dark(var(--ink-muted-l), var(--ink-muted-d));
+    --tint-base: light-dark(var(--tint-base-l), var(--tint-base-d));
+    --spruce: light-dark(var(--spruce-l), var(--spruce-d));
+    --spruce-btn: light-dark(var(--spruce-btn-l), var(--spruce-btn-d));
+    --spruce-hover: light-dark(var(--spruce-btn-hover-l), var(--spruce-btn-hover-d));
+    --spruce-btn-ink: light-dark(var(--spruce-btn-ink-l), var(--spruce-btn-ink-d));
+    --ochre: light-dark(var(--ochre-l), var(--ochre-d));
+    --terracotta: light-dark(var(--terracotta-l), var(--terracotta-d));
+    --terracotta-btn: light-dark(var(--terracotta-btn-l), var(--terracotta-btn-d));
+    --terracotta-hover: light-dark(var(--terracotta-hover-l), var(--terracotta-hover-d));
+    --slate-blue: light-dark(var(--slate-blue-l), var(--slate-blue-d));
+  }
 }
 
-.otium-input:is(:autofill, :-webkit-autofill):focus-visible {
-  outline: 2px solid var(--otium-ink);
-  outline-offset: 2px;
-  box-shadow:
-    inset 0 0 0 2px var(--otium-ink),
-    inset 0 0 0 100vmax var(--otium-autofill-bg);
+@media (prefers-contrast: more) {
+  :root {
+    --rule: var(--rule-strong);
+    --rule-strong: var(--ink-soft);
+    --ink-muted: var(--ink-soft);
+    --ink-soft: var(--ink);
+  }
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    color: var(--ink);
+    background-color: var(--alabaster);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--alabaster);
+    color: var(--ink);
+  }
+
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--spruce);
+    outline-offset: 2px;
+  }
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.serif {
+  font-family: var(--font-serif);
 }
 
 /* Utilitas aksesibilitas kanonis (tetap terbaca screen reader, tersembunyi visual) */
@@ -49,14 +187,1138 @@
   white-space: nowrap !important;
 }
 
+/* Subtle Swiss Architectural Paper Grid (untuk Login Atelier & Workspace backdrop) */
+.arch-grid-bg {
+  background-color: var(--alabaster);
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in oklab, var(--rule-strong) 20%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--rule-strong) 20%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 28px 28px;
+}
+
+/* Legacy alias untuk halaman yang belum dimigrasi */
+.otium-architectural-grid {
+  background-color: var(--alabaster);
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in oklab, var(--rule-strong) 20%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--rule-strong) 20%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 28px 28px;
+}
+
+/* Keyframes */
+@keyframes numberTick {
+  0% {
+    opacity: 0.45;
+    transform: translateY(-3px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tick-anim {
+    animation: numberTick 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+/* =========================================================================
+   SWISS ARCHIVAL DESIGN SYSTEM PRIMITIVES
+   ========================================================================= */
+
+/* BUTTONS — Single Accent (Spruce) + Semantic Danger (Terracotta) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 7px 14px;
+  border-radius: 2px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  border: 1px solid var(--rule-strong);
+  background: var(--paper-pure);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) {
+  background: var(--alabaster-deep);
+  border-color: var(--ink);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-sm {
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.btn-primary {
+  background: var(--spruce-btn);
+  border-color: var(--spruce-btn);
+  color: var(--spruce-btn-ink);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--spruce-hover);
+  border-color: var(--spruce-hover);
+}
+.btn-danger {
+  background: var(--terracotta-btn);
+  border-color: var(--terracotta-btn);
+  color: var(--spruce-btn-ink);
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--terracotta-hover);
+  border-color: var(--terracotta-hover);
+}
+.btn-danger-ghost {
+  background: var(--terracotta-tint);
+  border-color: var(--terracotta-border);
+  color: var(--terracotta);
+}
+.btn-danger-ghost:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--terracotta) 20%, var(--tint-base));
+  border-color: var(--terracotta);
+}
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  position: relative;
+}
+
+/* STATUS TAGS — Icon + Shape + Label (WCAG 1.4.1 Use of Color) */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  background: var(--paper-pure);
+  color: var(--ink-soft);
+  line-height: 1.35;
+}
+.tag svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+.tag-pending {
+  color: var(--ochre);
+  background: var(--ochre-tint);
+  border-color: var(--ochre-border);
+}
+.tag-leader {
+  color: var(--slate-blue);
+  background: var(--slate-tint);
+  border-color: var(--slate-border);
+}
+.tag-approved {
+  color: var(--spruce);
+  background: var(--spruce-tint);
+  border-color: var(--spruce-border);
+}
+.tag-rejected {
+  color: var(--terracotta);
+  background: var(--terracotta-tint);
+  border-color: var(--terracotta-border);
+}
+.tag-cancelled {
+  color: var(--ink-muted);
+  background: var(--alabaster-deep);
+  border-color: var(--rule-strong);
+  border-style: dashed;
+}
+
+/* ARCHITECTURAL PANELS */
+.panel {
+  background: var(--paper-pure);
+  border: 1px solid var(--rule);
+}
+.panel-head {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.panel-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-muted);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 2px;
+}
+.panel-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  line-height: 1.25;
+}
+.panel-sub {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+.panel-body {
+  padding: 20px;
+}
+
+/* FORM CONTROLS */
+.input,
+.select,
+.textarea {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 2px;
+  background: var(--paper-pure);
+  font-size: 13.5px;
+  color: var(--ink);
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--ink-muted);
+}
+.input:focus,
+.select:focus,
+.textarea:focus {
+  border-color: var(--spruce);
+  background: var(--paper-pure);
+  outline: none;
+  box-shadow: 0 0 0 1px var(--spruce);
+}
+.input:disabled,
+.select:disabled,
+.textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--alabaster);
+}
+
+/* NOTICE / CALLOUT */
+.notice {
+  padding: 11px 14px;
+  border: 1px solid var(--rule-strong);
+  border-left-width: 3px;
+  border-radius: 2px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+.notice svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.notice-info {
+  background: var(--slate-tint);
+  border-color: var(--slate-border);
+  border-left-color: var(--slate-blue);
+  color: var(--slate-blue);
+}
+.notice-success {
+  background: var(--spruce-tint);
+  border-color: var(--spruce-border);
+  border-left-color: var(--spruce);
+  color: var(--spruce);
+}
+.notice-warn {
+  background: var(--ochre-tint);
+  border-color: var(--ochre-border);
+  border-left-color: var(--ochre);
+  color: var(--ochre);
+}
+.notice-danger {
+  background: var(--terracotta-tint);
+  border-color: var(--terracotta-border);
+  border-left-color: var(--terracotta);
+  color: var(--terracotta);
+}
+
+/* QUOTA LEDGER HERO & PRECISION RULER (12-Day Archival Scale with 0.5-Day Precision) */
+.quota-hero {
+  border: 1px solid var(--rule-strong);
+  background: var(--paper-pure);
+  padding: 22px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.quota-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--rule);
+  background: var(--paper);
+}
+.quota-kpi-cell {
+  padding: 12px 14px;
+  border-right: 1px solid var(--rule);
+}
+.quota-kpi-cell:last-child {
+  border-right: none;
+}
+.quota-ruler-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 100%;
+}
+.quota-ruler {
+  display: grid;
+  gap: 3px;
+  height: 16px;
+}
+.quota-seg {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--rule-strong);
+  border-radius: 1px;
+  background: var(--alabaster-deep);
+}
+.quota-seg-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  transition: width 260ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms ease;
+}
+.quota-seg-rem {
+  background: var(--spruce);
+}
+.quota-seg-proj {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--ochre),
+    var(--ochre) 3px,
+    var(--ochre-tint) 3px,
+    var(--ochre-tint) 6px
+  );
+}
+.quota-ruler-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+.quota-proj-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
+}
+.quota-proj-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.quota-proj-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--rule);
+  font-size: 12.5px;
+}
+.quota-proj-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* FILE PREVIEW CHIP */
+.file-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 11px;
+  border: 1px solid var(--spruce-border);
+  border-radius: 2px;
+  background: var(--spruce-tint);
+  font-size: 12px;
+  color: var(--spruce);
+}
+
+/* WHAT-IF ARCHITECTURAL CALENDAR (Interactive, Multi-Month, Monday-First, No Blackout) */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-top: 1px solid var(--rule-strong);
+  border-left: 1px solid var(--rule-strong);
+}
+.cal-dow {
+  padding: 6px 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--alabaster-deep);
+  color: var(--ink-soft);
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule-strong);
+}
+.cal-day {
+  aspect-ratio: 1.15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  background: var(--paper-pure);
+  color: var(--ink);
+  border: none;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  position: relative;
+  padding: 0;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+button.cal-day:hover:not(:disabled) {
+  background: var(--spruce-tint);
+  color: var(--spruce);
+}
+.cal-day.is-blank {
+  background: var(--alabaster);
+  cursor: default;
+}
+.cal-day.weekend {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--alabaster),
+    var(--alabaster) 4px,
+    var(--alabaster-deep) 4px,
+    var(--alabaster-deep) 8px
+  );
+  color: var(--ink-muted);
+}
+.cal-day.holiday {
+  background: var(--slate-tint);
+  color: var(--slate-blue);
+  font-weight: 600;
+}
+.cal-day.selected {
+  background: var(--spruce-btn);
+  color: var(--spruce-btn-ink);
+  font-weight: 700;
+}
+.cal-day.is-today {
+  box-shadow: inset 0 0 0 2px var(--spruce);
+}
+.cal-day.selected.is-today {
+  box-shadow: inset 0 0 0 2px var(--paper-pure);
+}
+.cal-marker {
+  font-size: 8px;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+/* MOBILE LEDGER CARD */
+.ledger-card {
+  border: 1px solid var(--rule-strong);
+  background: var(--paper-pure);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* METRIC STRIP (Compact Archival Ledger KPIs) */
+.metric-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--rule-strong);
+  background: var(--paper-pure);
+}
+.metric-cell {
+  padding: 16px 20px;
+  border-right: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.metric-cell:last-child {
+  border-right: none;
+}
+.metric-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+.metric-val {
+  font-family: var(--font-serif);
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.metric-note {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* TOOLBAR & SEGMENTED CONTROLS */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--alabaster);
+}
+.seg-group {
+  display: inline-flex;
+  border: 1px solid var(--rule-strong);
+  border-radius: 2px;
+  background: var(--alabaster);
+  overflow: hidden;
+}
+.seg-btn {
+  border: none;
+  border-right: 1px solid var(--rule);
+  background: transparent;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  min-height: 30px;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.seg-btn:last-child {
+  border-right: none;
+}
+.seg-btn:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+.seg-btn[aria-pressed="true"] {
+  background: var(--spruce-btn);
+  color: var(--spruce-btn-ink);
+  font-weight: 600;
+}
+
+@media (max-width: 1080px) {
+  .metric-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .metric-cell:nth-child(2) {
+    border-right: none;
+  }
+  .metric-cell:nth-child(1),
+  .metric-cell:nth-child(2) {
+    border-bottom: 1px solid var(--rule);
+  }
+}
+
+@media (max-width: 768px) {
+  .quota-hero {
+    padding: 18px 16px;
+  }
+  .metric-strip,
+  .quota-kpi-row {
+    grid-template-columns: 1fr;
+  }
+  .metric-cell,
+  .quota-kpi-cell {
+    border-right: none;
+    border-bottom: 1px solid var(--rule);
+  }
+  .metric-cell:last-child,
+  .quota-kpi-cell:last-child {
+    border-bottom: none;
+  }
+}
+
+/* METER (Sidebar Quota Summary Bar) */
+.meter {
+  height: 6px;
+  background: var(--rule);
+  overflow: hidden;
+  border-radius: 1px;
+}
+.meter-fill {
+  height: 100%;
+  background: var(--spruce);
+  transition: width 320ms ease;
+}
+
+/* AVATAR SQUARE & NOTIFICATION PIP */
+.avatar-sq {
+  width: 28px;
+  height: 28px;
+  background: var(--spruce);
+  color: var(--spruce-btn-ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+.notif-pip {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 7px;
+  height: 7px;
+  background: var(--terracotta);
+  border: 1px solid var(--paper-pure);
+}
+
+/* SORTABLE SWISS LEDGER TABLE */
+.sheet-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+table.ledger {
+  width: 100%;
+  min-inline-size: 740px;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: var(--paper-pure);
+}
+table.ledger caption {
+  text-align: left;
+}
+table.ledger thead th {
+  text-align: left;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: var(--alabaster-deep);
+  border-bottom: 1px solid var(--rule-strong);
+  border-right: 1px solid var(--rule);
+  white-space: nowrap;
+}
+table.ledger thead th:has(> button) {
+  padding: 0;
+}
+table.ledger thead th > button {
+  width: 100%;
+  min-height: 36px;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+table.ledger thead th > button:hover {
+  background: color-mix(in oklab, var(--spruce) 7%, var(--alabaster-deep));
+  color: var(--ink);
+}
+table.ledger thead th[aria-sort="ascending"] > button,
+table.ledger thead th[aria-sort="descending"] > button {
+  color: var(--spruce);
+  background: var(--spruce-tint);
+}
+table.ledger thead th:last-child,
+table.ledger tbody th:last-child,
+table.ledger tbody td:last-child {
+  border-right: none;
+}
+table.ledger tbody td,
+table.ledger tbody th {
+  text-align: left;
+  font-family: var(--font-sans);
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--rule);
+  border-right: 1px solid color-mix(in oklab, var(--rule) 55%, transparent);
+  vertical-align: middle;
+}
+table.ledger tbody tr:hover {
+  background: var(--alabaster);
+}
+.row-idx {
+  width: 44px;
+  text-align: center !important;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-muted);
+  background: var(--paper);
+}
+
+/* ROUTING SLIP / UMLAUFZETTEL */
+.slip {
+  position: relative;
+  border: 1px solid var(--rule-strong);
+  background: var(--paper-pure);
+  overflow: hidden;
+}
+.slip.slip-warn {
+  border-color: var(--ochre);
+}
+.slip-head {
+  padding: 12px 16px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.slip-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--alabaster);
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+.slip-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-bottom: 1px solid var(--rule);
+}
+.slip-box {
+  padding: 13px 14px;
+  border-right: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 112px;
+  background: var(--paper-pure);
+}
+.slip-box:last-child {
+  border-right: none;
+}
+.slip-box.is-action {
+  background: var(--spruce-tint);
+  box-shadow: inset 0 2px 0 var(--spruce);
+}
+.slip-box.is-skipped {
+  background: var(--alabaster);
+  color: var(--ink-muted);
+}
+.slip-box.is-rejected {
+  background: var(--terracotta-tint);
+}
+.slip-step-num {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.slip-actor {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+.slip-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  margin-top: 2px;
+}
+.slip-paraf {
+  margin-top: auto;
+  padding-top: 6px;
+  height: 26px;
+  display: flex;
+  align-items: flex-end;
+  color: var(--spruce);
+}
+.slip-paraf-empty {
+  margin-top: auto;
+  padding-top: 6px;
+  border-bottom: 1px dashed var(--rule-strong);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-muted);
+  padding-bottom: 2px;
+}
+.slip-foot {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--paper-pure);
+}
+.slip-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 6px;
+}
+
+/* FLOATING BULK ACTION BAR FOR HRD */
+.bulk-floating-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  width: min(600px, calc(100dvw - 28px));
+  padding: 10px 14px;
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  background: var(--ink);
+  color: var(--paper-pure);
+  box-shadow: 0 18px 38px rgba(25, 24, 22, 0.28);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .slip-steps {
+    grid-template-columns: 1fr;
+  }
+  .slip-box {
+    border-right: none;
+    border-bottom: 1px solid var(--rule);
+    min-height: 92px;
+  }
+  .slip-box:last-child {
+    border-bottom: none;
+  }
+}
+.ink-stamp {
+  position: absolute;
+  top: 54px;
+  right: 18px;
+  z-index: 3;
+  pointer-events: none;
+  padding: 4px 12px;
+  border: 2px solid currentColor;
+  outline: 1px solid currentColor;
+  outline-offset: 2px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transform: rotate(-7deg);
+  background: color-mix(in oklab, var(--paper-pure) 86%, transparent);
+}
+.ink-stamp-rejected {
+  color: var(--terracotta);
+}
+.ink-stamp-cancelled {
+  color: var(--ink-muted);
+}
+.ink-stamp-approved {
+  color: var(--spruce);
+}
+
+/* LOGIN SWISS ARCH ATELIER & INTERACTIVE WORKFLOW FORMULA SHEET */
+.arch-frame {
+  position: relative;
+  flex-shrink: 0;
+  width: 116px;
+  height: 148px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 68px 68px 0 0;
+  background: var(--paper-pure);
+  display: grid;
+  place-items: center;
+  padding-top: 8px;
+}
+.arch-frame::before {
+  content: "";
+  position: absolute;
+  inset: 6px 6px 0 6px;
+  border: 1px solid var(--rule);
+  border-bottom: none;
+  border-radius: 62px 62px 0 0;
+  pointer-events: none;
+}
+
+.wf-sheet {
+  width: 100%;
+  border: 1px solid var(--rule-strong);
+  background: var(--paper-pure);
+  text-align: left;
+}
+.wf-formula-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--alabaster-deep);
+  border-bottom: 1px solid var(--rule-strong);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.wf-addr {
+  padding: 1px 6px;
+  background: var(--spruce);
+  color: var(--spruce-btn-ink);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+.wf-fx {
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.wf-toggle {
+  border: 1px solid var(--rule-strong);
+  background: var(--paper-pure);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.wf-toggle:hover {
+  border-color: var(--ink);
+  background: var(--alabaster);
+}
+.wf-col-heads {
+  display: grid;
+  grid-template-columns: 28px 1fr 1fr;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-muted);
+  text-align: center;
+}
+.wf-col-heads > div {
+  padding: 3px 0;
+  border-right: 1px solid var(--rule);
+}
+.wf-col-heads > div:last-child {
+  border-right: none;
+}
+.wf-body {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+}
+.wf-row-heads {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  background: var(--paper);
+  border-right: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-muted);
+}
+.wf-row-heads > div {
+  display: grid;
+  place-items: center;
+  border-bottom: 1px solid var(--rule);
+}
+.wf-row-heads > div:last-child {
+  border-bottom: none;
+}
+.wf-grid-wrap {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+.wf-cell {
+  position: relative;
+  z-index: 1;
+  padding: 12px 13px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  transition: background-color 180ms ease;
+}
+.wf-cell:nth-child(2n) {
+  border-right: none;
+}
+.wf-cell:nth-child(n + 3) {
+  border-bottom: none;
+}
+.wf-cell:hover {
+  background: var(--spruce-tint);
+}
+.wf-cell-step {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+.wf-cell-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.25;
+}
+.wf-cell-desc {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  line-height: 1.35;
+}
+.wf-cell-state {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--ink-muted);
+}
+.wf-cell.is-active .wf-cell-step,
+.wf-cell.is-active .wf-cell-state {
+  color: var(--spruce);
+}
+.wf-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 50%;
+  z-index: 2;
+  pointer-events: none;
+  border: 2px solid var(--spruce);
+  background: color-mix(in oklab, var(--spruce) 7%, transparent);
+  transform: translate3d(
+    calc(var(--col, 0) * 100%),
+    calc(var(--row, 0) * 100%),
+    0
+  );
+}
+.wf-cursor::after {
+  content: "";
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 7px;
+  height: 7px;
+  background: var(--spruce);
+  border: 1px solid var(--paper-pure);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .wf-cursor {
+    transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+/* NOTIFICATION ROW */
+.notif-row {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.notif-row.unread {
+  background: var(--spruce-tint);
+}
+
+/* =========================================================================
+   FORM AUTOFILL & CHECKBOX ACCESSIBILITY (Preserved + Swiss Archival Tokens)
+   ========================================================================= */
+
+/* Styling autofill editorial: indikator non-warna (inset ring 2px) tanpa pergeseran layout */
+.otium-input:is(:autofill, :-webkit-autofill) {
+  border-color: var(--spruce);
+  box-shadow:
+    inset 0 0 0 2px var(--spruce),
+    inset 0 0 0 100vmax var(--paper);
+  -webkit-text-fill-color: var(--ink);
+  caret-color: var(--ink);
+}
+
+.otium-input:is(:autofill, :-webkit-autofill):focus-visible {
+  outline: 2px solid var(--spruce);
+  outline-offset: 2px;
+  box-shadow:
+    inset 0 0 0 2px var(--spruce),
+    inset 0 0 0 100vmax var(--paper);
+}
+
 /* Brand-consistent native checkbox menggunakan accent-color modern */
 .otium-checkbox {
-  accent-color: var(--otium-ink);
-  color-scheme: light;
+  accent-color: var(--spruce);
 }
 
 /* Fallback progresif untuk browser lama tanpa dukungan accent-color */
-@supports not (accent-color: #0f172a) {
+@supports not (accent-color: #1A3A2F) {
   .otium-checkbox-label {
     position: relative;
     padding-left: 1.75rem;
@@ -82,9 +1344,9 @@
     transform: translateY(-50%);
     width: 1rem;
     height: 1rem;
-    border: 1.5px solid #94a3b8;
-    background: #ffffff;
-    border-radius: 4px;
+    border: 1.5px solid var(--rule-strong);
+    background: var(--paper-pure);
+    border-radius: 2px;
     box-sizing: border-box;
     transition: background-color 150ms ease, border-color 150ms ease;
   }
@@ -92,15 +1354,15 @@
   .otium-checkbox-label
     input[type="checkbox"].otium-checkbox:focus-visible
     + span::before {
-    outline: 2px solid var(--otium-ink);
+    outline: 2px solid var(--spruce);
     outline-offset: 2px;
   }
 
   .otium-checkbox-label
     input[type="checkbox"].otium-checkbox:checked
     + span::before {
-    background-color: var(--otium-ink);
-    border-color: var(--otium-ink);
+    background-color: var(--spruce);
+    border-color: var(--spruce);
   }
 
   .otium-checkbox-label
@@ -111,23 +1373,16 @@
     left: 0.2rem;
     top: 50%;
     transform: translateY(-50%);
-    color: #ffffff;
+    color: var(--spruce-btn-ink);
     font-size: 0.7rem;
     font-weight: 700;
     line-height: 1;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
+/* =========================================================================
+   NATIVE DIALOGS & LEGACY COMPONENT UTILITIES (Backward Compatible)
+   ========================================================================= */
 
 /* Native <dialog> mobile navigation drawer reset (top-layer modal + backdrop) */
 .otium-mobile-drawer {
@@ -144,10 +1399,11 @@
 }
 
 .otium-mobile-drawer::backdrop {
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(25, 24, 22, 0.52);
+  backdrop-filter: blur(2px);
 }
 
-/* Indikator tab aktif berbasis border pseudo-element (tahan forced-colors mode, tanpa layout shift) */
+/* Indikator tab aktif berbasis border pseudo-element (tahan forced-colors mode) */
 .otium-tab {
   position: relative;
 }
@@ -156,10 +1412,10 @@
   content: "";
   position: absolute;
   inset: auto 0 -1px 0;
-  border-block-end: 2px solid var(--otium-ink);
+  border-block-end: 2px solid var(--spruce);
 }
 
-/* Native <dialog> modal Otium: top-layer, anti scroll-chaining, tanpa unconditional display */
+/* Native <dialog> modal Otium */
 dialog.otium-modal {
   padding: 0;
   border: 0;
@@ -181,13 +1437,41 @@ dialog.otium-modal:modal {
 }
 
 dialog.otium-modal::backdrop {
-  background: rgba(15, 23, 42, 0.58);
+  background: rgba(25, 24, 22, 0.52);
   backdrop-filter: blur(2px);
   overflow: hidden;
   overscroll-behavior: contain;
 }
 
-/* Native <dialog> slide-over drawer kanan Otium: top-layer, anti scroll-chaining */
+/* Native <dialog> modal landscape terpusat untuk jendela detail arsip */
+dialog.otium-modal-landscape {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  width: min(94vw, 56rem);
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100dvh - 2.5rem);
+  margin: auto;
+  overflow: hidden;
+}
+
+dialog.otium-modal-landscape[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+dialog.otium-modal-landscape:modal {
+  overscroll-behavior: contain;
+}
+
+dialog.otium-modal-landscape::backdrop {
+  background: rgba(25, 24, 22, 0.56);
+  backdrop-filter: blur(2px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+/* Native <dialog> slide-over drawer kanan Otium */
 dialog.otium-drawer {
   inset: 0;
   margin: 0;
@@ -212,7 +1496,7 @@ dialog.otium-drawer:modal {
 }
 
 dialog.otium-drawer::backdrop {
-  background: rgba(15, 23, 42, 0.52);
+  background: rgba(25, 24, 22, 0.52);
   backdrop-filter: blur(2px);
   overflow: hidden;
   overscroll-behavior: contain;
@@ -220,42 +1504,42 @@ dialog.otium-drawer::backdrop {
 
 /* Validasi input pasca-interaksi (:user-invalid + sinkronisasi aria-invalid) */
 .otium-field-input:is(:user-invalid, [aria-invalid="true"]) {
-  border-color: #be123c;
-  background-color: #fff1f2;
+  border-color: var(--terracotta);
+  background-color: var(--terracotta-tint);
 }
 
 .otium-field-input:is(:user-invalid, [aria-invalid="true"]):focus-visible {
-  outline: 2px solid #be123c;
+  outline: 2px solid var(--terracotta);
   outline-offset: 1px;
 }
 
-/* Native <progress> Otium: appearance reset, overflow clip, dan pseudo-element terpisah */
+/* Native <progress> Otium */
 progress.otium-progress {
   appearance: none;
   display: block;
   width: 100%;
   height: 0.375rem;
   border: 0 solid;
-  border-radius: 9999px;
+  border-radius: 2px;
   overflow: clip;
-  background: var(--otium-progress-track, #e7e5e4);
-  --otium-progress-fill: #0f172a;
+  background: var(--otium-progress-track, var(--rule));
+  --otium-progress-fill: var(--spruce);
 }
 
 progress.otium-progress.otium-progress--ok {
-  --otium-progress-fill: #059669;
+  --otium-progress-fill: var(--spruce);
 }
 
 progress.otium-progress.otium-progress--amber {
-  --otium-progress-fill: #d97706;
+  --otium-progress-fill: var(--ochre);
 }
 
 progress.otium-progress.otium-progress--sky {
-  --otium-progress-fill: #0284c7;
+  --otium-progress-fill: var(--slate-blue);
 }
 
 progress.otium-progress.otium-progress--danger {
-  --otium-progress-fill: #be123c;
+  --otium-progress-fill: var(--terracotta);
 }
 
 progress.otium-progress::-webkit-progress-bar {
@@ -264,17 +1548,17 @@ progress.otium-progress::-webkit-progress-bar {
 
 progress.otium-progress::-webkit-progress-value {
   background: var(--otium-progress-fill);
-  border-radius: 9999px;
+  border-radius: 2px;
   transition: inline-size 250ms ease;
 }
 
 progress.otium-progress::-moz-progress-bar {
   background: var(--otium-progress-fill);
-  border-radius: 9999px;
+  border-radius: 2px;
   transition: inline-size 250ms ease;
 }
 
-/* Tabel responsif berbasis Container Query (@container) agar bebas scroll horizontal di 375px */
+/* Tabel responsif berbasis Container Query (@container) */
 .otium-responsive-table-wrap {
   container-type: inline-size;
   overflow-x: auto;
@@ -313,20 +1597,20 @@ progress.otium-progress::-moz-progress-bar {
     flex-direction: column;
     gap: 0.75rem;
     padding: 0.75rem;
-    background-color: var(--otium-alabaster);
+    background-color: var(--alabaster);
   }
 
   .otium-responsive-table tbody tr {
-    border: 1px solid #e7e5e4;
-    border-radius: 0.875rem;
-    background-color: #ffffff;
+    border: 1px solid var(--rule-strong);
+    border-radius: 2px;
+    background-color: var(--paper-pure);
     overflow: hidden;
   }
 
   .otium-responsive-table tbody th[scope="row"] {
     padding: 0.875rem 1rem 0.625rem;
-    border-bottom: 1px solid #f5f5f4;
-    background-color: #faf9f6;
+    border-bottom: 1px solid var(--rule);
+    background-color: var(--paper);
     text-align: left;
   }
 
@@ -336,7 +1620,7 @@ progress.otium-progress::-moz-progress-bar {
     justify-content: space-between;
     gap: 0.75rem;
     padding: 0.5rem 1rem;
-    border-bottom: 1px solid #f5f5f4;
+    border-bottom: 1px solid var(--rule);
     white-space: normal;
     text-align: right;
   }
@@ -350,12 +1634,133 @@ progress.otium-progress::-moz-progress-bar {
 
   .otium-responsive-table tbody td[data-label]::before {
     content: attr(data-label);
+    font-family: var(--font-mono);
     font-size: 0.6875rem;
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: #475569;
+    color: var(--ink-muted);
     text-align: left;
     flex-shrink: 0;
+  }
+}
+
+/* =========================================================================
+   ACCESSIBILITY: REDUCED MOTION, FORCED COLORS, & PRINT STYLESHEET
+   ========================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* FORCED COLORS MODE (Windows High Contrast — Zero Information Loss) */
+@media (forced-colors: active) {
+  .arch-grid-bg,
+  .otium-architectural-grid {
+    background-image: none;
+  }
+
+  .panel,
+  .slip,
+  .metric-strip,
+  .quota-hero,
+  .wf-sheet,
+  .ledger-card,
+  .notice,
+  .tag,
+  .btn,
+  .input,
+  .select,
+  .textarea {
+    border: 1px solid CanvasText;
+  }
+
+  .cal-day.weekend {
+    background: Canvas;
+    color: GrayText;
+    border: 1px dotted GrayText;
+  }
+
+  .cal-day.holiday {
+    outline: 1px solid Highlight;
+    outline-offset: -3px;
+  }
+
+  .cal-day.selected {
+    background: Highlight;
+    color: HighlightText;
+    border: 2px solid HighlightText;
+  }
+
+  .cal-day.is-today {
+    outline: 2px solid CanvasText;
+    outline-offset: -2px;
+  }
+
+  .slip-box.is-action {
+    outline: 2px solid Highlight;
+    outline-offset: -3px;
+  }
+
+  .ink-stamp {
+    border: 2px solid CanvasText;
+    outline: 1px solid CanvasText;
+    color: CanvasText;
+    background: Canvas;
+  }
+
+  .meter,
+  .quota-seg {
+    border: 1px solid CanvasText;
+    background: Canvas;
+  }
+
+  .meter-fill,
+  .quota-seg-rem {
+    background: Highlight;
+  }
+
+  .quota-seg-proj {
+    background: Mark;
+    outline: 1px dashed CanvasText;
+  }
+
+  .wf-cursor {
+    border: 2px solid Highlight;
+    background: transparent;
+  }
+}
+
+/* PRINT STYLESHEET — Clean A4 Official Leave Approval Letter */
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+
+  body {
+    background: #FFFFFF !important;
+    color: #111111 !important;
+    color-scheme: light;
+  }
+
+  .arch-grid-bg,
+  .otium-architectural-grid {
+    background: #FFFFFF !important;
+    background-image: none !important;
+  }
+
+  .slip,
+  .slip-box,
+  .ink-stamp,
+  .panel {
+    break-inside: avoid;
   }
 }

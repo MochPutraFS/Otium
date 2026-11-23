@@ -103,24 +103,24 @@ export default function DivisionDetailModal({
       className="otium-modal w-full max-w-2xl"
     >
       {division && (
-        <div className="flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-xl border border-stone-300 bg-white shadow-2xl">
+        <div className="flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-[6px] border border-[var(--ink)] bg-[var(--paper-pure)] shadow-[var(--shadow-lg)]">
           {/* Header */}
-          <div className="flex items-start justify-between gap-3 border-b border-stone-200 bg-[#F4F2EC] px-5 py-4">
+          <div className="flex items-start justify-between gap-3 border-b border-[var(--rule)] bg-[var(--alabaster)] px-5 py-4">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-stone-300 bg-white text-slate-900">
-                <Building2 className="h-5 w-5" aria-hidden="true" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[4px] border border-[var(--rule-strong)] bg-[var(--paper-pure)] text-[var(--spruce)]">
+                <Building2 className="h-4 w-4" aria-hidden="true" />
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">
-                  Rincian Unit Kerja · ID #{division.id}
+                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+                  RINCIAN UNIT KERJA · ID #{division.id}
                 </p>
                 <h2
                   id={titleId}
-                  className="text-base font-bold tracking-tight text-slate-900"
+                  className="font-serif text-[20px] font-semibold leading-snug text-[var(--ink)]"
                 >
                   Divisi {division.name}
                 </h2>
-                <p className="mt-0.5 text-xs leading-relaxed text-slate-600">
+                <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--ink-soft)]">
                   {division.description || "Tidak ada deskripsi singkat."}
                 </p>
               </div>
@@ -131,7 +131,7 @@ export default function DivisionDetailModal({
               autoFocus
               onClick={() => onClose?.()}
               aria-label="Tutup modal detail divisi"
-              className="cursor-pointer rounded-lg p-1.5 text-slate-600 transition-colors duration-150 hover:bg-stone-200/80 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
+              className="btn-icon h-7 w-7 shrink-0"
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -139,43 +139,49 @@ export default function DivisionDetailModal({
 
           {/* Body */}
           <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
-            {/* Metadata Kartu */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border border-stone-200 bg-[#F4F2EC]/55 p-3.5">
-                <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-600">
-                  <Crown className="h-3.5 w-3.5 text-slate-800" aria-hidden="true" />
+            {/* Metadata Strip */}
+            <div className="metric-strip lg:!grid-cols-3">
+              <div className="metric-cell !p-3.5">
+                <p className="metric-label flex items-center gap-1.5">
+                  <Crown
+                    className="h-3 w-3 text-[var(--ochre)]"
+                    aria-hidden="true"
+                  />
                   Ketua Divisi
                 </p>
-                <p className="mt-1.5 text-sm font-bold text-slate-900">
+                <p className="mt-1.5 text-[13.5px] font-semibold text-[var(--ink)]">
                   {leader ? leader.fullName : "Belum Ditetapkan"}
                 </p>
-                <p className="mt-0.5 truncate text-xs text-slate-600">
+                <p className="mt-0.5 truncate font-mono text-[11px] text-[var(--ink-muted)]">
                   {leader ? leader.email : "Tunjuk ketua via Edit Divisi"}
                 </p>
               </div>
 
-              <div className="rounded-xl border border-stone-200 bg-[#F4F2EC]/55 p-3.5">
-                <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-600">
-                  <Users className="h-3.5 w-3.5 text-emerald-700" aria-hidden="true" />
+              <div className="metric-cell !p-3.5">
+                <p className="metric-label flex items-center gap-1.5">
+                  <Users
+                    className="h-3 w-3 text-[var(--spruce)]"
+                    aria-hidden="true"
+                  />
                   Total Anggota
                 </p>
-                <p className="mt-1.5 text-sm font-bold text-slate-900 tabular-nums">
+                <p className="mt-1.5 font-mono text-[15px] font-semibold tabular-nums text-[var(--ink)]">
                   {members.length} Orang
                 </p>
-                <p className="mt-0.5 text-xs text-slate-600 tabular-nums">
+                <p className="mt-0.5 font-mono text-[11px] tabular-nums text-[var(--ink-muted)]">
                   {activeCount} aktif · {members.length - activeCount} nonaktif
                 </p>
               </div>
 
-              <div className="rounded-xl border border-stone-200 bg-[#F4F2EC]/55 p-3.5">
-                <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-600">
-                  <Calendar className="h-3.5 w-3.5 text-slate-800" aria-hidden="true" />
+              <div className="metric-cell !p-3.5">
+                <p className="metric-label flex items-center gap-1.5">
+                  <Calendar className="h-3 w-3" aria-hidden="true" />
                   Tanggal Dibentuk
                 </p>
-                <p className="mt-1.5 text-sm font-bold text-slate-900">
+                <p className="mt-1.5 text-[13.5px] font-semibold text-[var(--ink)]">
                   {formatIndonesianDate(division.createdAt)}
                 </p>
-                <p className="mt-0.5 font-mono text-[11px] text-slate-600">
+                <p className="mt-0.5 font-mono text-[11px] text-[var(--ink-muted)]">
                   {division.createdAt}
                 </p>
               </div>
@@ -183,81 +189,57 @@ export default function DivisionDetailModal({
 
             {/* Daftar Anggota */}
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-slate-700">
+              <h3 className="font-mono text-[10.5px] font-medium uppercase tracking-[0.12em] text-[var(--ink-muted)]">
                 Daftar Anggota dalam Divisi ({members.length})
               </h3>
 
               {members.length === 0 ? (
-                <div className="mt-3 rounded-xl border border-stone-200 p-6">
+                <div className="panel mt-2.5 p-6">
                   <EmptyState
                     title="Belum ada anggota"
                     description="Gunakan Modul 3 (Anggota Divisi) untuk menempatkan karyawan ke divisi ini."
                   />
                 </div>
               ) : (
-                <div className="mt-2.5 overflow-hidden rounded-xl border border-stone-200 bg-white">
+                <div className="panel mt-2.5 overflow-hidden">
                   <div
                     tabIndex={0}
                     role="region"
                     aria-labelledby={membersCaptionId}
-                    className="otium-responsive-table-wrap focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-slate-900"
+                    className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--spruce)]"
                   >
-                    <table className="otium-responsive-table text-left text-xs">
+                    <table className="ledger">
                       <caption id={membersCaptionId} className="sr-only">
                         Daftar anggota pada divisi {division.name}
                       </caption>
-                      <thead className="bg-[#F4F2EC] text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-700">
+                      <thead>
                         <tr>
-                          <th scope="col" className="border-b border-stone-200 px-4 py-2.5">
-                            Nama &amp; Email
-                          </th>
-                          <th scope="col" className="border-b border-stone-200 px-4 py-2.5">
-                            Role
-                          </th>
-                          <th scope="col" className="border-b border-stone-200 px-4 py-2.5">
-                            Sisa Kuota
-                          </th>
-                          <th
-                            scope="col"
-                            className="border-b border-stone-200 px-4 py-2.5 text-right"
-                          >
+                          <th scope="col">Nama &amp; Email</th>
+                          <th scope="col">Role</th>
+                          <th scope="col">Sisa Kuota</th>
+                          <th scope="col" className="text-right">
                             Status
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-stone-100 bg-white">
+                      <tbody>
                         {members.map((member) => (
-                          <tr
-                            key={member.id}
-                            className="transition-colors duration-150 hover:bg-[#F4F2EC]/45"
-                          >
-                            <th
-                              scope="row"
-                              className="whitespace-nowrap px-4 py-2.5 font-normal"
-                            >
-                              <p className="font-semibold text-slate-900">
+                          <tr key={member.id}>
+                            <th scope="row" className="whitespace-nowrap font-normal">
+                              <p className="text-[12.5px] font-semibold text-[var(--ink)]">
                                 {member.fullName}
                               </p>
-                              <p className="text-[11px] text-slate-600">
+                              <p className="font-mono text-[11px] text-[var(--ink-muted)]">
                                 {member.email}
                               </p>
                             </th>
-                            <td
-                              data-label="Role"
-                              className="whitespace-nowrap px-4 py-2.5"
-                            >
+                            <td className="whitespace-nowrap">
                               <StatusBadge status={member.role} />
                             </td>
-                            <td
-                              data-label="Sisa Kuota"
-                              className="whitespace-nowrap px-4 py-2.5 font-semibold text-slate-900 tabular-nums"
-                            >
+                            <td className="whitespace-nowrap font-mono text-[12px] font-semibold tabular-nums text-[var(--ink)]">
                               {Number(member.remainingLeaveQuota).toFixed(1)} Hari
                             </td>
-                            <td
-                              data-label="Status"
-                              className="whitespace-nowrap px-4 py-2.5 text-right"
-                            >
+                            <td className="whitespace-nowrap text-right">
                               <StatusBadge
                                 status={member.isActive ? "Aktif" : "Nonaktif"}
                               />
@@ -273,11 +255,11 @@ export default function DivisionDetailModal({
           </div>
 
           {/* Footer */}
-          <div className="flex flex-wrap items-center justify-between gap-2.5 border-t border-stone-200 bg-[#F4F2EC]/70 px-5 py-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-2.5 border-t border-[var(--rule)] bg-[var(--alabaster)] px-5 py-3.5">
             <Link
               href={`/admin/division-members?divisionId=${division.id}`}
               onClick={() => onClose?.()}
-              className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-slate-900 underline decoration-slate-900/35 underline-offset-4 transition-colors duration-150 hover:decoration-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+              className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--spruce)] underline underline-offset-4 hover:text-[var(--ink)]"
             >
               Kelola Anggota Divisi ini di Modul 3
               <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -286,7 +268,7 @@ export default function DivisionDetailModal({
             <button
               type="button"
               onClick={() => onClose?.()}
-              className="cursor-pointer rounded-lg border border-stone-300 bg-white px-4 py-2 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+              className="btn btn-sm"
             >
               Tutup
             </button>

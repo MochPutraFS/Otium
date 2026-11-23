@@ -4,11 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
-  Building2,
   CheckCircle2,
-  Clock,
-  FileCheck2,
-  Paperclip,
   RefreshCw,
   RotateCcw,
   Search,
@@ -27,12 +23,8 @@ const WORKSPACE_TABS = [
 ];
 
 /**
- * Workspace Hybrid Modul 6A: Verifikasi Pengajuan Cuti Tahap 1 — Ketua Divisi (/approvals/leader).
- * - Mode Pure Production: data live PostgreSQL, Server Action atomik `verifyByLeaderAction`,
- *   sinkronisasi `GET /api/approvals/leader` & `router.refresh()`.
- * - Bahasa Desain Warm Alabaster (`#F4F2EC`) — Swiss Editorial Minimalism.
- * - Aksesibilitas & Platform Web Modern: `.otium-tab` keyboard nav, native `<dialog>` drawer & modal,
- *   serta `.otium-responsive-table` berbasis `@container` agar bebas horizontal scroll di 375px.
+ * Workspace Modul 6A: Verifikasi Pengajuan Cuti Tahap 1 — Ketua Divisi (/approvals/leader).
+ * 100% UI-Only Swiss Archival dengan Signature Routing Slip Cards & Swiss Ledger History.
  */
 export default function LeaderVerificationClient({
   initialLeaderProfile,
@@ -56,7 +48,7 @@ export default function LeaderVerificationClient({
   const [allRequests, setAllRequests] = useState(initialRequests);
   const [counts, setCounts] = useState(initialCounts);
 
-  const [activeTab, setActiveTab] = useState("queue"); // "queue" | "history"
+  const [activeTab, setActiveTab] = useState("queue");
   const [searchQuery, setSearchQuery] = useState("");
   const [leaveTypeFilter, setLeaveTypeFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -68,9 +60,8 @@ export default function LeaderVerificationClient({
     request: null,
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [toast, setToast] = useState(null); // { message, tone: "success" | "error" }
+  const [toast, setToast] = useState(null);
 
-  // Sinkronisasi props ketika Server Component menjalankan revalidatePath / router.refresh()
   useEffect(() => {
     setLeaderProfile(initialLeaderProfile);
   }, [initialLeaderProfile]);
@@ -243,7 +234,6 @@ export default function LeaderVerificationClient({
       return result;
     }
 
-    // Tutup drawer jika target yang sama sedang terbuka
     if (detailTarget?.id === target.id) {
       setDetailTarget(null);
     }
@@ -271,21 +261,21 @@ export default function LeaderVerificationClient({
   const divisionDisplay = leaderProfile?.divisionName || "Belum Ditugaskan";
 
   return (
-    <div className="space-y-6">
-      {/* Page Header — Editorial Minimalism */}
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-stone-200 pb-5">
+    <div className="space-y-5">
+      {/* Header Arsip */}
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--rule-strong)] pb-4">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-            Verifikasi Tahap 1 • Ketua Divisi
-          </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+          <span className="panel-eyebrow">
+            Verifikasi Tahap 1 &bull; Ketua Divisi
+          </span>
+          <h2 className="mt-1 font-serif text-[28px] font-semibold leading-tight text-[var(--ink)]">
             {hasDivision
               ? `Verifikasi Cuti Divisi ${divisionDisplay}`
               : "Verifikasi Cuti Divisi"}
-          </h1>
-          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-600">
-            Tinjau jadwal operasional, catatan serah terima tugas (handover),
-            dan lampiran dokumen anggota divisi Anda ({leaderProfile?.fullName})
+          </h2>
+          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[var(--ink-soft)]">
+            Tinjau jadwal tim, catatan serah terima tugas (handover), dan
+            lampiran dokumen anggota divisi Anda ({leaderProfile?.fullName})
             sebelum diteruskan ke Persetujuan Final HRD.
           </p>
         </div>
@@ -294,108 +284,80 @@ export default function LeaderVerificationClient({
           type="button"
           onClick={() => refreshFromServer()}
           disabled={isRefreshing}
-          className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-800 transition-colors hover:border-slate-900 hover:bg-[#F4F2EC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn btn-sm"
         >
           <RefreshCw
             className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`}
             aria-hidden="true"
           />
-          {isRefreshing ? "Menyegarkan..." : "Segarkan Data"}
+          <span>{isRefreshing ? "Menyegarkan..." : "Segarkan Data"}</span>
         </button>
-      </div>
+      </header>
 
       {/* Edge Case: Ketua Divisi belum ditugaskan memimpin divisi aktif */}
       {!hasDivision && (
-        <div
-          role="status"
-          className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-xs text-amber-950"
-        >
-          <AlertCircle
-            className="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
-            aria-hidden="true"
-          />
+        <div role="status" className="notice notice-warn">
+          <AlertCircle aria-hidden="true" />
           <div>
-            <p className="font-semibold">
+            <p className="m-0 font-semibold">
               Akun Anda belum ditugaskan sebagai pemimpin divisi aktif.
             </p>
-            <p className="mt-1 leading-relaxed text-amber-900">
+            <p className="mt-0.5 text-xs">
               Hubungi Administrator untuk menetapkan akun Anda pada kolom Ketua
               Divisi di modul Manajemen Divisi agar antrean pengajuan anggota
-              divisi dapat muncul di halaman ini.
+              divisi tampil di sini.
             </p>
           </div>
         </div>
       )}
 
-      {/* Mini KPI Strip (4 Kartu Ringkas) */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div className="rounded-xl border border-stone-200 bg-white p-4">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Menunggu Verifikasi
-            </span>
-            <Clock className="h-4 w-4 text-amber-600" aria-hidden="true" />
+      {/* Metric Strip (4 Sel Arsip) */}
+      <div
+        className="metric-strip"
+        role="region"
+        aria-label="Ringkasan Antrean Verifikasi Divisi"
+      >
+        <div className="metric-cell">
+          <div className="metric-label">Menunggu Paraf Anda</div>
+          <div className="metric-val text-[var(--ochre)]">
+            {String(counts.pending).padStart(2, "0")}
           </div>
-          <p className="mt-2 text-xl font-bold tracking-tight text-slate-900 tabular-nums">
-            {counts.pending}{" "}
-            <span className="text-xs font-medium text-slate-500">
-              Pengajuan
-            </span>
-          </p>
+          <div className="metric-note">Pengajuan berstatus Pending</div>
         </div>
 
-        <div className="rounded-xl border border-stone-200 bg-white p-4">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Sudah Diverifikasi
-            </span>
-            <FileCheck2 className="h-4 w-4 text-sky-700" aria-hidden="true" />
+        <div className="metric-cell">
+          <div className="metric-label">Sudah Diverifikasi</div>
+          <div className="metric-val text-[var(--spruce)]">
+            {String(counts.verified).padStart(2, "0")}
           </div>
-          <p className="mt-2 text-xl font-bold tracking-tight text-slate-900 tabular-nums">
-            {counts.verified}{" "}
-            <span className="text-xs font-medium text-slate-500">
-              Pengajuan
-            </span>
-          </p>
+          <div className="metric-note">Diteruskan ke HRD / diputuskan</div>
         </div>
 
-        <div className="rounded-xl border border-stone-200 bg-white p-4">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Cek Lampiran Aktif
-            </span>
-            <Paperclip className="h-4 w-4 text-slate-700" aria-hidden="true" />
+        <div className="metric-cell">
+          <div className="metric-label">Cek Lampiran Aktif</div>
+          <div className="metric-val text-[var(--slate-blue)]">
+            {String(counts.attachmentsPending).padStart(2, "0")}
           </div>
-          <p className="mt-2 text-xl font-bold tracking-tight text-slate-900 tabular-nums">
-            {counts.attachmentsPending}{" "}
-            <span className="text-xs font-medium text-slate-500">Dokumen</span>
-          </p>
+          <div className="metric-note">Dokumen pendukung di antrean</div>
         </div>
 
-        <div className="rounded-xl border border-stone-200 bg-white p-4">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Divisi Aktif
-            </span>
-            <Building2
-              className="h-4 w-4 text-emerald-700"
-              aria-hidden="true"
-            />
-          </div>
-          <p className="mt-2 truncate text-xl font-bold tracking-tight text-slate-900">
+        <div className="metric-cell">
+          <div className="metric-label">Divisi Aktif</div>
+          <div className="truncate font-serif text-2xl font-semibold leading-tight text-[var(--ink)]">
             {divisionDisplay}
-          </p>
+          </div>
+          <div className="metric-note">Unit kerja yang Anda pimpin</div>
         </div>
       </div>
 
-      {/* Main Hybrid Workspace Card */}
-      <section className="overflow-hidden rounded-xl border border-stone-200 bg-white">
-        {/* Tabs (Single-Row ARIA Tablist) & Filter Bar */}
-        <div className="flex flex-col gap-3 border-b border-stone-200 px-4 pt-3 pb-3 lg:flex-row lg:items-center lg:justify-between">
+      {/* Main Workspace Panel */}
+      <section className="panel overflow-hidden">
+        {/* Tabs (.otium-tab) */}
+        <div className="border-b border-[var(--rule)] bg-[var(--paper)] px-5 pt-3">
           <div
             role="tablist"
             aria-label="Tampilan verifikasi cuti divisi"
-            className="flex items-center gap-5 overflow-x-auto border-b border-stone-200 lg:border-b-0"
+            className="flex flex-nowrap items-center gap-6 overflow-x-auto"
           >
             {WORKSPACE_TABS.map((tab, index) => {
               const isSelected = activeTab === tab.key;
@@ -417,18 +379,18 @@ export default function LeaderVerificationClient({
                   tabIndex={isSelected ? 0 : -1}
                   onClick={() => setActiveTab(tab.key)}
                   onKeyDown={(event) => handleTabKeyDown(event, index)}
-                  className={`otium-tab flex shrink-0 cursor-pointer items-center gap-2 pb-2.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 ${
+                  className={`otium-tab mono inline-flex shrink-0 cursor-pointer items-center gap-2 pb-3 pt-1 text-xs font-semibold uppercase tracking-[0.04em] transition-colors ${
                     isSelected
-                      ? "text-slate-900"
-                      : "text-slate-500 hover:text-slate-800"
+                      ? "text-[var(--spruce)]"
+                      : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
                   }`}
                 >
                   <span>{tab.label}</span>
                   <span
-                    className={`rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ${
+                    className={`border px-1.5 py-0 text-[10px] ${
                       isSelected
-                        ? "bg-slate-900 text-white"
-                        : "bg-[#F4F2EC] text-slate-700"
+                        ? "border-[var(--spruce-border)] bg-[var(--spruce-tint)] text-[var(--spruce)]"
+                        : "border-[var(--rule)] bg-[var(--paper-pure)] text-[var(--ink-muted)]"
                     }`}
                   >
                     {badgeCount}
@@ -437,75 +399,76 @@ export default function LeaderVerificationClient({
               );
             })}
           </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative flex-1 sm:flex-none">
-              <label htmlFor={searchInputId} className="visually-hidden">
-                Cari nama anggota atau rekan handover
-              </label>
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
-                aria-hidden="true"
-              />
-              <input
-                id={searchInputId}
-                type="search"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Cari anggota / handover..."
-                className="w-full rounded-lg border border-stone-300 bg-[#F4F2EC]/50 py-1.5 pl-8 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 sm:w-52"
-              />
-            </div>
-
-            <select
-              value={leaveTypeFilter}
-              onChange={(event) => setLeaveTypeFilter(event.target.value)}
-              aria-label="Filter jenis cuti"
-              className="cursor-pointer rounded-lg border border-stone-300 bg-[#F4F2EC]/50 px-3 py-1.5 text-xs font-medium text-slate-800 focus:border-slate-900 focus:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-            >
-              <option value="ALL">Semua Jenis Cuti</option>
-              {leaveTypes.map((lt) => (
-                <option key={lt.id} value={lt.id}>
-                  {lt.name}
-                </option>
-              ))}
-            </select>
-
-            {activeTab === "history" && (
-              <select
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
-                aria-label="Filter status riwayat"
-                className="cursor-pointer rounded-lg border border-stone-300 bg-[#F4F2EC]/50 px-3 py-1.5 text-xs font-medium text-slate-800 focus:border-slate-900 focus:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-              >
-                <option value="ALL">Semua Status</option>
-                <option value="Approved by Leader">Approved by Leader</option>
-                <option value="Approved">Approved</option>
-                <option value="Rejected">Rejected</option>
-                <option value="Cancelled">Cancelled</option>
-              </select>
-            )}
-
-            {hasActiveFilter && (
-              <button
-                type="button"
-                onClick={handleResetFilters}
-                className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-900 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-              >
-                <RotateCcw className="h-3 w-3" aria-hidden="true" />
-                Reset
-              </button>
-            )}
-          </div>
         </div>
 
-        {/* TabPanel 1: Antrean Menunggu Verifikasi (Compact Card View) */}
+        {/* Filter Toolbar */}
+        <div className="toolbar">
+          <div className="relative w-full sm:w-60">
+            <label htmlFor={searchInputId} className="visually-hidden">
+              Cari nama anggota atau rekan handover
+            </label>
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--ink-muted)]"
+              aria-hidden="true"
+            />
+            <input
+              id={searchInputId}
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Cari anggota / handover..."
+              className="input !py-1.5 !pl-8 !pr-3 !text-xs"
+            />
+          </div>
+
+          <select
+            value={leaveTypeFilter}
+            onChange={(event) => setLeaveTypeFilter(event.target.value)}
+            aria-label="Filter jenis cuti"
+            className="select !w-auto cursor-pointer !py-1.5 !text-xs"
+          >
+            <option value="ALL">Semua Jenis Cuti</option>
+            {leaveTypes.map((lt) => (
+              <option key={lt.id} value={lt.id}>
+                {lt.name}
+              </option>
+            ))}
+          </select>
+
+          {activeTab === "history" && (
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              aria-label="Filter status riwayat"
+              className="select !w-auto cursor-pointer !py-1.5 !text-xs"
+            >
+              <option value="ALL">Semua Status</option>
+              <option value="Approved by Leader">Approved by Leader</option>
+              <option value="Approved">Approved</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          )}
+
+          {hasActiveFilter && (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="btn btn-sm !min-h-[30px]"
+            >
+              <RotateCcw className="h-3 w-3" aria-hidden="true" />
+              <span>Reset</span>
+            </button>
+          )}
+        </div>
+
+        {/* TabPanel 1: Antrean Menunggu Verifikasi (Routing Slip Cards) */}
         <div
           role="tabpanel"
           aria-labelledby={queueTabId}
           hidden={activeTab !== "queue"}
         >
-          <div className="p-4 sm:p-5">
+          <div className="panel-body">
             {filteredQueue.length === 0 ? (
               <EmptyState
                 title="Antrean Verifikasi Kosong"
@@ -516,7 +479,7 @@ export default function LeaderVerificationClient({
                 }
               />
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {filteredQueue.map((request) => (
                   <VerificationCard
                     key={request.id}
@@ -532,14 +495,14 @@ export default function LeaderVerificationClient({
           </div>
         </div>
 
-        {/* TabPanel 2: Riwayat Verifikasi Divisi (Container-Query Responsive Table) */}
+        {/* TabPanel 2: Riwayat Verifikasi Divisi (Swiss Ledger Table) */}
         <div
           role="tabpanel"
           aria-labelledby={historyTabId}
           hidden={activeTab !== "history"}
         >
           {filteredHistory.length === 0 ? (
-            <div className="p-4 sm:p-5">
+            <div className="panel-body">
               <EmptyState
                 title="Belum Ada Riwayat Verifikasi"
                 description={
@@ -554,99 +517,93 @@ export default function LeaderVerificationClient({
               tabIndex={0}
               role="region"
               aria-labelledby={tableCaptionId}
-              className="otium-responsive-table-wrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-900"
+              className="otium-responsive-table-wrap"
             >
-              <table className="otium-responsive-table text-left text-xs">
+              <table className="ledger otium-responsive-table text-left">
                 <caption id={tableCaptionId} className="visually-hidden">
                   Daftar riwayat verifikasi pengajuan cuti anggota divisi{" "}
                   {divisionDisplay}
                 </caption>
-                <thead className="bg-[#F4F2EC]/80">
-                  <tr className="border-b border-stone-200 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
-                    <th scope="col" className="px-4 py-3">
-                      Anggota
+                <thead>
+                  <tr>
+                    <th scope="col" className="row-idx">
+                      #
                     </th>
-                    <th scope="col" className="px-4 py-3">
-                      Jenis &amp; Periode
-                    </th>
-                    <th scope="col" className="px-4 py-3">
-                      Durasi
-                    </th>
-                    <th scope="col" className="px-4 py-3">
-                      Status
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-right">
+                    <th scope="col">Anggota</th>
+                    <th scope="col">Jenis &amp; Periode</th>
+                    <th scope="col">Durasi</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" className="text-right">
                       Aksi
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-200/80">
-                  {filteredHistory.map((request) => (
+                <tbody>
+                  {filteredHistory.map((request, idx) => (
                     <tr
                       key={request.id}
                       onClick={() => setDetailTarget(request)}
-                      className="cursor-pointer transition-colors hover:bg-[#F4F2EC]/50"
+                      className="cursor-pointer"
                     >
-                      <th scope="row" className="px-4 py-3.5 font-normal">
+                      <td data-label="No" className="row-idx">
+                        {String(idx + 1).padStart(2, "0")}
+                      </td>
+                      <th scope="row" className="font-normal">
                         <div className="flex items-center gap-2.5">
                           {request.applicantAvatar ? (
+                            // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={request.applicantAvatar}
                               alt={`Foto profil ${request.applicantName}`}
-                              className="h-8 w-8 shrink-0 rounded-full border border-stone-200 object-cover bg-[#F4F2EC]"
+                              className="h-8 w-8 shrink-0 rounded-[2px] border border-[var(--rule)] object-cover"
                             />
                           ) : (
-                            <span
-                              aria-hidden="true"
-                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-stone-200 bg-[#F4F2EC] text-[11px] font-bold text-slate-800"
-                            >
+                            <span className="avatar-sq" aria-hidden="true">
                               {request.applicantInitials || "KR"}
                             </span>
                           )}
                           <div className="min-w-0">
-                            <p className="truncate font-semibold text-slate-900">
+                            <p className="truncate font-semibold text-[var(--ink)]">
                               {request.applicantName}
                             </p>
-                            <p className="truncate text-[11px] text-slate-500">
+                            <p className="truncate text-[11px] text-[var(--ink-muted)]">
                               Handover: {request.handoverUserName}
                             </p>
                           </div>
                         </div>
                       </th>
-                      <td data-label="Jenis & Periode" className="px-4 py-3.5">
-                        <div>
-                          <p className="font-medium text-slate-900">
-                            {request.leaveTypeName}
-                          </p>
-                          <p className="text-[11px] text-slate-600">
-                            {formatIndonesianDateRange(
-                              request.startDate,
-                              request.endDate,
-                              request.isHalfDay
-                            )}
-                          </p>
-                        </div>
+                      <td data-label="Jenis & Periode">
+                        <p className="font-medium text-[var(--ink)]">
+                          {request.leaveTypeName}
+                        </p>
+                        <p className="mono text-[11px] text-[var(--ink-soft)]">
+                          {formatIndonesianDateRange(
+                            request.startDate,
+                            request.endDate,
+                            request.isHalfDay
+                          )}
+                        </p>
                       </td>
                       <td
                         data-label="Durasi"
-                        className="px-4 py-3.5 font-semibold text-slate-900 tabular-nums"
+                        className="mono whitespace-nowrap text-xs font-semibold text-[var(--ink)]"
                       >
-                        {Number(request.totalDays).toFixed(1)} Hari
+                        {Number(request.totalDays).toFixed(1)} hr
                       </td>
-                      <td data-label="Status" className="px-4 py-3.5">
+                      <td data-label="Status">
                         <StatusBadge
                           status={request.status}
                           rejectedByRole={request.rejectedByRole}
                         />
                       </td>
-                      <td data-label="Aksi" className="px-4 py-3.5 text-right">
+                      <td data-label="Aksi" className="text-right">
                         <button
                           type="button"
                           onClick={(event) => {
                             event.stopPropagation();
                             setDetailTarget(request);
                           }}
-                          className="cursor-pointer rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-800 transition-colors hover:border-slate-900 hover:bg-[#F4F2EC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                          className="btn btn-sm"
                         >
                           Detail
                         </button>
@@ -680,27 +637,21 @@ export default function LeaderVerificationClient({
         onSubmit={handleSubmitDecision}
       />
 
-      {/* Live Region Toast Feedback */}
+      {/* Toast Umpan Balik Swiss Archival */}
       {toast && (
         <div
           role={toast.tone === "error" ? "alert" : "status"}
           aria-live={toast.tone === "error" ? "assertive" : "polite"}
-          className={`fixed bottom-6 left-1/2 z-50 flex max-w-md -translate-x-1/2 items-center gap-2.5 rounded-xl border px-4 py-3 text-xs font-semibold shadow-xl ${
+          className={`fixed bottom-5 right-5 z-50 flex max-w-md items-center gap-2.5 rounded-[2px] border px-4 py-3 font-mono text-xs shadow-xl ${
             toast.tone === "error"
-              ? "border-rose-700 bg-rose-950 text-white"
-              : "border-slate-800 bg-slate-900 text-white"
+              ? "border-[var(--terracotta)] bg-[var(--terracotta-btn)] text-[var(--spruce-btn-ink)]"
+              : "border-[var(--ink)] bg-[var(--ink)] text-[var(--paper-pure)]"
           }`}
         >
           {toast.tone === "error" ? (
-            <AlertCircle
-              className="h-4 w-4 shrink-0 text-rose-300"
-              aria-hidden="true"
-            />
+            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
           ) : (
-            <CheckCircle2
-              className="h-4 w-4 shrink-0 text-emerald-400"
-              aria-hidden="true"
-            />
+            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
           )}
           <span>{toast.message}</span>
         </div>

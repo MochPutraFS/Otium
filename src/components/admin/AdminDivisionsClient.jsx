@@ -4,9 +4,10 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
-  Building2,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   CheckCircle2,
-  Crown,
   Eye,
   Pencil,
   Plus,
@@ -28,7 +29,7 @@ import {
 } from "@/actions/division-actions";
 
 /**
- * Workspace CMS Modul 2: Manajemen Divisi (/admin/divisions) — Pure Production.
+ * Workspace CMS Modul 2: Manajemen Divisi (/admin/divisions) — Swiss Archival.
  * Terhubung ke PostgreSQL via Server Component initial load, Server Actions (mutasi atomik),
  * dan Route Handler GET /api/admin/divisions (sinkronisasi realtime).
  */
@@ -193,6 +194,52 @@ export default function AdminDivisionsClient({
     setSortBy("members_desc");
   }
 
+  function handleColumnSort(col) {
+    if (col === "name") {
+      setSortBy((prev) => (prev === "name_asc" ? "name_desc" : "name_asc"));
+    } else if (col === "members") {
+      setSortBy((prev) =>
+        prev === "members_desc" ? "members_asc" : "members_desc"
+      );
+    } else if (col === "created") {
+      setSortBy((prev) =>
+        prev === "created_newest" ? "created_oldest" : "created_newest"
+      );
+    }
+  }
+
+  function getAriaSort(col) {
+    if (col === "name") {
+      if (sortBy === "name_asc") return "ascending";
+      if (sortBy === "name_desc") return "descending";
+    }
+    if (col === "members") {
+      if (sortBy === "members_asc") return "ascending";
+      if (sortBy === "members_desc") return "descending";
+    }
+    if (col === "created") {
+      if (sortBy === "created_oldest") return "ascending";
+      if (sortBy === "created_newest") return "descending";
+    }
+    return "none";
+  }
+
+  function renderSortIcon(col) {
+    const dir = getAriaSort(col);
+    if (dir === "ascending") {
+      return <ArrowUp className="h-3 w-3 shrink-0" aria-hidden="true" />;
+    }
+    if (dir === "descending") {
+      return <ArrowDown className="h-3 w-3 shrink-0" aria-hidden="true" />;
+    }
+    return (
+      <ArrowUpDown
+        className="h-3 w-3 shrink-0 opacity-45"
+        aria-hidden="true"
+      />
+    );
+  }
+
   function openCreateModal() {
     setFormServerError("");
     setFormServerFieldErrors(null);
@@ -326,33 +373,6 @@ export default function AdminDivisionsClient({
     { value: "created_oldest", label: "Dibentuk (Terlama)" },
   ];
 
-  const statCards = [
-    {
-      label: "Total Divisi Aktif",
-      value: `${stats.totalDivisions}`,
-      unit: "Divisi",
-      subtitle: "Unit kerja terdaftar di PostgreSQL",
-      icon: Building2,
-      accentClass: "text-slate-900 bg-[#F4F2EC] border-stone-200",
-    },
-    {
-      label: "Anggota Tergabung",
-      value: `${stats.assignedMembersCount}`,
-      unit: "Pengguna",
-      subtitle: "Memiliki relasi division_id aktif",
-      icon: Users,
-      accentClass: "text-emerald-800 bg-emerald-50 border-emerald-200/80",
-    },
-    {
-      label: "Kandidat Ketua Tersedia",
-      value: `${stats.availableLeadersCount}`,
-      unit: "Ketua",
-      subtitle: "Ketua Divisi aktif yang belum memimpin divisi",
-      icon: Crown,
-      accentClass: "text-amber-800 bg-amber-50 border-amber-200/80",
-    },
-  ];
-
   return (
     <div className="space-y-6">
       {/* Notifikasi Status / Error */}
@@ -360,29 +380,23 @@ export default function AdminDivisionsClient({
         <div
           role={toast.tone === "error" ? "alert" : "status"}
           aria-live={toast.tone === "error" ? "assertive" : "polite"}
-          className={`fixed right-5 top-20 z-50 flex max-w-md items-center gap-2.5 rounded-lg border px-4 py-3 text-xs font-semibold shadow-lg ${
-            toast.tone === "error"
-              ? "border-rose-300 bg-rose-50 text-rose-950"
-              : "border-emerald-300 bg-emerald-50 text-emerald-950"
+          className={`notice fixed right-5 top-20 z-50 max-w-md items-center shadow-[var(--shadow-lg)] ${
+            toast.tone === "error" ? "notice-danger" : "notice-success"
           }`}
         >
           {toast.tone === "error" ? (
-            <AlertCircle
-              className="h-4 w-4 shrink-0 text-rose-700"
-              aria-hidden="true"
-            />
+            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
           ) : (
-            <CheckCircle2
-              className="h-4 w-4 shrink-0 text-emerald-700"
-              aria-hidden="true"
-            />
+            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
           )}
-          <span>{toast.message}</span>
+          <span className="flex-1 text-[12.5px] font-medium">
+            {toast.message}
+          </span>
           <button
             type="button"
             onClick={() => setToast(null)}
             aria-label="Tutup notifikasi"
-            className="ml-1 cursor-pointer rounded p-0.5 opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
+            className="btn-icon h-6 w-6 shrink-0"
           >
             <X className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
@@ -390,27 +404,27 @@ export default function AdminDivisionsClient({
       )}
 
       {/* Header Editorial Halaman */}
-      <header className="flex flex-col gap-4 border-b border-stone-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <header className="flex flex-col gap-4 border-b border-[var(--rule-strong)] pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
-            CMS Modul 02 · Master Data Divisi
+          <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+            CMS MODUL 02 · MASTER DATA DIVISI
           </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h1 className="mt-1 font-serif text-[28px] font-semibold leading-tight tracking-[-0.015em] text-[var(--ink)] sm:text-[32px]">
             Manajemen Divisi
           </h1>
-          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-600">
+          <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[var(--ink-soft)]">
             Kelola unit organisasi, penunjukan 1 Ketua per Divisi, serta
-            penghapusan aman dengan Konfirmasi 2 Tahap (<em>Double Confirmation</em>)
-            tanpa menghapus akun anggota.
+            penghapusan aman dengan Konfirmasi 2 Tahap (
+            <em>Double Confirmation</em>) tanpa menghapus akun anggota.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             disabled={isRefreshing}
             onClick={() => refreshFromApi({ silent: false })}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:bg-[#F4F2EC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn btn-sm"
           >
             <RefreshCw
               className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`}
@@ -422,50 +436,44 @@ export default function AdminDivisionsClient({
           <button
             type="button"
             onClick={openCreateModal}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+            className="btn btn-primary btn-sm"
           >
-            <Plus className="h-4 w-4" aria-hidden="true" />
+            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
             Buat Divisi Baru
           </button>
         </div>
       </header>
 
-      {/* Ringkasan Statistik Editorial */}
+      {/* Metric Strip Swiss Archival (3 Kolom) */}
       <section
         aria-label="Ringkasan statistik divisi"
-        className="grid grid-cols-1 gap-3.5 sm:grid-cols-3"
+        className="metric-strip lg:!grid-cols-3"
       >
-        {statCards.map((card) => {
-          const IconComponent = card.icon;
-          return (
-            <div
-              key={card.label}
-              className="flex flex-col justify-between rounded-xl border border-stone-200 bg-white p-4 transition-colors duration-150 hover:border-stone-300"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">
-                    {card.label}
-                  </p>
-                  <p className="mt-2 flex items-baseline gap-1.5 text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
-                    <span>{card.value}</span>
-                    <span className="text-xs font-medium text-slate-600">
-                      {card.unit}
-                    </span>
-                  </p>
-                </div>
-                <div
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${card.accentClass}`}
-                >
-                  <IconComponent className="h-4 w-4" aria-hidden="true" />
-                </div>
-              </div>
-              <p className="mt-2.5 border-t border-stone-100 pt-2 text-xs text-slate-600">
-                {card.subtitle}
-              </p>
-            </div>
-          );
-        })}
+        <div className="metric-cell">
+          <p className="metric-label">Total Divisi Aktif</p>
+          <p className="metric-val tabular-nums">
+            {stats.totalDivisions} <small>Divisi</small>
+          </p>
+          <p className="metric-note">Unit kerja terdaftar di PostgreSQL</p>
+        </div>
+
+        <div className="metric-cell">
+          <p className="metric-label">Anggota Tergabung</p>
+          <p className="metric-val tabular-nums text-[var(--spruce)]">
+            {stats.assignedMembersCount} <small>Pengguna</small>
+          </p>
+          <p className="metric-note">Memiliki relasi division_id aktif</p>
+        </div>
+
+        <div className="metric-cell">
+          <p className="metric-label">Kandidat Ketua Tersedia</p>
+          <p className="metric-val tabular-nums text-[var(--ochre)]">
+            {stats.availableLeadersCount} <small>Ketua</small>
+          </p>
+          <p className="metric-note">
+            Ketua Divisi aktif yang belum memimpin divisi
+          </p>
+        </div>
       </section>
 
       {/* Toolbar Pencarian, Filter & Sortir */}
@@ -483,8 +491,8 @@ export default function AdminDivisionsClient({
         totalAll={divisions.length}
       />
 
-      {/* Tabel Divisi (Responsive Container Query) */}
-      <section className="overflow-hidden rounded-xl border border-stone-200 bg-white">
+      {/* Ledger Divisi */}
+      <section className="panel overflow-hidden">
         {filteredDivisions.length === 0 ? (
           <div className="p-8">
             <EmptyState
@@ -493,141 +501,230 @@ export default function AdminDivisionsClient({
             />
           </div>
         ) : (
-          <div
-            tabIndex={0}
-            role="region"
-            aria-labelledby={tableCaptionId}
-            className="otium-responsive-table-wrap focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-slate-900"
-          >
-            <table className="otium-responsive-table text-left text-sm">
-              <caption id={tableCaptionId} className="sr-only">
-                Daftar divisi aktif pada sistem manajemen cuti Otium
-              </caption>
-              <thead className="bg-[#F4F2EC] text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-700">
-                <tr>
-                  <th scope="col" className="border-b border-stone-200 px-5 py-3.5">
-                    Nama Divisi
-                  </th>
-                  <th scope="col" className="border-b border-stone-200 px-4 py-3.5">
-                    Deskripsi Singkat
-                  </th>
-                  <th scope="col" className="border-b border-stone-200 px-4 py-3.5">
-                    Ketua Divisi
-                  </th>
-                  <th scope="col" className="border-b border-stone-200 px-4 py-3.5">
-                    Jumlah Anggota
-                  </th>
-                  <th scope="col" className="border-b border-stone-200 px-4 py-3.5">
-                    Dibentuk
-                  </th>
-                  <th
-                    scope="col"
-                    className="border-b border-stone-200 px-5 py-3.5 text-right"
-                  >
-                    Aksi
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100 bg-white">
-                {filteredDivisions.map((div) => (
-                  <tr
-                    key={div.id}
-                    className="transition-colors duration-150 hover:bg-[#F4F2EC]/45"
-                  >
-                    <th
-                      scope="row"
-                      className="whitespace-nowrap px-5 py-3.5 font-semibold text-slate-900"
-                    >
-                      {div.name}
+          <>
+            {/* Desktop Sortable Swiss Ledger Table */}
+            <div
+              tabIndex={0}
+              role="region"
+              aria-labelledby={tableCaptionId}
+              className="hidden overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--spruce)] md:block"
+            >
+              <table className="ledger">
+                <caption id={tableCaptionId} className="sr-only">
+                  Daftar divisi aktif pada sistem manajemen cuti Otium
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col" className="w-11 text-center">
+                      No.
                     </th>
-                    <td
-                      data-label="Deskripsi"
-                      className="max-w-xs px-4 py-3.5 text-xs text-slate-600"
-                    >
-                      <p className="line-clamp-2">
+                    <th scope="col" aria-sort={getAriaSort("name")}>
+                      <button
+                        type="button"
+                        onClick={() => handleColumnSort("name")}
+                      >
+                        <span>Nama Divisi</span>
+                        {renderSortIcon("name")}
+                      </button>
+                    </th>
+                    <th scope="col">Deskripsi Singkat</th>
+                    <th scope="col">Ketua Divisi</th>
+                    <th scope="col" aria-sort={getAriaSort("members")}>
+                      <button
+                        type="button"
+                        onClick={() => handleColumnSort("members")}
+                      >
+                        <span>Jumlah Anggota</span>
+                        {renderSortIcon("members")}
+                      </button>
+                    </th>
+                    <th scope="col" aria-sort={getAriaSort("created")}>
+                      <button
+                        type="button"
+                        onClick={() => handleColumnSort("created")}
+                      >
+                        <span>Dibentuk</span>
+                        {renderSortIcon("created")}
+                      </button>
+                    </th>
+                    <th scope="col" className="text-right">
+                      Aksi
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDivisions.map((div, idx) => (
+                    <tr key={div.id}>
+                      <td className="row-idx text-center">
+                        {String(idx + 1).padStart(2, "0")}
+                      </td>
+                      <th
+                        scope="row"
+                        className="whitespace-nowrap font-semibold text-[var(--ink)]"
+                      >
+                        {div.name}
+                      </th>
+                      <td className="max-w-xs text-[12px] text-[var(--ink-soft)]">
+                        <p className="line-clamp-2">
+                          {div.description || (
+                            <span className="italic text-[var(--ink-muted)]">
+                              Tanpa deskripsi
+                            </span>
+                          )}
+                        </p>
+                      </td>
+                      <td className="whitespace-nowrap">
+                        {div.leader ? (
+                          <div>
+                            <p className="text-[12.5px] font-semibold text-[var(--ink)]">
+                              {div.leader.fullName}
+                            </p>
+                            <p className="font-mono text-[11px] text-[var(--ink-muted)]">
+                              {div.leader.email}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="tag tag-pending">
+                            Belum Ditetapkan
+                          </span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap">
+                        <span className="tag tabular-nums">
+                          <Users className="h-3 w-3" aria-hidden="true" />
+                          {div.memberCount} Anggota
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap font-mono text-[12px] tabular-nums text-[var(--ink-soft)]">
+                        {formatIndonesianDate(div.createdAt)}
+                      </td>
+                      <td className="whitespace-nowrap text-right">
+                        <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setDetailDivisionId(div.id)}
+                            className="btn btn-sm"
+                          >
+                            <Eye className="h-3 w-3" aria-hidden="true" />
+                            Detail
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(div)}
+                            className="btn btn-sm"
+                          >
+                            <Pencil className="h-3 w-3" aria-hidden="true" />
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeleteError("");
+                              setDeleteDivisionId(div.id);
+                            }}
+                            className="btn btn-sm btn-danger-ghost"
+                          >
+                            <Trash2 className="h-3 w-3" aria-hidden="true" />
+                            Hapus
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Ledger Cards (< md) */}
+            <div className="divide-y divide-[var(--rule)] md:hidden">
+              {filteredDivisions.map((div, idx) => (
+                <article key={div.id} className="ledger-card">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-serif text-[17px] font-semibold text-[var(--ink)]">
+                        {div.name}
+                      </p>
+                      <p className="mt-0.5 text-[12px] text-[var(--ink-soft)]">
                         {div.description || (
-                          <span className="italic text-slate-500">
+                          <span className="italic text-[var(--ink-muted)]">
                             Tanpa deskripsi
                           </span>
                         )}
                       </p>
-                    </td>
-                    <td
-                      data-label="Ketua Divisi"
-                      className="whitespace-nowrap px-4 py-3.5"
-                    >
-                      {div.leader ? (
-                        <div>
-                          <p className="text-xs font-semibold text-slate-900">
+                    </div>
+                    <span className="font-mono text-[10.5px] text-[var(--ink-muted)]">
+                      #{String(idx + 1).padStart(2, "0")}
+                    </span>
+                  </div>
+
+                  <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-[var(--rule)] pt-3 text-[12px]">
+                    <div>
+                      <dt className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--ink-muted)]">
+                        Ketua Divisi
+                      </dt>
+                      <dd className="mt-0.5">
+                        {div.leader ? (
+                          <span className="font-medium text-[var(--ink)]">
                             {div.leader.fullName}
-                          </p>
-                          <p className="text-[11px] text-slate-600">
-                            {div.leader.email}
-                          </p>
-                        </div>
-                      ) : (
-                        <span className="inline-flex items-center rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900">
-                          Belum Ditetapkan
-                        </span>
-                      )}
-                    </td>
-                    <td
-                      data-label="Jumlah Anggota"
-                      className="whitespace-nowrap px-4 py-3.5"
-                    >
-                      <span className="inline-flex items-center gap-1.5 rounded-md border border-stone-200 bg-[#F4F2EC]/70 px-2.5 py-1 text-xs font-semibold text-slate-800 tabular-nums">
-                        <Users
-                          className="h-3.5 w-3.5 text-slate-600"
-                          aria-hidden="true"
-                        />
+                          </span>
+                        ) : (
+                          <span className="tag tag-pending text-[10px]">
+                            Belum Ditetapkan
+                          </span>
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--ink-muted)]">
+                        Jumlah Anggota
+                      </dt>
+                      <dd className="mt-0.5 font-mono font-semibold tabular-nums text-[var(--ink)]">
                         {div.memberCount} Anggota
-                      </span>
-                    </td>
-                    <td
-                      data-label="Dibentuk"
-                      className="whitespace-nowrap px-4 py-3.5 text-xs text-slate-700"
+                      </dd>
+                    </div>
+                    <div className="col-span-2">
+                      <dt className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--ink-muted)]">
+                        Dibentuk
+                      </dt>
+                      <dd className="mt-0.5 font-mono text-[11.5px] tabular-nums text-[var(--ink-soft)]">
+                        {formatIndonesianDate(div.createdAt)}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <div className="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-[var(--rule)] pt-3">
+                    <button
+                      type="button"
+                      onClick={() => setDetailDivisionId(div.id)}
+                      className="btn btn-sm"
                     >
-                      {formatIndonesianDate(div.createdAt)}
-                    </td>
-                    <td
-                      data-label="Aksi"
-                      className="whitespace-nowrap px-5 py-3.5 text-right"
+                      <Eye className="h-3 w-3" aria-hidden="true" />
+                      Detail
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(div)}
+                      className="btn btn-sm"
                     >
-                      <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setDetailDivisionId(div.id)}
-                          className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-stone-300 bg-[#F4F2EC]/70 px-2.5 py-1.5 text-xs font-semibold text-slate-900 transition-colors duration-150 hover:bg-stone-200/80 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
-                        >
-                          <Eye className="h-3.5 w-3.5" aria-hidden="true" />
-                          Detail
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(div)}
-                          className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:bg-[#F4F2EC] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
-                        >
-                          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDeleteError("");
-                            setDeleteDivisionId(div.id);
-                          }}
-                          className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-800 transition-colors duration-150 hover:bg-rose-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-rose-700"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                          Hapus
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      <Pencil className="h-3 w-3" aria-hidden="true" />
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeleteError("");
+                        setDeleteDivisionId(div.id);
+                      }}
+                      className="btn btn-sm btn-danger-ghost"
+                    >
+                      <Trash2 className="h-3 w-3" aria-hidden="true" />
+                      Hapus
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </>
         )}
       </section>
 

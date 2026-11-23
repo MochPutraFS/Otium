@@ -16,11 +16,11 @@ import { logoutAction } from "@/actions/auth-actions";
 
 const PAGE_TITLE_MAP = {
   "/dashboard": { title: "Dashboard", section: "Ringkasan" },
-  "/profile": { title: "Profil & Pengaturan Akun", section: "Akun Saya" },
+  "/profile": { title: "Profil & Saldo Kuota", section: "Akun Saya" },
   "/leaves": { title: "Riwayat Cuti Saya", section: "Operasional Cuti" },
-  "/leaves/new": { title: "Ajukan Cuti Baru", section: "Operasional Cuti" },
+  "/leaves/new": { title: "Pengajuan Cuti", section: "Operasional Cuti" },
   "/approvals/leader": {
-    title: "Verifikasi Cuti Divisi",
+    title: "Verifikasi Ketua Divisi",
     section: "Persetujuan Tahap 1",
   },
   "/approvals/hrd": {
@@ -39,9 +39,20 @@ const PAGE_TITLE_MAP = {
   },
 };
 
+const THEME_MODES = [
+  { id: "light", scheme: "light", icon: "☀", label: "Terang" },
+  { id: "dark", scheme: "dark", icon: "☾", label: "Gelap" },
+  { id: "system", scheme: "light dark", icon: "◐", label: "Sistem" },
+];
+
+const THEME_STORAGE_KEY = "otium-color-scheme";
+
 /**
- * TopNavbar editorial: judul halaman, tanggal & libur terdekat realtime dari PostgreSQL,
- * lonceng notifikasi, dan panel menu akun.
+ * TopNavbar Swiss Archival:
+ * - Breadcrumb role + judul halaman Cormorant Garamond
+ * - Pill tanggal & hari libur terdekat realtime dari PostgreSQL
+ * - Theme Switcher (Terang / Gelap / Sistem) berbasis color-scheme (default: Terang)
+ * - NotificationDropdown & menu akun pengguna
  */
 export default function TopNavbar({
   user,
@@ -54,12 +65,42 @@ export default function TopNavbar({
 }) {
   const pathname = usePathname();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [themeIndex, setThemeIndex] = useState(0);
   const userMenuRef = useRef(null);
 
   const pageMeta = PAGE_TITLE_MAP[pathname] || {
     title: "Portal Otium",
     section: "Workspace",
   };
+
+  // Sinkronkan preferensi tema tersimpan saat mount (default: light)
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
+      const foundIdx = THEME_MODES.findIndex((m) => m.id === saved);
+      const activeIdx = foundIdx >= 0 ? foundIdx : 0;
+      setThemeIndex(activeIdx);
+      document.documentElement.style.colorScheme =
+        THEME_MODES[activeIdx].scheme;
+      document.documentElement.dataset.theme = THEME_MODES[activeIdx].id;
+    } catch {
+      document.documentElement.style.colorScheme = "light";
+      document.documentElement.dataset.theme = "light";
+    }
+  }, []);
+
+  function handleCycleTheme() {
+    const nextIdx = (themeIndex + 1) % THEME_MODES.length;
+    const nextMode = THEME_MODES[nextIdx];
+    setThemeIndex(nextIdx);
+    document.documentElement.style.colorScheme = nextMode.scheme;
+    document.documentElement.dataset.theme = nextMode.id;
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, nextMode.id);
+    } catch {
+      // Abaikan jika localStorage diblokir
+    }
+  }
 
   useEffect(() => {
     if (!isUserMenuOpen) return undefined;
@@ -89,10 +130,11 @@ export default function TopNavbar({
 
   const hasQuotaLabel =
     user.role === "Karyawan" || user.role === "Ketua Divisi";
+  const currentTheme = THEME_MODES[themeIndex];
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-stone-200 bg-white px-4 sm:px-6">
-      {/* Bagian kiri: tombol drawer mobile & judul halaman */}
+    <header className="sticky top-0 z-20 flex h-[60px] shrink-0 items-center justify-between gap-3 border-b border-[var(--rule-strong)] bg-[color-mix(in_oklab,var(--paper)_94%,transparent)] px-4 backdrop-blur-md sm:px-6">
+      {/* Bagian kiri: tombol drawer mobile, breadcrumb role, & judul halaman serif */}
       <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
@@ -100,35 +142,41 @@ export default function TopNavbar({
           aria-label="Buka menu navigasi"
           aria-controls="mobile-navigation-drawer"
           aria-expanded={isMobileMenuOpen}
-          className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-stone-200 bg-white text-slate-700 transition-colors duration-150 hover:bg-[#F4F2EC] hover:text-[#0F172A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A] lg:hidden"
+          className="btn btn-icon lg:hidden"
         >
-          <Menu className="h-5 w-5" aria-hidden="true" />
+          <Menu className="h-4 w-4" aria-hidden="true" />
         </button>
 
-        <div className="min-w-0">
-          <p className="hidden text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 sm:block">
-            {pageMeta.section}
-          </p>
-          <h1 className="truncate text-base font-semibold tracking-tight text-[#0F172A] sm:text-lg">
+        <div className="flex min-w-0 items-baseline gap-2.5">
+          <span className="hidden shrink-0 text-[12.5px] text-[var(--ink-muted)] sm:inline">
+            {user.role}
+          </span>
+          <span
+            className="hidden shrink-0 text-[var(--rule-strong)] sm:inline"
+            aria-hidden="true"
+          >
+            /
+          </span>
+          <h1 className="m-0 truncate font-serif text-[22px] font-semibold leading-none tracking-[-0.01em] text-[var(--ink)] sm:text-[26px]">
             {pageMeta.title}
           </h1>
         </div>
       </div>
 
-      {/* Bagian kanan: tanggal/libur realtime, notifikasi, & panel akun */}
+      {/* Bagian kanan: tanggal/libur realtime, switcher tema, notifikasi, & panel akun */}
       <div className="flex items-center gap-2 sm:gap-2.5">
         {todayLabel && (
           <div
-            className="hidden items-center gap-2.5 rounded-lg border border-stone-200 bg-[#F4F2EC]/80 px-3 py-1.5 text-xs md:flex"
+            className="hidden items-center gap-2.5 rounded-[2px] border border-[var(--rule)] bg-[var(--alabaster)] px-2.5 py-1 text-xs md:flex"
             title={
               upcomingHoliday
                 ? `Hari libur terdekat: ${upcomingHoliday.name} (${upcomingHoliday.dateLabel})`
                 : `Hari ini: ${todayLabel}`
             }
           >
-            <span className="inline-flex items-center gap-1.5 font-medium text-slate-700 tabular-nums">
+            <span className="mono inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--ink-soft)]">
               <CalendarDays
-                className="h-3.5 w-3.5 text-[#1D4ED8]"
+                className="h-3.5 w-3.5 text-[var(--spruce)]"
                 aria-hidden="true"
               />
               {todayLabel}
@@ -137,20 +185,20 @@ export default function TopNavbar({
             {upcomingHoliday && (
               <>
                 <span
-                  className="hidden h-3.5 w-px bg-stone-300 xl:inline-block"
+                  className="hidden h-3.5 w-px bg-[var(--rule-strong)] xl:inline-block"
                   aria-hidden="true"
                 />
-                <span className="hidden items-center gap-1.5 text-slate-600 xl:inline-flex">
+                <span className="hidden items-center gap-1.5 text-[11.5px] text-[var(--ink-soft)] xl:inline-flex">
                   <span
-                    className="h-1.5 w-1.5 rounded-full bg-amber-600"
+                    className="h-1.5 w-1.5 bg-[var(--ochre)]"
                     aria-hidden="true"
                   />
                   <span>
                     Libur:{" "}
-                    <strong className="font-semibold text-[#0F172A]">
+                    <strong className="font-semibold text-[var(--ink)]">
                       {upcomingHoliday.name}
                     </strong>{" "}
-                    <span className="tabular-nums">
+                    <span className="mono text-[11px] text-[var(--ink-muted)]">
                       ({upcomingHoliday.dateLabel})
                     </span>
                   </span>
@@ -160,13 +208,25 @@ export default function TopNavbar({
           </div>
         )}
 
+        {/* Switcher Tema (Sistem / Terang / Gelap) */}
+        <button
+          type="button"
+          onClick={handleCycleTheme}
+          aria-label={`Ganti tema tampilan (saat ini: ${currentTheme.label})`}
+          title={`Tema: ${currentTheme.label} — klik untuk mengganti (Sistem / Terang / Gelap)`}
+          className="btn btn-sm"
+        >
+          <span aria-hidden="true">{currentTheme.icon}</span>
+          <span className="hidden sm:inline">Tema: {currentTheme.label}</span>
+        </button>
+
         {/* Dropdown Notifikasi Realtime */}
         <NotificationDropdown
           initialNotifications={initialNotifications}
           initialUnreadCount={initialUnreadCount}
         />
 
-        {/* Panel Menu Akun */}
+        {/* Panel Menu Akun (.user-cell) */}
         <div className="relative" ref={userMenuRef}>
           <button
             type="button"
@@ -174,31 +234,30 @@ export default function TopNavbar({
             aria-expanded={isUserMenuOpen}
             aria-controls="user-account-panel"
             aria-label={`Menu akun ${user.fullName}`}
-            className="flex h-10 cursor-pointer items-center gap-2.5 rounded-lg border border-stone-200 bg-white pl-1.5 pr-2.5 text-left transition-colors duration-150 hover:border-stone-300 hover:bg-[#F4F2EC]/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A]"
+            className="flex h-9 cursor-pointer items-center gap-2.5 rounded-[2px] border border-[var(--rule-strong)] bg-[var(--paper-pure)] pl-1 pr-2.5 text-left transition-colors duration-150 hover:border-[var(--ink)] hover:bg-[var(--alabaster)]"
           >
             {user.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={user.avatarUrl}
                 alt=""
-                className="h-7 w-7 shrink-0 rounded-md border border-stone-200 object-cover"
+                className="h-7 w-7 shrink-0 rounded-[2px] border border-[var(--rule)] object-cover"
               />
             ) : (
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#0F172A] text-[11px] font-semibold text-white">
-                {user.initials}
-              </div>
+              <span className="avatar-sq">{user.initials}</span>
             )}
 
             <div className="hidden min-w-0 sm:block">
-              <p className="max-w-[130px] truncate text-xs font-semibold leading-tight text-[#0F172A]">
+              <p className="max-w-[136px] truncate text-[12.5px] font-semibold leading-tight text-[var(--ink)]">
                 {user.fullName}
               </p>
-              <p className="text-[11px] leading-tight text-slate-500">
+              <p className="mono max-w-[136px] truncate text-[10px] leading-tight text-[var(--ink-muted)]">
                 {user.role}
+                {user.divisionName ? ` • ${user.divisionName}` : ""}
               </p>
             </div>
             <ChevronDown
-              className={`hidden h-3.5 w-3.5 text-slate-500 transition-transform duration-150 sm:block ${
+              className={`hidden h-3.5 w-3.5 text-[var(--ink-muted)] transition-transform duration-150 sm:block ${
                 isUserMenuOpen ? "rotate-180" : ""
               }`}
               aria-hidden="true"
@@ -208,17 +267,19 @@ export default function TopNavbar({
           {isUserMenuOpen && (
             <div
               id="user-account-panel"
-              className="absolute right-0 z-40 mt-2 w-64 overflow-hidden rounded-xl border border-stone-200 bg-white shadow-lg"
+              className="absolute right-0 z-40 mt-2 w-64 overflow-hidden rounded-[2px] border border-[var(--ink)] bg-[var(--paper-pure)] shadow-[0_14px_32px_rgba(25,24,22,0.16)]"
             >
-              <div className="border-b border-stone-200 bg-[#F4F2EC]/50 px-4 py-3">
-                <p className="truncate text-sm font-semibold text-[#0F172A]">
+              <div className="border-b border-[var(--rule)] bg-[var(--paper)] px-4 py-3">
+                <p className="truncate text-sm font-semibold text-[var(--ink)]">
                   {user.fullName}
                 </p>
-                <p className="truncate text-xs text-slate-600">{user.email}</p>
+                <p className="mono truncate text-[11px] text-[var(--ink-muted)]">
+                  {user.email}
+                </p>
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   <StatusBadge status={user.role} />
                   {user.divisionName && (
-                    <span className="truncate text-[11px] font-medium text-slate-600">
+                    <span className="truncate text-[11px] font-medium text-[var(--ink-soft)]">
                       {user.divisionName}
                     </span>
                   )}
@@ -229,10 +290,10 @@ export default function TopNavbar({
                 <Link
                   href="/profile"
                   onClick={() => setIsUserMenuOpen(false)}
-                  className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 transition-colors duration-150 hover:bg-[#F4F2EC] hover:text-[#0F172A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F172A]"
+                  className="flex cursor-pointer items-center gap-2.5 rounded-[2px] px-3 py-2 text-xs font-medium text-[var(--ink-soft)] transition-colors duration-150 hover:bg-[var(--alabaster)] hover:text-[var(--ink)]"
                 >
                   <UserCircle2
-                    className="h-4 w-4 text-slate-500"
+                    className="h-4 w-4 text-[var(--ink-muted)]"
                     aria-hidden="true"
                   />
                   {hasQuotaLabel ? "Profil & Kuota Saya" : "Profil Saya"}
@@ -241,8 +302,7 @@ export default function TopNavbar({
                 <form action={logoutAction}>
                   <button
                     type="submit"
-                    onClick={() => setIsUserMenuOpen(false)}
-                    className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-rose-700 transition-colors duration-150 hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600"
+                    className="flex w-full cursor-pointer items-center gap-2.5 rounded-[2px] px-3 py-2 text-xs font-medium text-[var(--terracotta)] transition-colors duration-150 hover:bg-[var(--terracotta-tint)]"
                   >
                     <LogOut className="h-4 w-4" aria-hidden="true" />
                     Keluar (Logout)

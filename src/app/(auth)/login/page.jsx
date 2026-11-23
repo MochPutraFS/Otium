@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import LoginBrandPanel from "@/components/auth/LoginBrandPanel";
 import LoginFormCard from "@/components/auth/LoginFormCard";
+import ThemeToggleButton from "@/components/ui/ThemeToggleButton";
 import { getCurrentUser } from "@/lib/auth";
 
 export const metadata = {
@@ -11,7 +12,7 @@ export const metadata = {
 
 /**
  * Halaman Login terpusat (/login) pada Route Group (auth) — tanpa Sidebar/TopNavbar.
- * Layout responsif: Editorial Split-Screen 12-kolom di Desktop (lg+) dan Centered Canvas di Mobile/Tablet.
+ * Layout Swiss Arch Atelier split-screen di Desktop (lg+) dan Centered Canvas di Mobile/Tablet.
  * Menerapkan Layer 2 Guard: jika pengguna sudah memiliki sesi aktif di PostgreSQL, arahkan ke /dashboard.
  */
 export default async function LoginPage({ searchParams }) {
@@ -28,21 +29,26 @@ export default async function LoginPage({ searchParams }) {
   }
 
   return (
-    <main className="grid min-h-screen min-h-dvh grid-cols-1 bg-[#F4F2EC] lg:grid-cols-12 lg:bg-white">
-      {/* Panel Editorial Kiri (Desktop lg+) */}
+    <main className="grid min-h-dvh grid-cols-1 bg-[var(--alabaster)] text-[var(--ink)] lg:grid-cols-[1.08fr_1fr]">
+      {/* Panel Editorial Split Archival Kiri (Desktop lg+) */}
       <LoginBrandPanel />
 
-      {/* Area Form Login Kanan (Bersih & Fokus Tunggal) */}
+      {/* Area Form Login Kanan */}
       <section
         aria-label="Formulir Masuk Portal Otium"
-        className="flex flex-col items-center justify-center px-4 py-8 sm:px-6 sm:py-10 lg:col-span-7 lg:bg-white lg:px-12 xl:px-16"
+        className="relative flex flex-col items-center justify-center bg-[var(--paper)] px-5 pb-10 pt-16 sm:px-8 lg:px-12 lg:py-10"
       >
+        {/* Switch Mode Tema (Terang / Gelap / Sistem) */}
+        <div className="absolute right-5 top-5 sm:right-8 lg:right-10 lg:top-8">
+          <ThemeToggleButton />
+        </div>
+
         <LoginFormCard callbackUrl={callbackUrl} reason={reason} />
 
         {/* Footer ringkas khusus Mobile/Tablet */}
-        <p className="mt-6 text-center text-xs text-slate-600 lg:hidden">
-          &copy; {new Date().getFullYear()} Otium &mdash; Sistem Manajemen Cuti
-          Karyawan
+        <p className="mt-7 text-center font-mono text-[11px] text-[var(--ink-muted)] lg:hidden">
+          &copy; {new Date().getFullYear()} OTIUM &bull; SISTEM MANAJEMEN CUTI
+          KARYAWAN
         </p>
       </section>
     </main>

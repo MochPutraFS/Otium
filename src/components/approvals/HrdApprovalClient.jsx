@@ -5,14 +5,11 @@ import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   CheckCircle2,
-  Clock,
   Eye,
   FileDown,
-  Layers,
   RefreshCw,
   RotateCcw,
   Search,
-  UserCheck,
   Zap,
 } from "lucide-react";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -33,7 +30,6 @@ const WORKSPACE_TABS = [
   { key: "all", label: "Seluruh Pengajuan Perusahaan" },
 ];
 
-// Cek apakah sebuah pengajuan memenuhi syarat Antrean Final HRD (Jalur 1 & Jalur 2)
 function isPendingFinalHrd(req) {
   return (
     (req.applicantRole === "Karyawan" && req.status === "Approved by Leader") ||
@@ -42,12 +38,9 @@ function isPendingFinalHrd(req) {
 }
 
 /**
- * Workspace Hybrid Modul 6B: Persetujuan Final & Multi-Approve — Khusus HRD (/approvals/hrd).
- * - Mode Pure Production: data live PostgreSQL, Server Action atomik `verifyByHrdAction` &
- *   `bulkApproveByHrdAction`, sinkronisasi `GET /api/approvals/hrd`, serta cetak Surat Cuti PDF.
- * - Bahasa Desain Warm Alabaster (`#F4F2EC`) — Swiss Editorial Minimalism.
- * - Standar Platform Web Modern: `.otium-tab` keyboard nav, native `<dialog>` modal & drawer,
- *   indeterminate Select-All checkbox, dan `.otium-responsive-table` berbasis `@container`.
+ * Workspace Modul 6B: Persetujuan Final & Multi-Approve — Khusus HRD (/approvals/hrd).
+ * 100% UI-Only Swiss Archival dengan Segmented Toggle (Kartu Paraf vs Tabel Ringkas),
+ * checkbox Pilih Semua, Floating Bulk Action Bar, dan Swiss Ledger Table.
  */
 export default function HrdApprovalClient({
   initialHrdProfile,
@@ -64,6 +57,7 @@ export default function HrdApprovalClient({
 }) {
   const router = useRouter();
   const tableCaptionId = useId();
+  const queueTableCaptionId = useId();
   const searchInputId = useId();
   const queueTabId = useId();
   const allTabId = useId();
@@ -74,8 +68,9 @@ export default function HrdApprovalClient({
   const [counts, setCounts] = useState(initialCounts);
 
   const [activeTab, setActiveTab] = useState("queue"); // "queue" | "all"
+  const [queueViewMode, setQueueViewMode] = useState("cards"); // "cards" | "table"
   const [searchQuery, setSearchQuery] = useState("");
-  const [jalurFilter, setJalurFilter] = useState("ALL"); // "ALL" | "J1" | "J2"
+  const [jalurFilter, setJalurFilter] = useState("ALL");
   const [divisionFilter, setDivisionFilter] = useState("ALL");
   const [leaveTypeFilter, setLeaveTypeFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -91,9 +86,8 @@ export default function HrdApprovalClient({
     request: null,
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [toast, setToast] = useState(null); // { message, tone: "success" | "error" }
+  const [toast, setToast] = useState(null);
 
-  // Sinkronisasi props ketika Server Component menjalankan revalidatePath / router.refresh()
   useEffect(() => {
     setHrdProfile(initialHrdProfile);
   }, [initialHrdProfile]);
@@ -139,7 +133,9 @@ export default function HrdApprovalClient({
       if (data.counts) setCounts(data.counts);
 
       if (!silent) {
-        showToast("Data antrean & pengajuan perusahaan disinkronkan dari PostgreSQL.");
+        showToast(
+          "Data antrean & pengajuan perusahaan disinkronkan dari PostgreSQL."
+        );
       }
     } catch {
       if (!silent) {
@@ -234,7 +230,6 @@ export default function HrdApprovalClient({
     setStatusFilter("ALL");
   }
 
-  // Hanya hitung ID yang masih tampil pada antrean terfilter
   const visibleSelectedRequests = useMemo(
     () => filteredQueue.filter((req) => selectedIds.includes(req.id)),
     [filteredQueue, selectedIds]
@@ -338,7 +333,10 @@ export default function HrdApprovalClient({
 
   async function handleConfirmBulkApprove(finalNotes) {
     if (visibleSelectedIds.length === 0) {
-      return { ok: false, error: "Tidak ada pengajuan terpilih untuk disetujui." };
+      return {
+        ok: false,
+        error: "Tidak ada pengajuan terpilih untuk disetujui.",
+      };
     }
 
     const result = await bulkApproveByHrdAction(visibleSelectedIds, finalNotes);
@@ -363,24 +361,23 @@ export default function HrdApprovalClient({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Page Header — Warm Alabaster Swiss Editorial */}
-      <header className="flex flex-wrap items-start justify-between gap-4">
+    <div className="space-y-5 pb-16">
+      {/* Header Arsip */}
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--rule-strong)] pb-4">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-            Modul 6B • Persetujuan Final &amp; Multi-Approve HRD
-          </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+          <span className="panel-eyebrow">
+            Otorisasi Tahap Final &bull; Multi-Approve HRD
+          </span>
+          <h2 className="mt-1 font-serif text-[28px] font-semibold leading-tight text-[var(--ink)]">
             Persetujuan Final Cuti Karyawan
-          </h1>
-          <p className="mt-1 text-xs leading-relaxed text-slate-600">
+          </h2>
+          <p className="mt-1 text-xs leading-relaxed text-[var(--ink-soft)]">
             Final Approver:{" "}
-            <strong className="font-semibold text-slate-900">
+            <strong className="font-semibold text-[var(--ink)]">
               {hrdProfile?.fullName || "HRD"}
             </strong>{" "}
-            — Menangani Jalur 1 (Karyawan <em>Approved by Leader</em>) &amp;
-            Jalur 2 (Ketua Divisi langsung) dengan Multi-Approve atomik serta
-            cetak Surat Cuti Resmi PDF.
+            &mdash; Menangani Jalur 1 (Karyawan <em>Approved by Leader</em>)
+            &amp; Jalur 2 (Ketua Divisi langsung) dengan Multi-Approve atomik.
           </p>
         </div>
 
@@ -388,7 +385,7 @@ export default function HrdApprovalClient({
           type="button"
           onClick={() => refreshFromServer({ silent: false })}
           disabled={isRefreshing}
-          className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-800 transition-colors duration-150 hover:border-slate-900 hover:bg-[#F4F2EC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+          className="btn btn-sm"
         >
           <RefreshCw
             className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`}
@@ -398,80 +395,55 @@ export default function HrdApprovalClient({
         </button>
       </header>
 
-      {/* Mini KPI Strip — Editorial Hairline */}
-      <section
+      {/* Metric Strip (4 Sel Arsip) */}
+      <div
+        className="metric-strip"
+        role="region"
         aria-label="Ringkasan Antrean Final HRD"
-        className="grid grid-cols-2 gap-3 lg:grid-cols-4"
       >
-        <div className="rounded-xl border border-stone-200 bg-white p-4">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Menunggu Final HRD
-            </span>
-            <Clock className="h-4 w-4 text-amber-600" aria-hidden="true" />
+        <div className="metric-cell">
+          <div className="metric-label">Menunggu Final HRD</div>
+          <div className="metric-val text-[var(--ochre)]">
+            {String(counts.pendingFinal).padStart(2, "0")}
           </div>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
-            {counts.pendingFinal}
-          </p>
-          <p className="mt-0.5 text-[11px] text-slate-500">
-            Siap diputuskan tunggal / massal
-          </p>
+          <div className="metric-note">Siap review &amp; multi-approve</div>
         </div>
 
-        <div className="rounded-xl border border-stone-200 bg-white p-4">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Jalur 1 (Karyawan)
-            </span>
-            <UserCheck className="h-4 w-4 text-sky-700" aria-hidden="true" />
+        <div className="metric-cell">
+          <div className="metric-label">Jalur 1 (Karyawan)</div>
+          <div className="metric-val text-[var(--slate-blue)]">
+            {String(counts.jalur1).padStart(2, "0")}
           </div>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
-            {counts.jalur1}
-          </p>
-          <p className="mt-0.5 text-[11px] text-slate-500">
-            Lolos verifikasi Ketua Divisi
-          </p>
+          <div className="metric-note">Lolos verifikasi Ketua Divisi</div>
         </div>
 
-        <div className="rounded-xl border border-stone-200 bg-white p-4">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Jalur 2 (Ketua Divisi)
-            </span>
-            <Zap className="h-4 w-4 text-amber-700" aria-hidden="true" />
+        <div className="metric-cell">
+          <div className="metric-label">Jalur 2 (Ketua Divisi)</div>
+          <div className="metric-val text-[var(--ochre)]">
+            {String(counts.jalur2).padStart(2, "0")}
           </div>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
-            {counts.jalur2}
-          </p>
-          <p className="mt-0.5 text-[11px] text-slate-500">
-            Pengajuan langsung Ketua Divisi
-          </p>
+          <div className="metric-note">Pengajuan langsung Ketua Divisi</div>
         </div>
 
-        <div className="rounded-xl border border-stone-200 bg-white p-4">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Total Perusahaan
-            </span>
-            <Layers className="h-4 w-4 text-slate-700" aria-hidden="true" />
+        <div className="metric-cell">
+          <div className="metric-label">Total Perusahaan</div>
+          <div className="metric-val">
+            {String(counts.total).padStart(2, "0")}
           </div>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
-            {counts.total}
-          </p>
-          <p className="mt-0.5 text-[11px] text-slate-500 tabular-nums">
+          <div className="metric-note mono text-[11px] text-[var(--spruce)]">
             {counts.approved} disetujui final (PDF aktif)
-          </p>
+          </div>
         </div>
-      </section>
+      </div>
 
-      {/* Main Hybrid Workspace Card */}
-      <section className="overflow-hidden rounded-xl border border-stone-200 bg-white">
-        {/* Tabs (.otium-tab) & Filter Bar */}
-        <div className="flex flex-col gap-3 border-b border-stone-200 px-4 pt-3 pb-3 xl:flex-row xl:items-end xl:justify-between">
+      {/* Main Workspace Panel */}
+      <section className="panel overflow-hidden">
+        {/* Tabs + Segmented View Toggle (Kartu Paraf vs Tabel Ringkas) */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--rule)] bg-[var(--paper)] px-5 pt-3">
           <div
             role="tablist"
             aria-label="Tampilan daftar persetujuan HRD"
-            className="flex items-center gap-1 overflow-x-auto border-b border-stone-200 xl:border-b-0"
+            className="flex flex-nowrap items-center gap-6 overflow-x-auto"
           >
             {WORKSPACE_TABS.map((tab, index) => {
               const isSelected = activeTab === tab.key;
@@ -495,18 +467,18 @@ export default function HrdApprovalClient({
                     setSelectedIds([]);
                   }}
                   onKeyDown={(event) => handleTabKeyDown(event, index)}
-                  className={`otium-tab inline-flex shrink-0 cursor-pointer items-center gap-2 px-3.5 py-2.5 text-xs font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-inset ${
+                  className={`otium-tab mono inline-flex shrink-0 cursor-pointer items-center gap-2 pb-3 pt-1 text-xs font-semibold uppercase tracking-[0.04em] transition-colors ${
                     isSelected
-                      ? "text-slate-900"
-                      : "text-slate-500 hover:text-slate-900"
+                      ? "text-[var(--spruce)]"
+                      : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
                   }`}
                 >
                   <span>{tab.label}</span>
                   <span
-                    className={`rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ${
+                    className={`border px-1.5 py-0 text-[10px] ${
                       isSelected
-                        ? "bg-slate-900 text-white"
-                        : "bg-[#F4F2EC] text-slate-600"
+                        ? "border-[var(--spruce-border)] bg-[var(--spruce-tint)] text-[var(--spruce)]"
+                        : "border-[var(--rule)] bg-[var(--paper-pure)] text-[var(--ink-muted)]"
                     }`}
                   >
                     {badgeCount}
@@ -516,96 +488,124 @@ export default function HrdApprovalClient({
             })}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative">
-              <label htmlFor={searchInputId} className="visually-hidden">
-                Cari pemohon, divisi, handover, atau alasan cuti
-              </label>
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
-                aria-hidden="true"
-              />
-              <input
-                id={searchInputId}
-                type="search"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Cari pemohon / divisi..."
-                className="w-48 rounded-lg border border-stone-300 bg-white py-1.5 pl-8 pr-3 text-xs text-slate-900 placeholder:text-slate-400 transition-colors focus-visible:border-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-              />
+          {activeTab === "queue" && (
+            <div className="pb-2.5">
+              <div
+                className="seg-group"
+                role="group"
+                aria-label="Mode tampilan antrean HRD"
+              >
+                <button
+                  type="button"
+                  className="seg-btn"
+                  aria-pressed={queueViewMode === "cards"}
+                  onClick={() => setQueueViewMode("cards")}
+                >
+                  Kartu Paraf
+                </button>
+                <button
+                  type="button"
+                  className="seg-btn"
+                  aria-pressed={queueViewMode === "table"}
+                  onClick={() => setQueueViewMode("table")}
+                >
+                  Tabel Ringkas
+                </button>
+              </div>
             </div>
-
-            {activeTab === "queue" && (
-              <select
-                value={jalurFilter}
-                onChange={(event) => setJalurFilter(event.target.value)}
-                aria-label="Filter jalur persetujuan"
-                className="cursor-pointer rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-800 transition-colors hover:border-stone-400 focus-visible:border-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-              >
-                <option value="ALL">Semua Jalur</option>
-                <option value="J1">Jalur 1: Karyawan</option>
-                <option value="J2">Jalur 2: Ketua Divisi</option>
-              </select>
-            )}
-
-            <select
-              value={divisionFilter}
-              onChange={(event) => setDivisionFilter(event.target.value)}
-              aria-label="Filter divisi"
-              className="cursor-pointer rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-800 transition-colors hover:border-stone-400 focus-visible:border-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-            >
-              <option value="ALL">Semua Divisi</option>
-              {divisions.map((div) => (
-                <option key={div.id} value={div.id}>
-                  {div.name}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={leaveTypeFilter}
-              onChange={(event) => setLeaveTypeFilter(event.target.value)}
-              aria-label="Filter jenis cuti"
-              className="cursor-pointer rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-800 transition-colors hover:border-stone-400 focus-visible:border-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-            >
-              <option value="ALL">Semua Jenis Cuti</option>
-              {leaveTypes.map((lt) => (
-                <option key={lt.id} value={lt.id}>
-                  {lt.name}
-                </option>
-              ))}
-            </select>
-
-            {activeTab === "all" && (
-              <select
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
-                aria-label="Filter status pengajuan"
-                className="cursor-pointer rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-800 transition-colors hover:border-stone-400 focus-visible:border-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-              >
-                <option value="ALL">Semua Status</option>
-                <option value="Pending">Pending</option>
-                <option value="Approved by Leader">Approved by Leader</option>
-                <option value="Approved">Approved</option>
-                <option value="Rejected">Rejected</option>
-                <option value="Cancelled">Cancelled</option>
-              </select>
-            )}
-
-            {hasActiveFilter && (
-              <button
-                type="button"
-                onClick={handleResetFilters}
-                className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-stone-300 bg-[#F4F2EC] px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-900 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-              >
-                <RotateCcw className="h-3 w-3" aria-hidden="true" />
-                <span>Reset</span>
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
-        {/* Sticky Bulk Multi-Approve Bar (Khusus Tab Antrean Final HRD) */}
+        {/* Filter Toolbar */}
+        <div className="toolbar">
+          <div className="relative w-full sm:w-56">
+            <label htmlFor={searchInputId} className="visually-hidden">
+              Cari pemohon, divisi, handover, atau alasan cuti
+            </label>
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--ink-muted)]"
+              aria-hidden="true"
+            />
+            <input
+              id={searchInputId}
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Cari pemohon / divisi..."
+              className="input !py-1.5 !pl-8 !pr-3 !text-xs"
+            />
+          </div>
+
+          {activeTab === "queue" && (
+            <select
+              value={jalurFilter}
+              onChange={(event) => setJalurFilter(event.target.value)}
+              aria-label="Filter jalur persetujuan"
+              className="select !w-auto cursor-pointer !py-1.5 !text-xs"
+            >
+              <option value="ALL">Semua Jalur</option>
+              <option value="J1">Jalur 1: Karyawan</option>
+              <option value="J2">Jalur 2: Ketua Divisi</option>
+            </select>
+          )}
+
+          <select
+            value={divisionFilter}
+            onChange={(event) => setDivisionFilter(event.target.value)}
+            aria-label="Filter divisi"
+            className="select !w-auto cursor-pointer !py-1.5 !text-xs"
+          >
+            <option value="ALL">Semua Divisi</option>
+            {divisions.map((div) => (
+              <option key={div.id} value={div.id}>
+                {div.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={leaveTypeFilter}
+            onChange={(event) => setLeaveTypeFilter(event.target.value)}
+            aria-label="Filter jenis cuti"
+            className="select !w-auto cursor-pointer !py-1.5 !text-xs"
+          >
+            <option value="ALL">Semua Jenis Cuti</option>
+            {leaveTypes.map((lt) => (
+              <option key={lt.id} value={lt.id}>
+                {lt.name}
+              </option>
+            ))}
+          </select>
+
+          {activeTab === "all" && (
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              aria-label="Filter status pengajuan"
+              className="select !w-auto cursor-pointer !py-1.5 !text-xs"
+            >
+              <option value="ALL">Semua Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Approved by Leader">Approved by Leader</option>
+              <option value="Approved">Approved</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          )}
+
+          {hasActiveFilter && (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="btn btn-sm !min-h-[30px]"
+            >
+              <RotateCcw className="h-3 w-3" aria-hidden="true" />
+              <span>Reset</span>
+            </button>
+          )}
+        </div>
+
+        {/* Sticky Select-All & Floating Bulk Bar (Khusus Tab Antrean Final HRD) */}
         {activeTab === "queue" && (
           <HrdBulkApprovalBar
             totalVisibleCount={filteredQueue.length}
@@ -623,24 +623,22 @@ export default function HrdApprovalClient({
           />
         )}
 
-        {/* Tab Panel 1: Antrean Final HRD (Compact Cards + Multi-Approve Checkbox) */}
+        {/* Tab Panel 1: Antrean Final HRD (Kartu Paraf vs Tabel Ringkas) */}
         {activeTab === "queue" ? (
-          <div
-            role="tabpanel"
-            aria-labelledby={queueTabId}
-            className="p-4 sm:p-5"
-          >
+          <div role="tabpanel" aria-labelledby={queueTabId}>
             {filteredQueue.length === 0 ? (
-              <EmptyState
-                title="Antrean Final HRD Kosong"
-                description={
-                  hasActiveFilter
-                    ? "Tidak ada pengajuan dalam antrean final yang cocok dengan kombinasi filter saat ini."
-                    : "Seluruh pengajuan Karyawan (Approved by Leader) dan Ketua Divisi (Pending) telah selesai diproses."
-                }
-              />
-            ) : (
-              <div className="space-y-3">
+              <div className="panel-body">
+                <EmptyState
+                  title="Antrean Final HRD Kosong"
+                  description={
+                    hasActiveFilter
+                      ? "Tidak ada pengajuan dalam antrean final yang cocok dengan kombinasi filter saat ini."
+                      : "Seluruh pengajuan Karyawan (Approved by Leader) dan Ketua Divisi (Pending) telah selesai diproses."
+                  }
+                />
+              </div>
+            ) : queueViewMode === "cards" ? (
+              <div className="panel-body space-y-4">
                 {filteredQueue.map((request) => (
                   <VerificationCard
                     key={request.id}
@@ -654,13 +652,139 @@ export default function HrdApprovalClient({
                   />
                 ))}
               </div>
+            ) : (
+              /* Mode Tabel Ringkas untuk Antrean HRD */
+              <div
+                tabIndex={0}
+                role="region"
+                aria-labelledby={queueTableCaptionId}
+                className="otium-responsive-table-wrap"
+              >
+                <table className="ledger otium-responsive-table text-left">
+                  <caption id={queueTableCaptionId} className="visually-hidden">
+                    Tabel ringkas antrean persetujuan final HRD
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col" className="row-idx">
+                        Pilih
+                      </th>
+                      <th scope="col">Pemohon &amp; Divisi</th>
+                      <th scope="col">Jenis &amp; Periode</th>
+                      <th scope="col">Durasi</th>
+                      <th scope="col">Verifikasi Atasan</th>
+                      <th scope="col" className="text-right">
+                        Aksi
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredQueue.map((request) => {
+                      const checked = visibleSelectedIds.includes(request.id);
+                      const isDirectLeader =
+                        request.applicantRole === "Ketua Divisi";
+                      return (
+                        <tr
+                          key={request.id}
+                          className={checked ? "bg-[var(--spruce-tint)]" : ""}
+                        >
+                          <td data-label="Pilih" className="row-idx">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) =>
+                                handleToggleSelect(request.id, e.target.checked)
+                              }
+                              aria-label={`Pilih pengajuan ${request.applicantName}`}
+                              className="otium-checkbox h-4 w-4 cursor-pointer"
+                            />
+                          </td>
+                          <th scope="row" className="font-normal">
+                            <p className="font-semibold text-[var(--ink)]">
+                              {request.applicantName}
+                            </p>
+                            <p className="text-[11px] text-[var(--ink-muted)]">
+                              {request.applicantRole} &bull;{" "}
+                              {request.divisionName}
+                            </p>
+                          </th>
+                          <td data-label="Jenis & Periode">
+                            <p className="font-medium text-[var(--ink)]">
+                              {request.leaveTypeName}
+                            </p>
+                            <p className="mono text-[11px] text-[var(--ink-soft)]">
+                              {formatIndonesianDateRange(
+                                request.startDate,
+                                request.endDate,
+                                request.isHalfDay
+                              )}
+                            </p>
+                          </td>
+                          <td
+                            data-label="Durasi"
+                            className="mono whitespace-nowrap text-xs font-semibold text-[var(--ink)]"
+                          >
+                            {Number(request.totalDays).toFixed(1)} hr
+                          </td>
+                          <td data-label="Verifikasi Atasan">
+                            {isDirectLeader ? (
+                              <span className="tag tag-pending">
+                                <Zap className="h-3 w-3" aria-hidden="true" />
+                                <span>Jalur 2 (Langsung HRD)</span>
+                              </span>
+                            ) : (
+                              <div>
+                                <p className="text-xs font-semibold text-[var(--ink)]">
+                                  {request.leaderApproverName || "Ketua Divisi"}
+                                </p>
+                                <p className="mono text-[10.5px] text-[var(--ink-muted)]">
+                                  {request.leaderApprovedAt || "Tahap 1"}
+                                </p>
+                              </div>
+                            )}
+                          </td>
+                          <td data-label="Aksi" className="text-right">
+                            <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setDetailTarget(request)}
+                                className="btn btn-sm"
+                              >
+                                Detail
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleOpenModal(request, "Reject")
+                                }
+                                className="btn btn-danger-ghost btn-sm"
+                              >
+                                Tolak
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleOpenModal(request, "Approve")
+                                }
+                                className="btn btn-primary btn-sm"
+                              >
+                                Setujui
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         ) : (
-          /* Tab Panel 2: Seluruh Pengajuan Perusahaan (Responsive Table + 1-Klik Surat Cuti PDF) */
+          /* Tab Panel 2: Seluruh Pengajuan Perusahaan (Swiss Ledger Table) */
           <div role="tabpanel" aria-labelledby={allTabId}>
             {filteredAllRequests.length === 0 ? (
-              <div className="p-5">
+              <div className="panel-body">
                 <EmptyState
                   title="Tidak Ada Data Pengajuan"
                   description="Coba ubah kata kunci pencarian atau filter divisi, jenis cuti, dan status untuk melihat data lainnya."
@@ -671,119 +795,94 @@ export default function HrdApprovalClient({
                 tabIndex={0}
                 role="region"
                 aria-labelledby={tableCaptionId}
-                className="otium-responsive-table-wrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-900"
+                className="otium-responsive-table-wrap"
               >
-                <table className="otium-responsive-table text-left text-xs">
+                <table className="ledger otium-responsive-table text-left">
                   <caption id={tableCaptionId} className="visually-hidden">
                     Daftar seluruh pengajuan cuti karyawan perusahaan di semua
                     divisi dan status
                   </caption>
                   <thead>
-                    <tr className="border-b border-stone-200 bg-[#F4F2EC]/80 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
-                      <th scope="col" className="px-4 py-3">
-                        Pemohon &amp; Divisi
+                    <tr>
+                      <th scope="col" className="row-idx">
+                        #
                       </th>
-                      <th scope="col" className="px-3 py-3">
-                        Jenis &amp; Periode
-                      </th>
-                      <th scope="col" className="px-3 py-3">
-                        Durasi
-                      </th>
-                      <th scope="col" className="px-3 py-3">
-                        Verifikasi Atasan
-                      </th>
-                      <th scope="col" className="px-3 py-3">
-                        Status
-                      </th>
-                      <th scope="col" className="px-4 py-3 text-right">
+                      <th scope="col">Pemohon &amp; Divisi</th>
+                      <th scope="col">Jenis &amp; Periode</th>
+                      <th scope="col">Durasi</th>
+                      <th scope="col">Verifikasi Atasan</th>
+                      <th scope="col">Status</th>
+                      <th scope="col" className="text-right">
                         Aksi
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-stone-100 bg-white">
-                    {filteredAllRequests.map((request) => {
+                  <tbody>
+                    {filteredAllRequests.map((request, idx) => {
                       const isDirectLeader =
                         request.applicantRole === "Ketua Divisi";
                       const canDownloadPdf = request.status === "Approved";
 
                       return (
-                        <tr
-                          key={request.id}
-                          className="transition-colors duration-150 hover:bg-[#F4F2EC]/50"
-                        >
-                          <th
-                            scope="row"
-                            className="px-4 py-3.5 font-normal text-slate-900"
-                          >
-                            <p className="font-semibold text-slate-900">
+                        <tr key={request.id}>
+                          <td data-label="No" className="row-idx">
+                            {String(idx + 1).padStart(2, "0")}
+                          </td>
+                          <th scope="row" className="font-normal">
+                            <p className="font-semibold text-[var(--ink)]">
                               {request.applicantName}
                             </p>
-                            <p className="mt-0.5 text-[11px] text-slate-500">
-                              {request.applicantRole} • {request.divisionName}
+                            <p className="text-[11px] text-[var(--ink-muted)]">
+                              {request.applicantRole} &bull;{" "}
+                              {request.divisionName}
                             </p>
                           </th>
-
-                          <td
-                            data-label="Jenis & Periode"
-                            className="px-3 py-3.5"
-                          >
-                            <div>
-                              <p className="font-medium text-slate-900">
-                                {request.leaveTypeName}
-                              </p>
-                              <p className="mt-0.5 text-[11px] text-slate-600">
-                                {formatIndonesianDateRange(
-                                  request.startDate,
-                                  request.endDate,
-                                  request.isHalfDay
-                                )}
-                              </p>
-                            </div>
+                          <td data-label="Jenis & Periode">
+                            <p className="font-medium text-[var(--ink)]">
+                              {request.leaveTypeName}
+                            </p>
+                            <p className="mono text-[11px] text-[var(--ink-soft)]">
+                              {formatIndonesianDateRange(
+                                request.startDate,
+                                request.endDate,
+                                request.isHalfDay
+                              )}
+                            </p>
                           </td>
-
                           <td
                             data-label="Durasi"
-                            className="px-3 py-3.5 font-semibold text-slate-900 tabular-nums"
+                            className="mono whitespace-nowrap text-xs font-semibold text-[var(--ink)]"
                           >
-                            {Number(request.totalDays).toFixed(1)} Hari
+                            {Number(request.totalDays).toFixed(1)} hr
                           </td>
-
-                          <td
-                            data-label="Verifikasi Atasan"
-                            className="px-3 py-3.5 text-slate-600"
-                          >
+                          <td data-label="Verifikasi Atasan">
                             {isDirectLeader ? (
-                              <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900">
+                              <span className="tag tag-pending">
                                 <Zap className="h-3 w-3" aria-hidden="true" />
-                                Jalur 2 (Langsung HRD)
+                                <span>Jalur 2 (Langsung)</span>
                               </span>
                             ) : request.leaderApproverName ? (
                               <div>
-                                <p className="font-medium text-slate-800">
+                                <p className="text-xs font-medium text-[var(--ink)]">
                                   {request.leaderApproverName}
                                 </p>
-                                <p className="text-[11px] text-slate-500 tabular-nums">
+                                <p className="mono text-[10.5px] text-[var(--ink-muted)]">
                                   {request.leaderApprovedAt || "Tahap 1"}
                                 </p>
                               </div>
                             ) : (
-                              <span className="text-[11px] text-slate-500">
+                              <span className="text-[11px] text-[var(--ink-muted)]">
                                 Menunggu Ketua Divisi
                               </span>
                             )}
                           </td>
-
-                          <td data-label="Status" className="px-3 py-3.5">
+                          <td data-label="Status">
                             <StatusBadge
                               status={request.status}
                               rejectedByRole={request.rejectedByRole}
                             />
                           </td>
-
-                          <td
-                            data-label="Aksi"
-                            className="px-4 py-3.5 text-right"
-                          >
+                          <td data-label="Aksi" className="text-right">
                             <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
                               {canDownloadPdf && (
                                 <a
@@ -791,7 +890,7 @@ export default function HrdApprovalClient({
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   aria-label={`Cetak Surat Cuti PDF untuk ${request.applicantName}`}
-                                  className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-800 transition-colors hover:border-emerald-700 hover:bg-emerald-700 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                                  className="btn btn-primary btn-sm"
                                 >
                                   <FileDown
                                     className="h-3.5 w-3.5"
@@ -803,7 +902,7 @@ export default function HrdApprovalClient({
                               <button
                                 type="button"
                                 onClick={() => setDetailTarget(request)}
-                                className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-800 transition-colors hover:border-slate-900 hover:bg-[#F4F2EC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                                className="btn btn-sm"
                               >
                                 <Eye
                                   className="h-3.5 w-3.5"
@@ -824,17 +923,20 @@ export default function HrdApprovalClient({
         )}
       </section>
 
-      {/* Slide-Over Detail Drawer (Native <dialog>, Live GET /api/leaves/[id], Real Attachment & PDF) */}
+      {/* Slide-Over Detail Drawer */}
       <ApprovalDetailDrawer
         request={detailTarget}
         isOpen={Boolean(detailTarget)}
-        canTakeAction={detailTarget ? isPendingFinalHrd(detailTarget) : false}
+        canTakeAction={
+          Boolean(detailTarget) && isPendingFinalHrd(detailTarget)
+        }
+        canDownloadPdf={true}
         onClose={() => setDetailTarget(null)}
         onOpenApprove={(req) => handleOpenModal(req, "Approve")}
         onOpenReject={(req) => handleOpenModal(req, "Reject")}
       />
 
-      {/* Smart Single Approval / Reject Modal */}
+      {/* Smart Modal Persetujuan / Penolakan Tunggal HRD */}
       <ApprovalModal
         isOpen={modalState.isOpen}
         actionType={modalState.actionType}
@@ -844,7 +946,7 @@ export default function HrdApprovalClient({
         onSubmit={handleSubmitSingleDecision}
       />
 
-      {/* Bulk Multi-Approve Confirmation Modal */}
+      {/* Modal Konfirmasi Multi-Approve HRD */}
       <HrdBulkConfirmModal
         isOpen={isBulkModalOpen}
         selectedRequests={visibleSelectedRequests}
@@ -853,27 +955,21 @@ export default function HrdApprovalClient({
         onConfirm={handleConfirmBulkApprove}
       />
 
-      {/* Toast Feedback dengan aria-live="polite" */}
+      {/* Toast Umpan Balik Swiss Archival */}
       {toast && (
         <div
-          role="status"
-          aria-live="polite"
-          className={`fixed bottom-6 left-1/2 z-50 flex max-w-md -translate-x-1/2 items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-semibold shadow-xl ${
+          role={toast.tone === "error" ? "alert" : "status"}
+          aria-live={toast.tone === "error" ? "assertive" : "polite"}
+          className={`fixed bottom-20 right-5 z-50 flex max-w-md items-center gap-2.5 rounded-[2px] border px-4 py-3 font-mono text-xs shadow-xl ${
             toast.tone === "error"
-              ? "border-rose-300 bg-rose-950 text-rose-50"
-              : "border-stone-700 bg-slate-900 text-white"
+              ? "border-[var(--terracotta)] bg-[var(--terracotta-btn)] text-[var(--spruce-btn-ink)]"
+              : "border-[var(--ink)] bg-[var(--ink)] text-[var(--paper-pure)]"
           }`}
         >
           {toast.tone === "error" ? (
-            <AlertCircle
-              className="h-4 w-4 shrink-0 text-rose-300"
-              aria-hidden="true"
-            />
+            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
           ) : (
-            <CheckCircle2
-              className="h-4 w-4 shrink-0 text-emerald-400"
-              aria-hidden="true"
-            />
+            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
           )}
           <span>{toast.message}</span>
         </div>
