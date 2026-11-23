@@ -668,7 +668,7 @@ export default function AdminDivisionMembersClient({
                           {isDivisionLeader ? (
                             <span
                               title="Ganti Ketua Divisi melalui Modul 2 (Manajemen Divisi) terlebih dahulu"
-                              className="tag tag-leader"
+                              className="tag tag-leader w-[112px] justify-center"
                             >
                               <Crown className="h-3 w-3" aria-hidden="true" />
                               Ketua Divisi
@@ -680,7 +680,7 @@ export default function AdminDivisionMembersClient({
                                 setRemoveError("");
                                 setRemoveTarget(member);
                               }}
-                              className="btn btn-sm btn-danger-ghost"
+                              className="btn btn-sm btn-danger-ghost w-[112px] justify-center"
                             >
                               <UserMinus
                                 className="h-3 w-3"

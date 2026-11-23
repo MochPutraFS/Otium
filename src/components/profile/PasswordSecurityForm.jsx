@@ -182,7 +182,7 @@ export default function PasswordSecurityForm({ onChangePassword }) {
         <div>
           <label
             htmlFor="security-current-password"
-            className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+            className="mb-1.5 block text-xs font-semibold text-[var(--ink-soft)]"
           >
             Password Saat Ini{" "}
             <span className="text-[var(--terracotta)]">*</span>
@@ -242,7 +242,7 @@ export default function PasswordSecurityForm({ onChangePassword }) {
         <div>
           <label
             htmlFor="security-new-password"
-            className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+            className="mb-1.5 block text-xs font-semibold text-[var(--ink-soft)]"
           >
             Password Baru <span className="text-[var(--terracotta)]">*</span>
           </label>
@@ -361,7 +361,7 @@ export default function PasswordSecurityForm({ onChangePassword }) {
         <div>
           <label
             htmlFor="security-confirm-password"
-            className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+            className="mb-1.5 block text-xs font-semibold text-[var(--ink-soft)]"
           >
             Konfirmasi Password Baru{" "}
             <span className="text-[var(--terracotta)]">*</span>

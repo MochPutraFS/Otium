@@ -555,7 +555,7 @@ export default function UserFormModal({
             <div>
               <label
                 htmlFor="user-fullname"
-                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                className="block text-xs font-semibold text-[var(--ink-soft)]"
               >
                 Nama Lengkap <span className="text-[var(--terracotta)]">*</span>
               </label>
@@ -595,16 +595,10 @@ export default function UserFormModal({
             <div>
               <label
                 htmlFor="user-username"
-                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                className="block text-xs font-semibold text-[var(--ink-soft)]"
               >
                 Username <span className="text-[var(--terracotta)]">*</span>
               </label>
-              <span
-                id="user-username-hint"
-                className="mt-0.5 block text-[11px] text-[var(--ink-muted)]"
-              >
-                3–50 karakter: huruf kecil, angka, titik, underscore, atau strip.
-              </span>
               <input
                 id="user-username"
                 name="username"
@@ -628,6 +622,12 @@ export default function UserFormModal({
                 placeholder="rina.permata"
                 className={`${inputBaseClass} font-mono`}
               />
+              <span
+                id="user-username-hint"
+                className="mt-1 block text-[11px] text-[var(--ink-muted)]"
+              >
+                3–50 karakter: huruf kecil, angka, titik, underscore, atau strip.
+              </span>
               {errors.username && (
                 <p
                   id="user-username-error"
@@ -643,16 +643,10 @@ export default function UserFormModal({
             <div>
               <label
                 htmlFor="user-email"
-                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                className="block text-xs font-semibold text-[var(--ink-soft)]"
               >
                 Email Perusahaan <span className="text-[var(--terracotta)]">*</span>
               </label>
-              <span
-                id="user-email-hint"
-                className="mt-0.5 block text-[11px] text-[var(--ink-muted)]"
-              >
-                Format: nama@otium.id (unik per akun).
-              </span>
               <input
                 id="user-email"
                 name="email"
@@ -674,6 +668,12 @@ export default function UserFormModal({
                 placeholder="rina.permata@otium.id"
                 className={inputBaseClass}
               />
+              <span
+                id="user-email-hint"
+                className="mt-1 block text-[11px] text-[var(--ink-muted)]"
+              >
+                Format: nama@otium.id (unik per akun).
+              </span>
               {errors.email && (
                 <p
                   id="user-email-error"
@@ -689,25 +689,17 @@ export default function UserFormModal({
             <div>
               <label
                 htmlFor="user-password"
-                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                className="block text-xs font-semibold text-[var(--ink-soft)]"
               >
                 Password{" "}
                 {isEdit ? (
-                  <span className="font-sans normal-case tracking-normal text-[var(--ink-muted)]">
+                  <span className="font-normal text-[var(--ink-muted)]">
                     (Opsional saat edit)
                   </span>
                 ) : (
                   <span className="text-[var(--terracotta)]">*</span>
                 )}
               </label>
-              <span
-                id="user-password-hint"
-                className="mt-0.5 block text-[11px] text-[var(--ink-muted)]"
-              >
-                {isEdit
-                  ? "Kosongkan bila tetap. Jika diisi: min. 8 karakter (huruf & angka)."
-                  : "Minimal 8 karakter dengan kombinasi huruf dan angka."}
-              </span>
               <div className="relative mt-1">
                 <input
                   id="user-password"
@@ -750,6 +742,14 @@ export default function UserFormModal({
                   )}
                 </button>
               </div>
+              <span
+                id="user-password-hint"
+                className="mt-1 block text-[11px] text-[var(--ink-muted)]"
+              >
+                {isEdit
+                  ? "Kosongkan bila tetap. Jika diisi: min. 8 karakter (huruf & angka)."
+                  : "Minimal 8 karakter dengan kombinasi huruf dan angka."}
+              </span>
               {errors.password && (
                 <p
                   id="user-password-error"
@@ -765,7 +765,7 @@ export default function UserFormModal({
             <div>
               <label
                 htmlFor="user-role"
-                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                className="block text-xs font-semibold text-[var(--ink-soft)]"
               >
                 Role Pengguna <span className="text-[var(--terracotta)]">*</span>
               </label>
@@ -799,7 +799,7 @@ export default function UserFormModal({
             <div>
               <label
                 htmlFor="user-division"
-                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                className="block text-xs font-semibold text-[var(--ink-soft)]"
               >
                 Divisi{" "}
                 <span className="font-sans normal-case tracking-normal text-[var(--ink-muted)]">
@@ -832,17 +832,11 @@ export default function UserFormModal({
             <div>
               <label
                 htmlFor="user-initial-quota"
-                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                className="block text-xs font-semibold text-[var(--ink-soft)]"
               >
                 Kuota Cuti Tahunan Awal (Hari){" "}
                 <span className="text-[var(--terracotta)]">*</span>
               </label>
-              <span
-                id="user-initial-quota-hint"
-                className="mt-0.5 block text-[11px] text-[var(--ink-muted)]"
-              >
-                Mendukung kelipatan 0.5 hari (default 12.0).
-              </span>
               <input
                 id="user-initial-quota"
                 name="initialLeaveQuota"
@@ -870,6 +864,12 @@ export default function UserFormModal({
                 }
                 className={`${inputBaseClass} font-mono tabular-nums`}
               />
+              <span
+                id="user-initial-quota-hint"
+                className="mt-1 block text-[11px] text-[var(--ink-muted)]"
+              >
+                Mendukung kelipatan 0.5 hari (default 12.0).
+              </span>
               {errors.initialLeaveQuota && (
                 <p
                   id="user-initial-quota-error"
@@ -886,17 +886,11 @@ export default function UserFormModal({
               <div>
                 <label
                   htmlFor="user-remaining-quota"
-                  className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                  className="block text-xs font-semibold text-[var(--ink-soft)]"
                 >
                   Sisa Kuota Saat Ini (Hari){" "}
                   <span className="text-[var(--terracotta)]">*</span>
                 </label>
-                <span
-                  id="user-remaining-quota-hint"
-                  className="mt-0.5 block text-[11px] text-[var(--ink-muted)]"
-                >
-                  Saldo realtime saat ini (kelipatan 0.5 hari).
-                </span>
                 <input
                   id="user-remaining-quota"
                   name="remainingLeaveQuota"
@@ -924,6 +918,12 @@ export default function UserFormModal({
                   }
                   className={`${inputBaseClass} font-mono tabular-nums`}
                 />
+                <span
+                  id="user-remaining-quota-hint"
+                  className="mt-1 block text-[11px] text-[var(--ink-muted)]"
+                >
+                  Saldo realtime saat ini (kelipatan 0.5 hari).
+                </span>
                 {errors.remainingLeaveQuota && (
                   <p
                     id="user-remaining-quota-error"
@@ -938,16 +938,10 @@ export default function UserFormModal({
               <div>
                 <label
                   htmlFor="user-joindate"
-                  className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                  className="block text-xs font-semibold text-[var(--ink-soft)]"
                 >
                   Tanggal Bergabung <span className="text-[var(--terracotta)]">*</span>
                 </label>
-                <span
-                  id="user-joindate-hint"
-                  className="mt-0.5 block text-[11px] text-[var(--ink-muted)]"
-                >
-                  Acuan kelayakan Cuti Tahunan (masa kerja &ge; 1 tahun).
-                </span>
                 <input
                   id="user-joindate"
                   name="joinDate"
@@ -966,6 +960,12 @@ export default function UserFormModal({
                   }
                   className={`${inputBaseClass} font-mono tabular-nums`}
                 />
+                <span
+                  id="user-joindate-hint"
+                  className="mt-1 block text-[11px] text-[var(--ink-muted)]"
+                >
+                  Acuan kelayakan Cuti Tahunan (masa kerja &ge; 1 tahun).
+                </span>
                 {errors.joinDate && (
                   <p
                     id="user-joindate-error"
@@ -985,7 +985,7 @@ export default function UserFormModal({
               <div>
                 <label
                   htmlFor="user-joindate-edit"
-                  className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                  className="block text-xs font-semibold text-[var(--ink-soft)]"
                 >
                   Tanggal Bergabung <span className="text-[var(--terracotta)]">*</span>
                 </label>
@@ -1018,7 +1018,7 @@ export default function UserFormModal({
             )}
 
             <div className={isEdit ? "" : "sm:col-span-2"}>
-              <span className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]">
+              <span className="block text-xs font-semibold text-[var(--ink-soft)]">
                 Status Akun
               </span>
               <label

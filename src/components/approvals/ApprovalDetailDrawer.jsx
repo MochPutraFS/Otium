@@ -54,6 +54,7 @@ export default function ApprovalDetailDrawer({
   request,
   isOpen,
   canTakeAction = false,
+  canDownloadPdf = false,
   onClose,
   onOpenApprove,
   onOpenReject,
@@ -486,7 +487,8 @@ export default function ApprovalDetailDrawer({
 
           {/* Footer Actions */}
           <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-[var(--rule)] bg-[var(--alabaster)] px-5 py-3.5">
-            {active.status === "Approved" &&
+            {canDownloadPdf &&
+            active.status === "Approved" &&
             Number.isInteger(Number(active.id)) ? (
               <a
                 href={`/api/leaves/${active.id}/pdf`}

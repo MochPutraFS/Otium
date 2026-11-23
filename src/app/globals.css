@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
   /* Raw Light & Dark Swiss Archival Tokens */
   --alabaster-l: #F4F1EA;       --alabaster-d: #141311;
@@ -84,7 +84,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root[data-theme="system"],
+  :root[data-theme="dark"] {
     --alabaster: var(--alabaster-d);
     --alabaster-deep: var(--alabaster-deep-d);
     --paper: var(--paper-d);
@@ -830,7 +831,7 @@ table.ledger {
 table.ledger caption {
   text-align: left;
 }
-table.ledger th {
+table.ledger thead th {
   text-align: left;
   padding: 10px 14px;
   font-family: var(--font-mono);
@@ -844,10 +845,10 @@ table.ledger th {
   border-right: 1px solid var(--rule);
   white-space: nowrap;
 }
-table.ledger th:has(> button) {
+table.ledger thead th:has(> button) {
   padding: 0;
 }
-table.ledger th > button {
+table.ledger thead th > button {
   width: 100%;
   min-height: 36px;
   padding: 10px 14px;
@@ -864,19 +865,24 @@ table.ledger th > button {
   text-align: left;
   cursor: pointer;
 }
-table.ledger th > button:hover {
+table.ledger thead th > button:hover {
   background: color-mix(in oklab, var(--spruce) 7%, var(--alabaster-deep));
   color: var(--ink);
 }
-table.ledger th[aria-sort] > button {
+table.ledger thead th[aria-sort="ascending"] > button,
+table.ledger thead th[aria-sort="descending"] > button {
   color: var(--spruce);
   background: var(--spruce-tint);
 }
-table.ledger th:last-child,
-table.ledger td:last-child {
+table.ledger thead th:last-child,
+table.ledger tbody th:last-child,
+table.ledger tbody td:last-child {
   border-right: none;
 }
-table.ledger td {
+table.ledger tbody td,
+table.ledger tbody th {
+  text-align: left;
+  font-family: var(--font-sans);
   padding: 11px 14px;
   border-bottom: 1px solid var(--rule);
   border-right: 1px solid color-mix(in oklab, var(--rule) 55%, transparent);

@@ -628,7 +628,7 @@ export default function AdminLeaveTypesClient({
                               type="button"
                               onClick={() => openEditModal(lt)}
                               disabled={isRowToggling}
-                              className="btn btn-sm"
+                              className="btn btn-sm w-[68px] justify-center"
                             >
                               <Pencil className="h-3 w-3" aria-hidden="true" />
                               Edit
@@ -643,7 +643,7 @@ export default function AdminLeaveTypesClient({
                                   ? `Nonaktifkan ${lt.name}`
                                   : `Aktifkan ${lt.name}`
                               }
-                              className={`btn btn-sm ${
+                              className={`btn btn-sm w-[116px] justify-center ${
                                 lt.isActive ? "" : "btn-primary"
                               }`}
                             >
