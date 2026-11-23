@@ -118,36 +118,21 @@ otium/
 
 ### Langkah Setup
 
-1. **Clone repositori**
-   ```bash
-   git clone https://github.com/MochPutraFS/Otium.git
-   cd Otium
-   ```
+#### Cara 1 — Setup Otomatis (Direkomendasikan)
+```bash
+git clone https://github.com/MochPutraFS/Otium.git
+cd Otium
+npm install
+npm run setup
+npm run dev
+```
+Perintah `npm run setup` ([scripts/setup.js](./scripts/setup.js)) akan memandu Anda mengisi kredensial PostgreSQL, membuat file `.env` lengkap dengan `JWT_SECRET` acak, membuat database jika belum ada, mengimpor `database/database.sql`, dan menyiapkan folder `public/uploads/`.
 
-2. **Pasang dependensi**
-   ```bash
-   npm install
-   ```
-
-3. **Inisialisasi database PostgreSQL**
-   - Buat database baru di PostgreSQL / pgAdmin (misalnya `otium_db`).
-   - Impor dan jalankan **`database/database.sql`** satu kali melalui *pgAdmin Query Tool* (atau jalankan `database/schema.sql` diikuti `database/seed.sql`).
-
-4. **Konfigurasi variabel lingkungan**
-   ```bash
-   cp .env.example .env
-   ```
-   Sesuaikan isi `.env` dengan kredensial PostgreSQL lokal Anda:
-   ```env
-   DATABASE_URL="postgresql://postgres:password_anda@localhost:5432/otium_db"
-   JWT_SECRET="ganti_dengan_string_acak_minimal_32_karakter"
-   ```
-
-5. **Jalankan server aplikasi**
-   ```bash
-   npm run dev
-   ```
-   Buka **[http://localhost:3000/login](http://localhost:3000/login)** di browser Anda.
+#### Cara 2 — Setup Manual (via pgAdmin)
+1. Clone repositori dan jalankan `npm install`.
+2. Buat database baru di PostgreSQL / pgAdmin (misalnya `otium_db`), lalu impor **`database/database.sql`** satu kali (atau `database/schema.sql` diikuti `database/seed.sql`).
+3. Salin `.env.example` menjadi `.env` lalu sesuaikan `DATABASE_URL` dan `JWT_SECRET`.
+4. Jalankan `npm run dev` dan buka **[http://localhost:3000/login](http://localhost:3000/login)**.
 
 ---
 
