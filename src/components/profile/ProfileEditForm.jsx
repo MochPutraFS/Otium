@@ -177,7 +177,7 @@ export default function ProfileEditForm({
           <div>
             <label
               htmlFor="profile-fullname"
-              className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+              className="mb-1.5 block text-xs font-semibold text-[var(--ink-soft)]"
             >
               Nama Lengkap <span className="text-[var(--terracotta)]">*</span>
             </label>
@@ -210,7 +210,7 @@ export default function ProfileEditForm({
           <div>
             <label
               htmlFor="profile-phone"
-              className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+              className="mb-1.5 block text-xs font-semibold text-[var(--ink-soft)]"
             >
               Nomor Telepon Aktif
             </label>
@@ -240,7 +240,7 @@ export default function ProfileEditForm({
           <div className="sm:col-span-2">
             <label
               htmlFor="profile-address"
-              className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+              className="mb-1.5 block text-xs font-semibold text-[var(--ink-soft)]"
             >
               Alamat Domisili
             </label>
@@ -296,7 +296,7 @@ export default function ProfileEditForm({
             <div>
               <label
                 htmlFor="profile-username"
-                className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                className="mb-1.5 block text-xs font-semibold text-[var(--ink-soft)]"
               >
                 Username <span className="text-[var(--terracotta)]">*</span>
               </label>
@@ -328,7 +328,7 @@ export default function ProfileEditForm({
             <div>
               <label
                 htmlFor="profile-email"
-                className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                className="mb-1.5 block text-xs font-semibold text-[var(--ink-soft)]"
               >
                 Email Perusahaan{" "}
                 <span className="text-[var(--terracotta)]">*</span>
@@ -361,7 +361,7 @@ export default function ProfileEditForm({
             <div>
               <label
                 htmlFor="profile-division"
-                className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                className="mb-1.5 block text-xs font-semibold text-[var(--ink-soft)]"
               >
                 Divisi
               </label>
@@ -399,7 +399,7 @@ export default function ProfileEditForm({
             <div>
               <label
                 htmlFor="profile-joindate"
-                className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                className="mb-1.5 block text-xs font-semibold text-[var(--ink-soft)]"
               >
                 Tanggal Bergabung{" "}
                 <span className="text-[var(--terracotta)]">*</span>
@@ -431,7 +431,7 @@ export default function ProfileEditForm({
             <div>
               <label
                 htmlFor="profile-quota"
-                className="mb-1.5 block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                className="mb-1.5 block text-xs font-semibold text-[var(--ink-soft)]"
               >
                 Kuota Cuti Awal (Hari/Tahun)
               </label>

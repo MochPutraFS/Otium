@@ -930,6 +930,7 @@ export default function HrdApprovalClient({
         canTakeAction={
           Boolean(detailTarget) && isPendingFinalHrd(detailTarget)
         }
+        canDownloadPdf={true}
         onClose={() => setDetailTarget(null)}
         onOpenApprove={(req) => handleOpenModal(req, "Approve")}
         onOpenReject={(req) => handleOpenModal(req, "Reject")}

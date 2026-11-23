@@ -739,7 +739,7 @@ export default function AdminUsersClient({
                             <button
                               type="button"
                               onClick={() => openEditModal(user)}
-                              className="btn btn-sm"
+                              className="btn btn-sm w-[68px] justify-center"
                             >
                               <Pencil className="h-3 w-3" aria-hidden="true" />
                               Edit
@@ -751,7 +751,7 @@ export default function AdminUsersClient({
                                 disabled
                                 title="Akun Admin dan HRD diproteksi dari penghapusan"
                                 aria-label={`Akun ${user.fullName} diproteksi dari penghapusan`}
-                                className="btn btn-sm cursor-not-allowed opacity-60"
+                                className="btn btn-sm w-[104px] cursor-not-allowed justify-center opacity-60"
                               >
                                 <Lock className="h-3 w-3" aria-hidden="true" />
                                 Diproteksi
@@ -763,7 +763,7 @@ export default function AdminUsersClient({
                                   setDeleteError("");
                                   setDeleteTarget(user);
                                 }}
-                                className="btn btn-sm btn-danger-ghost"
+                                className="btn btn-sm btn-danger-ghost w-[104px] justify-center"
                               >
                                 <Trash2 className="h-3 w-3" aria-hidden="true" />
                                 Hapus

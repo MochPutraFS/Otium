@@ -435,7 +435,7 @@ export default function LeaveTypeFormModal({
             <div>
               <label
                 htmlFor={codeId}
-                className="flex items-center justify-between font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                className="flex items-center justify-between text-xs font-semibold text-[var(--ink-soft)]"
               >
                 <span>
                   Kode Unik Jenis Cuti{" "}
@@ -500,7 +500,7 @@ export default function LeaveTypeFormModal({
             <div>
               <label
                 htmlFor={nameId}
-                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                className="block text-xs font-semibold text-[var(--ink-soft)]"
               >
                 Nama Jenis Cuti{" "}
                 <span className="text-[var(--terracotta)]" aria-hidden="true">
@@ -542,7 +542,7 @@ export default function LeaveTypeFormModal({
             <div>
               <label
                 htmlFor={quotaId}
-                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                className="block text-xs font-semibold text-[var(--ink-soft)]"
               >
                 Kuota Maksimal (Hari){" "}
                 <span className="text-[var(--terracotta)]" aria-hidden="true">
@@ -593,7 +593,7 @@ export default function LeaveTypeFormModal({
             <div>
               <label
                 htmlFor={leadId}
-                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                className="block text-xs font-semibold text-[var(--ink-soft)]"
               >
                 Batas Waktu Pengajuan (Hari Kalender){" "}
                 <span className="text-[var(--terracotta)]" aria-hidden="true">
@@ -694,7 +694,7 @@ export default function LeaveTypeFormModal({
             <div className="flex items-center justify-between">
               <label
                 htmlFor={descId}
-                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                className="block text-xs font-semibold text-[var(--ink-soft)]"
               >
                 Deskripsi / Panduan Pemohon{" "}
                 <span className="font-sans normal-case tracking-normal text-[var(--ink-muted)]">

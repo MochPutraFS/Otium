@@ -312,7 +312,7 @@ export default function DivisionFormModal({
             <div>
               <label
                 htmlFor={nameId}
-                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                className="block text-xs font-semibold text-[var(--ink-soft)]"
               >
                 Nama Divisi <span className="text-[var(--terracotta)]">*</span>
               </label>
@@ -361,7 +361,7 @@ export default function DivisionFormModal({
             <div>
               <label
                 htmlFor={descId}
-                className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                className="block text-xs font-semibold text-[var(--ink-soft)]"
               >
                 Deskripsi Singkat{" "}
                 <span className="font-sans normal-case tracking-normal text-[var(--ink-muted)]">
@@ -410,7 +410,7 @@ export default function DivisionFormModal({
               <div className="flex items-center justify-between gap-2">
                 <label
                   htmlFor={leaderIdField}
-                  className="block font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--ink-soft)]"
+                  className="block text-xs font-semibold text-[var(--ink-soft)]"
                 >
                   Ketua Divisi <span className="text-[var(--terracotta)]">*</span>
                 </label>
