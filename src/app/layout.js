@@ -34,15 +34,41 @@ export const metadata = {
 };
 
 export const viewport = {
-  colorScheme: "light dark",
+  colorScheme: "light",
 };
+
+const THEME_INIT_SCRIPT = `
+(function() {
+  try {
+    var saved = window.localStorage.getItem("otium-color-scheme");
+    var root = document.documentElement;
+    if (saved === "dark") {
+      root.style.colorScheme = "dark";
+      root.dataset.theme = "dark";
+    } else if (saved === "system") {
+      root.style.colorScheme = "light dark";
+      root.dataset.theme = "system";
+    } else {
+      root.style.colorScheme = "light";
+      root.dataset.theme = "light";
+    }
+  } catch (e) {
+    document.documentElement.style.colorScheme = "light";
+    document.documentElement.dataset.theme = "light";
+  }
+})();
+`;
 
 export default function RootLayout({ children }) {
   return (
     <html
       lang="id"
+      suppressHydrationWarning
       className={`${cormorantGaramond.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable}`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-dvh bg-[var(--alabaster)] font-sans text-[var(--ink)] antialiased">
         {children}
       </body>
