@@ -40,9 +40,9 @@ const PAGE_TITLE_MAP = {
 };
 
 const THEME_MODES = [
-  { id: "system", scheme: "light dark", icon: "◐", label: "Sistem" },
   { id: "light", scheme: "light", icon: "☀", label: "Terang" },
   { id: "dark", scheme: "dark", icon: "☾", label: "Gelap" },
+  { id: "system", scheme: "light dark", icon: "◐", label: "Sistem" },
 ];
 
 const THEME_STORAGE_KEY = "otium-color-scheme";
@@ -51,7 +51,7 @@ const THEME_STORAGE_KEY = "otium-color-scheme";
  * TopNavbar Swiss Archival:
  * - Breadcrumb role + judul halaman Cormorant Garamond
  * - Pill tanggal & hari libur terdekat realtime dari PostgreSQL
- * - Theme Switcher (Sistem / Terang / Gelap) berbasis color-scheme
+ * - Theme Switcher (Terang / Gelap / Sistem) berbasis color-scheme (default: Terang)
  * - NotificationDropdown & menu akun pengguna
  */
 export default function TopNavbar({
@@ -73,18 +73,19 @@ export default function TopNavbar({
     section: "Workspace",
   };
 
-  // Sinkronkan preferensi tema tersimpan saat mount
+  // Sinkronkan preferensi tema tersimpan saat mount (default: light)
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
       const foundIdx = THEME_MODES.findIndex((m) => m.id === saved);
-      if (foundIdx >= 0) {
-        setThemeIndex(foundIdx);
-        document.documentElement.style.colorScheme =
-          THEME_MODES[foundIdx].scheme;
-      }
+      const activeIdx = foundIdx >= 0 ? foundIdx : 0;
+      setThemeIndex(activeIdx);
+      document.documentElement.style.colorScheme =
+        THEME_MODES[activeIdx].scheme;
+      document.documentElement.dataset.theme = THEME_MODES[activeIdx].id;
     } catch {
-      // Abaikan jika localStorage tidak tersedia
+      document.documentElement.style.colorScheme = "light";
+      document.documentElement.dataset.theme = "light";
     }
   }, []);
 
@@ -93,6 +94,7 @@ export default function TopNavbar({
     const nextMode = THEME_MODES[nextIdx];
     setThemeIndex(nextIdx);
     document.documentElement.style.colorScheme = nextMode.scheme;
+    document.documentElement.dataset.theme = nextMode.id;
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, nextMode.id);
     } catch {

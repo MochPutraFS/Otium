@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import LoginBrandPanel from "@/components/auth/LoginBrandPanel";
 import LoginFormCard from "@/components/auth/LoginFormCard";
+import ThemeToggleButton from "@/components/ui/ThemeToggleButton";
 import { getCurrentUser } from "@/lib/auth";
 
 export const metadata = {
@@ -28,15 +29,20 @@ export default async function LoginPage({ searchParams }) {
   }
 
   return (
-    <main className="grid min-h-dvh grid-cols-1 bg-[var(--alabaster)] text-[var(--ink)] lg:grid-cols-[1.15fr_1fr]">
-      {/* Panel Swiss Arch Atelier Kiri (Desktop lg+) */}
+    <main className="grid min-h-dvh grid-cols-1 bg-[var(--alabaster)] text-[var(--ink)] lg:grid-cols-[1.08fr_1fr]">
+      {/* Panel Editorial Split Archival Kiri (Desktop lg+) */}
       <LoginBrandPanel />
 
-      {/* Area Form Login Kanan (Swiss Archival Pure Paper) */}
+      {/* Area Form Login Kanan */}
       <section
         aria-label="Formulir Masuk Portal Otium"
-        className="flex flex-col items-center justify-center bg-[var(--paper-pure)] px-5 py-10 sm:px-8 lg:px-12"
+        className="relative flex flex-col items-center justify-center bg-[var(--paper)] px-5 pb-10 pt-16 sm:px-8 lg:px-12 lg:py-10"
       >
+        {/* Switch Mode Tema (Terang / Gelap / Sistem) */}
+        <div className="absolute right-5 top-5 sm:right-8 lg:right-10 lg:top-8">
+          <ThemeToggleButton />
+        </div>
+
         <LoginFormCard callbackUrl={callbackUrl} reason={reason} />
 
         {/* Footer ringkas khusus Mobile/Tablet */}
