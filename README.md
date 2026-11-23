@@ -1,106 +1,170 @@
-# Otium — Sistem Manajemen Cuti Karyawan
+<div align="center">
+  <img src="./public/images/otium-logo.svg" alt="Otium — Swiss Ledger Seal" width="76" height="76" />
+  <h1>OTIUM</h1>
+  <p><strong>Sistem Manajemen Cuti Karyawan &bull; Ketertiban Waktu &amp; Arsip Cuti</strong></p>
 
-**Individual Project 7 — Tugas Final Praktikum Pemrograman Web 2026**
+  <p>
+    <img src="https://img.shields.io/badge/Next.js-15%20(App%20Router)-1A3A2F?style=flat-square&logo=next.js&logoColor=white" alt="Next.js 15" />
+    <img src="https://img.shields.io/badge/JavaScript-Pure%20JS%20%2F%20JSX-9A6B26?style=flat-square&logo=javascript&logoColor=white" alt="Pure JavaScript" />
+    <img src="https://img.shields.io/badge/PostgreSQL-Raw%20SQL%20(pg)-24425E?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL Raw SQL" />
+    <img src="https://img.shields.io/badge/Tailwind%20CSS-3.4-1A3A2F?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" />
+    <img src="https://img.shields.io/badge/License-MIT-49453E?style=flat-square" alt="MIT License" />
+  </p>
 
-Aplikasi web full-stack **Sistem Manajemen Cuti Karyawan** berbasis **Next.js (App Router, JavaScript Murni)** dan **PostgreSQL (100% Raw SQL via `pg`, tanpa ORM)**. Mengelola seluruh siklus pengajuan cuti, verifikasi berjenjang (Ketua Divisi & HRD), kalkulasi kuota presisi `0.5` hari, serah terima tugas (*handover*), surat cuti resmi siap cetak A4/PDF, serta 6 modul CMS dalam antarmuka **Swiss Archival / Editorial Ledger** (mendukung Light & Dark Mode).
-
----
-
-## Fitur Utama (Production-Ready)
-
-- **Autentikasi Terpusat & RBAC 2 Lapis (`/login`, `src/middleware.js`, `/api/auth/*`)**
-  - Login dengan `Email` atau `Username` + `Password` (`bcryptjs`), opsi **Remember Me** (JWT HttpOnly Cookie `1 hari` normal / `7 hari` jika dicentang), deteksi role otomatis, pemblokiran akun `is_active = FALSE`, dan tanpa registrasi publik.
-- **Dashboard Adaptif 4 Role (`/dashboard`)**
-  - Tampilan khusus untuk `Admin`, `Karyawan`, `Ketua Divisi`, dan `HRD` lengkap dengan **12-Day Quota Precision Ruler**, `.metric-strip`, dan ringkasan antrean/riwayat realtime dari PostgreSQL.
-- **Pengajuan & Riwayat Cuti (`/leaves/new`, `/leaves`)**
-  - Validasi berlapis (masa kerja `>= 1 tahun` untuk Cuti Tahunan, batas H-3 / H+3, anti-overlap tanggal, kecukupan kuota, rekan pengganti satu divisi, lampiran wajib Cuti Sakit).
-  - Kalkulator hari kerja (mengecualikan Sabtu–Minggu & hari libur aktif), dukungan cuti setengah hari (`0.5`), **What-If Projection Ruler**, kalender interaktif multi-bulan, pembatalan dengan alasan wajib + *auto-refund* kuota atomik, serta cetak **Surat Cuti Resmi PDF**.
-- **Verifikasi Ketua Divisi & Persetujuan Final HRD (`/approvals/leader`, `/approvals/hrd`)**
-  - Kartu **Routing Slip (`Umlaufzettel`)** 3 tahap beserta paraf & stempel status.
-  - Alur 1 (`Karyawan → Ketua Divisi → HRD`) dan Alur 2 (`Ketua Divisi → HRD`).
-  - **Multi-Approve Checkbox (*Bulk Approval*)** HRD dalam satu transaksi SQL atomik + *auto-refund* kuota saat penolakan.
-- **Admin CMS Modul 1–4 (`/admin/users`, `/admin/divisions`, `/admin/division-members`, `/admin/leave-types`)**
-  - Manajemen User (proteksi anti-hapus akun `Admin` & `HRD`), Manajemen Divisi (aturan 1 Ketua per Divisi + *Double Confirmation Delete* tanpa menghapus akun anggota), Manajemen Anggota Divisi (`division_id = NULL`), serta Konfigurasi Jenis Cuti Dinamis dari database.
-- **Profil & Notifikasi Internal (`/profile`, `/api/notifications`, `/api/upload`)**
-  - Pembaruan biodata, unggah/hapus foto profil lokal (`/public/uploads/avatars`), ganti password (`bcryptjs`), serta notifikasi internal *handover*.
+  <p>
+    <a href="#alur-persetujuan--siklus-kuota">Alur Persetujuan</a> &bull;
+    <a href="#matriks-fitur--hak-akses-rbac">Matriks RBAC</a> &bull;
+    <a href="#arsitektur--keamanan-database">Arsitektur</a> &bull;
+    <a href="#instalasi-cepat">Instalasi</a> &bull;
+    <a href="#akun-demo">Akun Demo</a>
+  </p>
+</div>
 
 ---
 
-## Tech Stack & Arsitektur
+## Tentang Proyek
 
-- **Framework:** Next.js 15 (App Router)
-- **Bahasa:** JavaScript Murni (`.js` / `.jsx` — tanpa TypeScript)
-- **Styling & Ikon:** Tailwind CSS + `lucide-react` (`Cormorant Garamond`, `IBM Plex Sans`, `IBM Plex Mono`)
-- **Database:** PostgreSQL
-- **Akses Data:** Raw SQL Murni menggunakan `pg` (`node-postgres`) dengan *parameterized queries* (`$1, $2, ...`) dan transaksi atomik (`BEGIN ... COMMIT / ROLLBACK` + `SELECT ... FOR UPDATE`)
-- **Backend Pattern:** Kombinasi Next.js Server Actions (`"use server"`) dan Route Handlers (`src/app/api/**/route.js`)
+**Otium** *(Lat. ōtium — waktu rehat yang teratur)* adalah aplikasi web *full-stack* untuk mendigitalisasi dan mengotomatisasi siklus pengajuan cuti karyawan, verifikasi berjenjang, manajemen kuota presisi `0.5` hari kerja, serah terima tugas (*handover*), hingga penerbitan **Surat Persetujuan Cuti Resmi siap cetak A4/PDF**.
+
+Dibangun sebagai **Individual Project 7 — Tugas Final Praktikum Pemrograman Web 2026**, proyek ini mematuhi arsitektur **100% JavaScript Murni** (tanpa TypeScript) dan **100% PostgreSQL Raw SQL** melalui `pg` (*zero ORM*), dibalut dalam antarmuka **Swiss Archival / Editorial Ledger** yang mendukung **Light & Dark Mode** secara penuh.
 
 ---
 
-## Struktur Direktori
+## Sorotan Utama
 
-```text
-otium/
-├── database/                  # Skrip PostgreSQL pgAdmin (database.sql, schema.sql, seed.sql)
-├── public/
-│   ├── images/                # Logo Otium (Swiss Ledger Seal) & aset statis
-│   └── uploads/               # Penyimpanan lokal lampiran surat dokter & avatar
-├── src/
-│   ├── middleware.js          # Edge Auth Guard & RBAC Route Protection
-│   ├── app/                   # Next.js App Router (.js / .jsx)
-│   │   ├── (auth)/login/      # Halaman Login terpusat (Editorial Split Archival)
-│   │   ├── (dashboard)/       # App Shell: dashboard, profile, leaves, approvals, admin
-│   │   └── api/               # Next.js Route Handlers
-│   ├── actions/               # Next.js Server Actions ("use server")
-│   ├── components/            # Komponen UI modular (.jsx)
-│   └── lib/                   # Pool 'pg', withTransaction, auth/JWT, validasi, utilitas tanggal
-├── .env.example               # Template variabel lingkungan
-├── jsconfig.json              # Path alias JavaScript (@/* -> ./src/*)
-├── LICENSE                    # Lisensi MIT
-└── README.md
+| Pilar | Implementasi |
+| :--- | :--- |
+| **Autentikasi & RBAC 2 Lapis** | Login tunggal via `Email` atau `Username` + `Password` (`bcryptjs`), deteksi role otomatis, opsi **Remember Me** (JWT HttpOnly Cookie `1 hari` / `7 hari`), Edge `middleware.js`, pemblokiran akun nonaktif, dan tanpa registrasi publik. |
+| **Kalkulasi Kuota Presisi `0.5` Hari** | Kuota tahunan `12.0` hari kerja/tahun, otomatis mengecualikan **Sabtu–Minggu** dan **hari libur nasional** (`holidays`), mendukung cuti setengah hari (`0.5`), dilengkapi **12-Day Quota Precision Ruler** & **What-If Projection**. |
+| **Transaksi SQL Atomik & Auto-Refund** | Seluruh mutasi kuota & multi-tabel dibungkus `BEGIN ... COMMIT / ROLLBACK` dengan penguncian baris (`SELECT ... FOR UPDATE`). Kuota otomatis dikembalikan (*auto-refund*) saat pengajuan dibatalkan atau ditolak. |
+| **Lembar Edaran Paraf (*Routing Slip*)** | Verifikasi Tahap 1 (**Ketua Divisi**) dan Persetujuan Final (**HRD**) lengkap dengan riwayat paraf, alasan wajib tolak/batal, **Multi-Approve Checkbox** atomik untuk HRD, dan dokumen cetak **Surat Cuti PDF**. |
+| **Jenis Cuti Dinamis & CMS Lengkap** | Seluruh kategori cuti (Tahunan, Sakit, Menikah, dll.) dikelola dinamis dari tabel `leave_types`, bersama CRUD User (proteksi anti-hapus `Admin`/`HRD`), Divisi (*Double Confirmation Delete* tanpa hapus anggota), dan Anggota Divisi. |
+
+---
+
+## Alur Persetujuan & Siklus Kuota
+
+```mermaid
+flowchart LR
+    A["Karyawan<br/>Submit Cuti (Pending)<br/>Hold Kuota Atomik"] --> B["Ketua Divisi<br/>Verifikasi Tahap 1"]
+    B -->|Setuju| C["Approved by Leader"]
+    B -->|Tolak + Alasan| R1["Rejected<br/>Auto-Refund Kuota"]
+    C --> D["HRD<br/>Persetujuan Final / Bulk"]
+    E["Ketua Divisi<br/>Submit Cuti Pribadi (Pending)"] --> D
+    D -->|Setuju| F["Approved<br/>Surat Cuti PDF Siap"]
+    D -->|Tolak + Alasan| R2["Rejected<br/>Auto-Refund Kuota"]
+    A -->|Batal saat Pending + Alasan| X["Cancelled<br/>Auto-Refund Kuota"]
 ```
 
 ---
 
-## Setup Lokal
+## Matriks Fitur & Hak Akses (RBAC)
 
-1. **Clone repository**
+| Modul / Rute | Admin | HRD | Ketua Divisi | Karyawan |
+| :--- | :---: | :---: | :---: | :---: |
+| **Dashboard Adaptif** (`/dashboard`) | Statistik Master | Antrean & Kapasitas | Kuota & Tim Divisi | Kuota & Riwayat |
+| **Ajukan Cuti & What-If** (`/leaves/new`) | — | — | Ya *(langsung ke HRD)* | Ya *(via Ketua Divisi)* |
+| **Riwayat, Batal, & Surat PDF** (`/leaves`) | — | — | Ya *(milik sendiri)* | Ya *(milik sendiri)* |
+| **Verifikasi Tahap 1** (`/approvals/leader`) | — | — | Ya *(divisi sendiri)* | — |
+| **Persetujuan Final & Bulk** (`/approvals/hrd`) | — | Ya *(+ Cetak PDF)* | — | — |
+| **Manajemen Pengguna** (`/admin/users`) | Ya *(proteksi Admin/HRD)* | — | — | — |
+| **Manajemen Divisi** (`/admin/divisions`) | Ya *(2x konfirmasi hapus)* | — | — | — |
+| **Anggota Divisi** (`/admin/division-members`) | Ya *(lepas tanpa hapus akun)* | — | — | — |
+| **Jenis Cuti Dinamis** (`/admin/leave-types`) | Ya | — | — | — |
+| **Profil, Avatar, & Password** (`/profile`) | Ya *(full edit)* | Ya | Ya *(+ Precision Ruler)* | Ya *(+ Precision Ruler)* |
+
+---
+
+## Arsitektur & Keamanan Database
+
+- **Zero ORM / Pure Raw SQL:** Seluruh query dieksekusi menggunakan `pg` (`Pool`) dengan *parameterized queries* (`$1, $2, ...`) untuk mencegah *SQL Injection*.
+- **7 Tabel Relasional PostgreSQL:**
+  `divisions` &bull; `users` &bull; `leave_types` &bull; `leave_requests` &bull; `leave_approvals` &bull; `notifications` &bull; `holidays`
+- **Validasi Berlapis:** Validasi UX sisi klien pada form `.jsx` + validasi keamanan sisi server pada **Next.js Server Actions** (`src/actions/*.js`) dan **Route Handlers** (`src/app/api/**/route.js`).
+- **Penyimpanan Lokal Aman:** Unggahan lampiran surat dokter (`/public/uploads/attachments`) dan avatar (`/public/uploads/avatars`) divalidasi tipe & ukurannya di sisi server.
+
+### Struktur Direktori
+
+```text
+otium/
+├── database/
+│   ├── database.sql           # Skrip gabungan DDL + Seed Data (1x impor pgAdmin)
+│   ├── schema.sql             # DDL 7 tabel, constraint, & indeks performa
+│   └── seed.sql               # Data awal 4 role, divisi, & 3 jenis cuti inti
+├── public/
+│   ├── images/                # Logo Otium (Swiss Ledger Seal)
+│   └── uploads/               # Direktori penyimpanan lampiran & avatar lokal
+├── src/
+│   ├── middleware.js          # Edge Auth Guard & RBAC Route Protection
+│   ├── app/
+│   │   ├── (auth)/login/      # Halaman Login terpusat + switch mode tema
+│   │   ├── (dashboard)/       # Workspace terproteksi (dashboard, leaves, approvals, admin, profile)
+│   │   └── api/               # Route Handlers (auth, leaves, pdf, approvals, admin, upload, notifications)
+│   ├── actions/               # Next.js Server Actions ("use server")
+│   ├── components/            # Komponen UI modular (auth, layout, ui, dashboard, leaves, approvals, admin, profile)
+│   └── lib/                   # Pool 'pg', withTransaction, JWT/auth, validator, utilitas tanggal
+├── .env.example               # Template variabel lingkungan
+├── jsconfig.json              # Alias path JavaScript (@/* -> ./src/*)
+└── tailwind.config.js         # Token desain Swiss Archival
+```
+
+---
+
+## Instalasi Cepat
+
+### Prasyarat
+- **Node.js** `>= 18.18` (disarankan Node.js 20 LTS)
+- **PostgreSQL** `>= 14` & **pgAdmin 4** (atau `psql`)
+
+### Langkah Setup
+
+1. **Clone repositori**
    ```bash
    git clone https://github.com/MochPutraFS/Otium.git
    cd Otium
    ```
-2. **Install dependencies**
+
+2. **Pasang dependensi**
    ```bash
    npm install
    ```
-3. **Setup Database PostgreSQL (pgAdmin)**
-   - Buat database baru di PostgreSQL / pgAdmin (misal `otium_db`).
-   - Jalankan **satu file gabungan** `database/database.sql` (atau jalankan `database/schema.sql` diikuti `database/seed.sql`).
-4. **Konfigurasi Environment Variables**
-   - Salin `.env.example` menjadi `.env` (atau `.env.local`), lalu sesuaikan nilai `DATABASE_URL` dan `JWT_SECRET`.
-5. **Jalankan Server Development**
+
+3. **Inisialisasi database PostgreSQL**
+   - Buat database baru di PostgreSQL / pgAdmin (misalnya `otium_db`).
+   - Impor dan jalankan **`database/database.sql`** satu kali melalui *pgAdmin Query Tool* (atau jalankan `database/schema.sql` diikuti `database/seed.sql`).
+
+4. **Konfigurasi variabel lingkungan**
+   ```bash
+   cp .env.example .env
+   ```
+   Sesuaikan isi `.env` dengan kredensial PostgreSQL lokal Anda:
+   ```env
+   DATABASE_URL="postgresql://postgres:password_anda@localhost:5432/otium_db"
+   JWT_SECRET="ganti_dengan_string_acak_minimal_32_karakter"
+   ```
+
+5. **Jalankan server aplikasi**
    ```bash
    npm run dev
    ```
-6. **Akses Aplikasi**
-   - Buka `http://localhost:3000/login` di browser Anda.
+   Buka **[http://localhost:3000/login](http://localhost:3000/login)** di browser Anda.
 
 ---
 
-## Akun Demo Awal (`database/seed.sql`)
+## Akun Demo
 
-Seluruh akun bawaan menggunakan password yang sama: **`password123`**
+Seluruh akun awal dari `database/database.sql` / `database/seed.sql` menggunakan kata sandi default: **`password123`**
 
-| Role | Username | Email | Divisi |
-| :--- | :--- | :--- | :--- |
-| **Admin** | `admin` | `admin@perusahaan.com` | — |
-| **HRD** | `hrd` | `hrd@perusahaan.com` | — |
-| **Ketua Divisi** | `leader.eng` | `ketua.eng@perusahaan.com` | Engineering |
-| **Karyawan 1** | `karyawan1` | `andi.pratama@perusahaan.com` | Engineering |
-| **Karyawan 2** | `karyawan2` | `dewi.lestari@perusahaan.com` | Engineering |
+| Role | Username | Email | Divisi | Keterangan |
+| :--- | :--- | :--- | :--- | :--- |
+| **Admin** | `admin` | `admin@perusahaan.com` | — | Akses penuh CMS Modul 1–4 |
+| **HRD** | `hrd` | `hrd@perusahaan.com` | — | Persetujuan final, *bulk approve*, & cetak PDF |
+| **Ketua Divisi** | `leader.eng` | `ketua.eng@perusahaan.com` | Engineering | Verifikasi Tahap 1 divisi & ajukan cuti ke HRD |
+| **Karyawan 1** | `karyawan1` | `andi.pratama@perusahaan.com` | Engineering | Pemohon cuti / rekan *handover* |
+| **Karyawan 2** | `karyawan2` | `dewi.lestari@perusahaan.com` | Engineering | Pemohon cuti / rekan *handover* |
 
 ---
 
 ## Lisensi
 
-Proyek ini dilisensikan di bawah [MIT License](./LICENSE).
+Proyek ini dirilis di bawah lisensi [MIT](./LICENSE).
