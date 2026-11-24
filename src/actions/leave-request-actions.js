@@ -8,6 +8,7 @@ import {
   formatIndonesianDateRange,
   validateSubmissionLeadTime,
 } from "@/lib/date-utils";
+import { findOverlappingBlackoutPeriod } from "@/lib/policy-data";
 import {
   validateCancelLeavePayload,
   validateLeaveRequestPayload,
@@ -301,6 +302,22 @@ export async function submitLeaveRequestAction(payload) {
         };
       }
 
+      // Garda 7B (Fase 2 - 8.6): Cek irisan dengan Periode Blackout aktif (Hard Block)
+      const blackoutConflict = await findOverlappingBlackoutPeriod(
+        client,
+        applicant.division_id,
+        data.startDate,
+        data.endDate
+      );
+      if (blackoutConflict) {
+        return {
+          ok: false,
+          status: 400,
+          error: blackoutConflict.message,
+          fieldErrors: { startDate: blackoutConflict.message },
+        };
+      }
+
       // Garda 8: Cek kecukupan kuota & hold kuota tahunan secara atomik
       const deductsAnnualQuota = Boolean(leaveType.deducts_annual_quota);
       const currentQuota = Number(applicant.remaining_leave_quota);
@@ -337,12 +354,38 @@ export async function submitLeaveRequestAction(payload) {
         }
 
         updatedRemainingQuota = Number(deductRes.rows[0].remaining_leave_quota);
-      } else if (totalDays > maxQuota) {
-        return {
-          ok: false,
-          status: 400,
-          error: `Durasi ${totalDays.toFixed(1)} hari melebihi batas maksimal ${leaveType.name} (${maxQuota.toFixed(1)} hari).`,
-        };
+      } else {
+        const usedNonAnnualRes = await client.query(
+          `
+            SELECT COALESCE(SUM(total_days), 0) AS used_days
+            FROM leave_requests
+            WHERE user_id = $1
+              AND leave_type_id = $2
+              AND status IN ('Pending', 'Approved by Leader', 'Approved')
+              AND EXTRACT(YEAR FROM start_date) = EXTRACT(YEAR FROM $3::date);
+          `,
+          [applicant.id, leaveType.id, data.startDate]
+        );
+
+        const usedNonAnnualDays = Number(usedNonAnnualRes.rows[0]?.used_days || 0);
+        const projectedNonAnnualDays = Number(
+          (usedNonAnnualDays + totalDays).toFixed(1)
+        );
+        const remainingNonAnnualQuota = Number(
+          Math.max(0, maxQuota - usedNonAnnualDays).toFixed(1)
+        );
+
+        if (projectedNonAnnualDays > maxQuota) {
+          const msg =
+            usedNonAnnualDays > 0
+              ? `Akumulasi pemakaian ${leaveType.name} tahun ini (${usedNonAnnualDays.toFixed(1)} hari terpakai + ${totalDays.toFixed(1)} hari diajukan = ${projectedNonAnnualDays.toFixed(1)} hari) melebihi batas maksimal ${maxQuota.toFixed(1)} hari/tahun. Sisa tersedia: ${remainingNonAnnualQuota.toFixed(1)} hari.`
+              : `Durasi ${totalDays.toFixed(1)} hari melebihi batas maksimal ${leaveType.name} (${maxQuota.toFixed(1)} hari/tahun).`;
+          return {
+            ok: false,
+            status: 400,
+            error: msg,
+          };
+        }
       }
 
       // Simpan transaksi pengajuan cuti

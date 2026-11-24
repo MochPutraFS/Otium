@@ -1,7 +1,8 @@
 "use client";
 
-import { CheckCircle2, Eye, Paperclip, Zap } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Eye, Paperclip, Zap } from "lucide-react";
 import StatusBadge from "@/components/ui/StatusBadge";
+import UserAvatar from "@/components/ui/UserAvatar";
 import {
   formatIndonesianDate,
   formatIndonesianDateRange,
@@ -192,18 +193,14 @@ export default function RoutingSlipCard({
             />
           )}
 
-          {request.applicantAvatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={request.applicantAvatar}
-              alt={`Foto profil ${request.applicantName}`}
-              className="h-9 w-9 shrink-0 rounded-[2px] border border-[var(--rule-strong)] bg-[var(--paper-pure)] object-cover"
-            />
-          ) : (
-            <span className="avatar-sq !h-9 !w-9 !text-xs" aria-hidden="true">
-              {request.applicantInitials || "KR"}
-            </span>
-          )}
+          <UserAvatar
+            src={request.applicantAvatar}
+            alt={`Foto profil ${request.applicantName}`}
+            initials={request.applicantInitials || "KR"}
+            imgClassName="h-9 w-9 shrink-0 rounded-[2px] border border-[var(--rule-strong)] bg-[var(--paper-pure)] object-cover"
+            fallbackClassName="avatar-sq !h-9 !w-9 !text-xs"
+            ariaHiddenFallback
+          />
 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -264,6 +261,23 @@ export default function RoutingSlipCard({
           </span>
         )}
       </div>
+
+      {/* Inline Banner Peringatan Kapasitas Tim pada Kartu HRD (Fase 2 - 8.6) */}
+      {mode === "hrd" && request.capacityWarning?.isExceeded && (
+        <div
+          role="alert"
+          className="flex items-start gap-2 border-b border-[var(--ochre-border)] bg-[var(--ochre-tint)] px-4 py-2.5 text-xs text-[var(--ochre)]"
+        >
+          <AlertTriangle
+            className="mt-0.5 h-4 w-4 shrink-0"
+            aria-hidden="true"
+          />
+          <span>
+            <strong>Limit Kapasitas Tim Terlampaui:</strong>{" "}
+            {request.capacityWarning.message}
+          </span>
+        </div>
+      )}
 
       {/* 3 Kotak Tahap Paraf (Umlaufzettel) */}
       <div className="slip-steps" role="list" aria-label="Urutan paraf persetujuan">

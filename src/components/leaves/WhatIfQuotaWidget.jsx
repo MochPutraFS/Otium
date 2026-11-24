@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  Users,
 } from "lucide-react";
 import QuotaPrecisionRuler from "@/components/ui/QuotaPrecisionRuler";
 import { formatIndonesianDate } from "@/lib/date-utils";
@@ -56,14 +57,19 @@ export default function WhatIfQuotaWidget({
   totalDays = 0,
   currentQuota = 12.0,
   initialQuota = 12.0,
+  usedNonAnnualDays = 0,
+  remainingNonAnnualQuota = null,
   holidayHits = [],
   validationErrors = [],
+  capacityWarning = null,
   isCheckingAvailability = false,
   startDate = "",
   endDate = "",
   isHalfDay = false,
   serverToday = "",
   holidays = [],
+  colleagueLeaves = [],
+  blackoutPeriods = [],
   onSelectDateRange,
 }) {
   const deductsAnnual = Boolean(selectedLeaveType?.deductsAnnualQuota);
@@ -96,11 +102,27 @@ export default function WhatIfQuotaWidget({
     const map = new Map();
     (holidays || []).forEach((h) => {
       if (h?.holidayDate) {
-        map.set(h.holidayDate, h.name || "Hari Libur");
+        map.set(h.holidayDate, {
+          name: h.name || "Hari Libur",
+          holidayType: h.holidayType || "National Holiday",
+        });
       }
     });
     return map;
   }, [holidays]);
+
+  const overlappingColleagues = useMemo(() => {
+    if (!startDate || !endDate || endDate < startDate) return [];
+    const seen = new Map();
+    (colleagueLeaves || []).forEach((item) => {
+      if (item.startDate <= endDate && item.endDate >= startDate) {
+        if (!seen.has(item.employeeName)) {
+          seen.set(item.employeeName, item);
+        }
+      }
+    });
+    return Array.from(seen.values());
+  }, [colleagueLeaves, startDate, endDate]);
 
   const calendarCells = useMemo(() => {
     const { year, month } = viewMonth;
@@ -116,7 +138,14 @@ export default function WhatIfQuotaWidget({
       const iso = toIsoDate(year, month, day);
       const dowJs = new Date(year, month, day).getDay();
       const isWeekend = dowJs === 0 || dowJs === 6;
-      const holidayName = holidayMap.get(iso) || null;
+      const holidayInfo = holidayMap.get(iso) || null;
+      const blackoutInfo =
+        (blackoutPeriods || []).find(
+          (bp) => bp.startDate <= iso && bp.endDate >= iso
+        ) || null;
+      const dayColleagues = (colleagueLeaves || []).filter(
+        (cl) => cl.startDate <= iso && cl.endDate >= iso
+      );
       const isToday = Boolean(serverToday && iso === serverToday);
       const isSelected = Boolean(
         startDate &&
@@ -131,13 +160,26 @@ export default function WhatIfQuotaWidget({
         day,
         iso,
         isWeekend,
-        holidayName,
+        holidayName: holidayInfo?.name || null,
+        holidayType: holidayInfo?.holidayType || null,
+        blackoutName: blackoutInfo?.name || null,
+        colleagueNames: Array.from(
+          new Set(dayColleagues.map((cl) => cl.employeeName))
+        ),
         isToday,
         isSelected,
       });
     }
     return cells;
-  }, [viewMonth, holidayMap, serverToday, startDate, endDate]);
+  }, [
+    viewMonth,
+    holidayMap,
+    blackoutPeriods,
+    colleagueLeaves,
+    serverToday,
+    startDate,
+    endDate,
+  ]);
 
   function shiftMonth(delta) {
     setViewMonth((prev) => {
@@ -167,25 +209,27 @@ export default function WhatIfQuotaWidget({
   return (
     <aside
       aria-label="Simulasi kuota dan kalender interaktif pengajuan cuti"
-      className="space-y-4 lg:sticky lg:top-[76px]"
+      className="min-w-0 space-y-4 lg:sticky lg:top-[76px]"
     >
       {/* PANEL 1: WHAT-IF PROJECTION RULER */}
-      <div className="panel overflow-hidden">
+      <div className="panel min-w-0 overflow-hidden">
         <div className="panel-head !py-3.5">
-          <div className="flex items-center gap-2">
-            <div>
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="min-w-0">
               <span className="panel-eyebrow !mb-0">Simulasi Real-Time</span>
               <h2 className="panel-title !text-[15px]">Proyeksi Kuota</h2>
             </div>
             {isCheckingAvailability && (
               <Loader2
-                className="h-3.5 w-3.5 animate-spin text-[var(--ink-muted)]"
+                className="h-3.5 w-3.5 shrink-0 animate-spin text-[var(--ink-muted)]"
                 aria-label="Memverifikasi ketersediaan ke server"
               />
             )}
           </div>
           {selectedLeaveType && (
-            <span className="tag">{selectedLeaveType.name}</span>
+            <span className="tag max-w-full truncate">
+              {selectedLeaveType.name}
+            </span>
           )}
         </div>
 
@@ -256,7 +300,7 @@ export default function WhatIfQuotaWidget({
           ) : (
             <div className="notice notice-success">
               <CheckCircle2 aria-hidden="true" />
-              <div>
+              <div className="min-w-0">
                 <p className="m-0 font-semibold">
                   Tidak memotong kuota Cuti Tahunan.
                 </p>
@@ -264,9 +308,31 @@ export default function WhatIfQuotaWidget({
                   <p className="mt-0.5 text-[11px]">
                     Batas maksimal:{" "}
                     <strong className="mono">
-                      {Number(selectedLeaveType.maxQuota).toFixed(1)} hari
+                      {Number(selectedLeaveType.maxQuota).toFixed(1)} hari/tahun
                     </strong>
                     .
+                    {usedNonAnnualDays > 0 && (
+                      <>
+                        {" "}
+                        Terpakai:{" "}
+                        <strong className="mono">
+                          {Number(usedNonAnnualDays).toFixed(1)} hr
+                        </strong>{" "}
+                        (sisa{" "}
+                        <strong className="mono">
+                          {Number(
+                            remainingNonAnnualQuota ??
+                              Math.max(
+                                0,
+                                Number(selectedLeaveType.maxQuota) -
+                                  Number(usedNonAnnualDays)
+                              )
+                          ).toFixed(1)}{" "}
+                          hr
+                        </strong>
+                        ).
+                      </>
+                    )}
                   </p>
                 ) : null}
               </div>
@@ -295,7 +361,50 @@ export default function WhatIfQuotaWidget({
             </div>
           )}
 
-          {/* Contextual-Only Alerts (Garda 3-8) */}
+          {/* Info Rekan Sedivisi yang Cuti di Rentang Tanggal Terpilih (8.4) */}
+          {overlappingColleagues.length > 0 && (
+            <div className="notice notice-info">
+              <Users aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="m-0 font-semibold">
+                  {overlappingColleagues.length} rekan sedivisi cuti di rentang ini:
+                </p>
+                <ul className="mt-1 space-y-0.5 pl-4 text-[11px]">
+                  {overlappingColleagues.map((cl) => (
+                    <li key={cl.id} className="list-disc">
+                      <strong>{cl.employeeName}</strong>{" "}
+                      <span className="mono text-[10.5px]">
+                        ({formatIndonesianDate(cl.startDate)}
+                        {cl.endDate !== cl.startDate
+                          ? ` – ${formatIndonesianDate(cl.endDate)}`
+                          : ""}
+                        )
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {/* Peringatan Kapasitas Tim Divisi (Non-Blocking Soft Warning - 8.6) */}
+          {capacityWarning?.isExceeded && (
+            <div role="status" className="notice notice-warn">
+              <AlertTriangle aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="m-0 font-semibold">
+                  Peringatan Limit Kapasitas Tim ({capacityWarning.projectedPct}% &gt;{" "}
+                  {capacityWarning.maxAllowedPct}%)
+                </p>
+                <p className="mt-0.5 text-[11px]">
+                  {capacityWarning.message} Pengajuan tetap dapat dikirim untuk
+                  ditinjau lebih lanjut oleh HRD.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Contextual-Only Alerts (Garda 3-8 & Blackout) */}
           {validationErrors.length > 0 && (
             <div
               role="alert"
@@ -372,7 +481,12 @@ export default function WhatIfQuotaWidget({
                 const classes = [
                   "cal-day",
                   cell.isWeekend ? "weekend" : "",
-                  cell.holidayName ? "holiday" : "",
+                  cell.holidayName
+                    ? cell.holidayType === "Collective Leave"
+                      ? "collective"
+                      : "holiday"
+                    : "",
+                  cell.blackoutName ? "blackout" : "",
                   cell.isSelected ? "selected" : "",
                   cell.isToday ? "is-today" : "",
                 ]
@@ -381,7 +495,23 @@ export default function WhatIfQuotaWidget({
 
                 const tooltipParts = [formatIndonesianDate(cell.iso)];
                 if (cell.isToday) tooltipParts.push("Hari Ini");
-                if (cell.holidayName) tooltipParts.push(`Libur: ${cell.holidayName}`);
+                if (cell.blackoutName) {
+                  tooltipParts.push(`Blackout: ${cell.blackoutName}`);
+                }
+                if (cell.holidayName) {
+                  tooltipParts.push(
+                    `${
+                      cell.holidayType === "Collective Leave"
+                        ? "Cuti Bersama"
+                        : "Libur Nasional"
+                    }: ${cell.holidayName}`
+                  );
+                }
+                if (cell.colleagueNames.length > 0) {
+                  tooltipParts.push(
+                    `Rekan Cuti: ${cell.colleagueNames.join(", ")}`
+                  );
+                }
                 if (cell.isWeekend) tooltipParts.push("Akhir Pekan");
 
                 return (
@@ -395,17 +525,33 @@ export default function WhatIfQuotaWidget({
                     className={classes}
                   >
                     <span>{cell.day}</span>
-                    {cell.holidayName && (
-                      <span className="cal-marker" aria-hidden="true">
-                        ◆
-                      </span>
-                    )}
+                    <span className="flex items-center gap-0.5">
+                      {cell.blackoutName && (
+                        <span
+                          className="cal-marker text-[var(--terracotta)]"
+                          aria-hidden="true"
+                        >
+                          ✕
+                        </span>
+                      )}
+                      {!cell.blackoutName && cell.holidayName && (
+                        <span className="cal-marker" aria-hidden="true">
+                          {cell.holidayType === "Collective Leave" ? "◇" : "◆"}
+                        </span>
+                      )}
+                      {cell.colleagueNames.length > 0 && (
+                        <span
+                          className="cal-colleague-dot"
+                          aria-hidden="true"
+                        />
+                      )}
+                    </span>
                   </button>
                 );
               })}
             </div>
 
-            {/* Legenda Kalender (Tanpa Blackout) */}
+            {/* Legenda Kalender Lengkap (Fase 2: Libur, Cuti Bersama, Rekan Sedivisi, Blackout) */}
             <div className="mono flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--rule)] pt-2.5 text-[10px] text-[var(--ink-muted)]">
               <span>
                 <strong className="text-[var(--spruce)]">■</strong> Dipilih
@@ -414,10 +560,16 @@ export default function WhatIfQuotaWidget({
                 <strong className="text-[var(--slate-blue)]">◆</strong> Libur
               </span>
               <span>
-                <strong>░</strong> Akhir Pekan
+                <strong className="text-[var(--ochre)]">◇</strong> Cuti Bersama
               </span>
               <span>
-                <strong className="text-[var(--spruce)]">□</strong> Hari Ini
+                <strong className="text-[var(--spruce)]">●</strong> Rekan Cuti
+              </span>
+              <span>
+                <strong className="text-[var(--terracotta)]">✕</strong> Blackout
+              </span>
+              <span>
+                <strong>░</strong> Akhir Pekan
               </span>
             </div>
           </div>

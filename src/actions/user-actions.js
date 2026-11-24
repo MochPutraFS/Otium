@@ -145,12 +145,14 @@ export async function createUserAction(payload) {
             full_name,
             role,
             division_id,
+            phone,
+            address,
             initial_leave_quota,
             remaining_leave_quota,
             join_date,
             is_active
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $7, $8, $9)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9, $10, $11)
           RETURNING id, full_name, role;
         `,
         [
@@ -160,6 +162,8 @@ export async function createUserAction(payload) {
           data.fullName,
           data.role,
           data.divisionId,
+          data.phone,
+          data.address,
           data.initialLeaveQuota,
           data.joinDate,
           data.isActive,
@@ -328,13 +332,15 @@ export async function updateUserAction(userId, payload) {
             full_name = $3,
             role = $4,
             division_id = $5,
-            initial_leave_quota = $6,
-            remaining_leave_quota = $7,
-            join_date = $8,
-            is_active = $9,
-            password_hash = COALESCE($10, password_hash),
+            phone = $6,
+            address = $7,
+            initial_leave_quota = $8,
+            remaining_leave_quota = $9,
+            join_date = $10,
+            is_active = $11,
+            password_hash = COALESCE($12, password_hash),
             updated_at = CURRENT_TIMESTAMP
-          WHERE id = $11
+          WHERE id = $13
           RETURNING id, full_name, role;
         `,
         [
@@ -343,6 +349,8 @@ export async function updateUserAction(userId, payload) {
           data.fullName,
           data.role,
           data.divisionId,
+          data.phone,
+          data.address,
           data.initialLeaveQuota,
           data.remainingLeaveQuota,
           data.joinDate,

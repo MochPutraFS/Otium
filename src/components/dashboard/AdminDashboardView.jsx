@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
+import ExpiringQuotaPanel from "@/components/dashboard/ExpiringQuotaPanel";
 
 const CMS_MODULES = [
   {
@@ -65,7 +66,12 @@ export default function AdminDashboardView({ initialData, data }) {
     }
   }, [initialData]);
 
-  const { periodLabel, stats, ineligibleEmployees = [] } = dashboardData;
+  const {
+    periodLabel,
+    stats,
+    ineligibleEmployees = [],
+    expiringQuotaEmployees = [],
+  } = dashboardData;
 
   const divisionOptions = useMemo(() => {
     const uniqueDivisions = Array.from(
@@ -401,6 +407,12 @@ export default function AdminDashboardView({ initialData, data }) {
           </div>
         )}
       </section>
+
+      {/* 4. PERINGATAN KUOTA HANGUS (FASE 2 - 8.5) */}
+      <ExpiringQuotaPanel
+        employees={expiringQuotaEmployees}
+        onSent={handleRefresh}
+      />
     </div>
   );
 }

@@ -21,6 +21,7 @@ dist/
 # Private Docs, Internal Notes, AI Agent Config & Local Tooling (dikecualikan dari repo)
 docs/
 modulNameandRoute.md
+newupdates.md
 ANTIGRAVITY_RULES.md
 AGENTS.md
 CLAUDE.md

@@ -5,10 +5,16 @@ export const SESSION_MAX_AGE_DEFAULT = 60 * 60 * 24; // 1 hari (detik)
 export const SESSION_MAX_AGE_REMEMBER = 60 * 60 * 24 * 7; // 7 hari (detik)
 
 export const ROLE_ROUTE_RULES = [
+  { prefix: "/admin/holidays", allowedRoles: ["Admin", "HRD"] },
+  { prefix: "/admin/policies", allowedRoles: ["Admin", "HRD"] },
   { prefix: "/admin", allowedRoles: ["Admin"] },
   { prefix: "/approvals/leader", allowedRoles: ["Ketua Divisi"] },
   { prefix: "/approvals/hrd", allowedRoles: ["HRD"] },
   { prefix: "/leaves", allowedRoles: ["Karyawan", "Ketua Divisi"] },
+  {
+    prefix: "/calendar",
+    allowedRoles: ["Admin", "Karyawan", "Ketua Divisi", "HRD"],
+  },
   {
     prefix: "/dashboard",
     allowedRoles: ["Admin", "Karyawan", "Ketua Divisi", "HRD"],

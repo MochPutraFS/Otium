@@ -93,6 +93,49 @@ function buildWeeklyScheduleStrip(weekStartIso, serverTodayIso, weeklyLeavesRaw)
 }
 
 /**
+ * Fase 2 (8.5) — Daftar karyawan aktif (eligible >= 1 tahun) yang masih memiliki sisa kuota
+ * cuti tahunan besar (>= threshold, default 6.0 hari) untuk panel Expiring Quota Alert.
+ * @param {number} [threshold=6.0]
+ */
+async function getExpiringQuotaEmployees(threshold = 6.0) {
+  const sql = `
+    SELECT
+      u.id,
+      u.full_name,
+      u.email,
+      u.role,
+      COALESCE(d.name, 'Belum Ditugaskan') AS division_name,
+      u.initial_leave_quota,
+      u.remaining_leave_quota,
+      (
+        SELECT TO_CHAR(MAX(n.created_at), 'YYYY-MM-DD HH24:MI')
+        FROM notifications n
+        WHERE n.user_id = u.id
+          AND n.title ILIKE '%Kuota Cuti%'
+      ) AS last_reminded_at
+    FROM users u
+    LEFT JOIN divisions d ON u.division_id = d.id
+    WHERE u.is_active = TRUE
+      AND u.role IN ('Karyawan', 'Ketua Divisi')
+      AND CURRENT_DATE >= (u.join_date + INTERVAL '1 year')
+      AND u.remaining_leave_quota >= $1
+    ORDER BY u.remaining_leave_quota DESC, u.full_name ASC;
+  `;
+
+  const res = await query(sql, [threshold]);
+  return res.rows.map((emp) => ({
+    id: emp.id,
+    fullName: emp.full_name,
+    email: emp.email,
+    role: emp.role,
+    divisionName: emp.division_name,
+    initialQuota: Number(emp.initial_leave_quota || 12),
+    remainingQuota: Number(emp.remaining_leave_quota || 0),
+    lastRemindedAt: emp.last_reminded_at || null,
+  }));
+}
+
+/**
  * Mengambil seluruh data live PostgreSQL untuk Dashboard Admin (PRD 6.2.1).
  */
 export async function getAdminDashboardData() {
@@ -129,9 +172,10 @@ export async function getAdminDashboardData() {
     ORDER BY u.join_date DESC, u.full_name ASC;
   `;
 
-  const [statsRes, ineligibleRes] = await Promise.all([
+  const [statsRes, ineligibleRes, expiringQuotaEmployees] = await Promise.all([
     query(statsSql),
     query(ineligibleSql),
+    getExpiringQuotaEmployees(6.0),
   ]);
 
   const row = statsRes.rows[0] || {};
@@ -159,6 +203,7 @@ export async function getAdminDashboardData() {
       tenureProgressPercent: Number(emp.tenure_progress_percent || 0),
       status: "Belum Eligible",
     })),
+    expiringQuotaEmployees,
   };
 }
 
@@ -567,6 +612,7 @@ export async function getHrdDashboardData() {
     SELECT
       d.id,
       d.name,
+      d.max_concurrent_leave_pct,
       COALESCE(leader.full_name, 'Belum Ditunjuk') AS leader_name,
       COUNT(DISTINCT m.id) FILTER (WHERE m.is_active = TRUE)::int AS active_members,
       COUNT(DISTINCT lr_today.user_id)::int AS currently_on_leave,
@@ -581,15 +627,17 @@ export async function getHrdDashboardData() {
     LEFT JOIN leave_requests lr_month
       ON lr_month.user_id = m.id
      AND DATE_TRUNC('month', lr_month.submission_date) = DATE_TRUNC('month', CURRENT_DATE)
-    GROUP BY d.id, d.name, leader.full_name
+    GROUP BY d.id, d.name, d.max_concurrent_leave_pct, leader.full_name
     ORDER BY d.name ASC;
   `;
 
-  const [statsRes, leavesRes, divisionsRes] = await Promise.all([
-    query(statsSql),
-    query(monthlyLeavesSql),
-    query(divisionsSummarySql),
-  ]);
+  const [statsRes, leavesRes, divisionsRes, expiringQuotaEmployees] =
+    await Promise.all([
+      query(statsSql),
+      query(monthlyLeavesSql),
+      query(divisionsSummarySql),
+      getExpiringQuotaEmployees(6.0),
+    ]);
 
   const row = statsRes.rows[0] || {};
   const serverTodayIso = row.server_today_iso || "";
@@ -622,11 +670,13 @@ export async function getHrdDashboardData() {
     divisionsSummary: divisionsRes.rows.map((div) => ({
       id: div.id,
       name: div.name,
+      maxConcurrentLeavePct: Number(div.max_concurrent_leave_pct || 30),
       leaderName: div.leader_name,
       activeMembers: Number(div.active_members || 0),
       currentlyOnLeave: Number(div.currently_on_leave || 0),
       monthlyLeaveCount: Number(div.monthly_leave_count || 0),
     })),
+    expiringQuotaEmployees,
   };
 }
 

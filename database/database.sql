@@ -12,6 +12,7 @@
 -- ============================================================================
 
 -- Bersihkan tabel jika sudah ada (urutan terbalik dari dependensi Foreign Key)
+DROP TABLE IF EXISTS blackout_periods CASCADE;
 DROP TABLE IF EXISTS holidays CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
 DROP TABLE IF EXISTS leave_approvals CASCADE;
@@ -27,6 +28,8 @@ CREATE TABLE divisions (
     name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
     leader_id INTEGER UNIQUE, -- Constraint UNIQUE: 1 Ketua Divisi maks memimpin 1 Divisi
+    max_concurrent_leave_pct INTEGER NOT NULL DEFAULT 30
+        CHECK (max_concurrent_leave_pct BETWEEN 1 AND 100),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -180,6 +183,24 @@ CREATE TABLE holidays (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 8. TABEL BLACKOUT_PERIODS (Periode Larangan Cuti Perusahaan / Divisi - Fase 2)
+CREATE TABLE blackout_periods (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    reason TEXT NOT NULL,
+    division_id INTEGER
+        REFERENCES divisions(id) ON DELETE CASCADE ON UPDATE CASCADE, -- NULL = seluruh perusahaan
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_by INTEGER
+        REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT chk_blackout_dates CHECK (end_date >= start_date)
+);
+
 -- Indeks Performa untuk Query Filter, Anti-Overlap, dan Antrean Approval
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_users_division_id ON users(division_id);
@@ -189,6 +210,7 @@ CREATE INDEX idx_leave_requests_status ON leave_requests(status);
 CREATE INDEX idx_leave_approvals_request_id ON leave_approvals(leave_request_id);
 CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read);
 CREATE INDEX idx_holidays_date_active ON holidays(holiday_date, is_active);
+CREATE INDEX idx_blackout_dates_active ON blackout_periods(start_date, end_date, is_active);
 
 -- ============================================================================
 -- BAGIAN 2: SEED DATA AWAL (DML)
@@ -342,6 +364,86 @@ VALUES
     FALSE,
     'Cuti khusus pernikahan karyawan maksimal 3 hari kerja tanpa memotong kuota tahunan, diajukan minimal H-7.',
     TRUE
+);
+
+-- 5. Hari Libur Nasional & Cuti Bersama 2026 (Fase 2 - 8.3)
+INSERT INTO holidays (holiday_date, name, holiday_type, is_active, created_by)
+VALUES
+(
+    '2026-01-01',
+    'Tahun Baru 2026 Masehi',
+    'National Holiday',
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
+),
+(
+    '2026-03-19',
+    'Hari Suci Nyepi (Tahun Baru Saka 1948)',
+    'National Holiday',
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
+),
+(
+    '2026-03-20',
+    'Hari Raya Idul Fitri 1447 H',
+    'National Holiday',
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
+),
+(
+    '2026-03-23',
+    'Cuti Bersama Idul Fitri 1447 H',
+    'Collective Leave',
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
+),
+(
+    '2026-05-01',
+    'Hari Buruh Internasional',
+    'National Holiday',
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
+),
+(
+    '2026-06-01',
+    'Hari Lahir Pancasila',
+    'National Holiday',
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
+),
+(
+    '2026-08-17',
+    'Hari Kemerdekaan Republik Indonesia',
+    'National Holiday',
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
+),
+(
+    '2026-12-24',
+    'Cuti Bersama Hari Raya Natal',
+    'Collective Leave',
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
+),
+(
+    '2026-12-25',
+    'Hari Raya Natal',
+    'National Holiday',
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
+);
+
+-- 6. Periode Blackout Awal (Fase 2 - 8.6)
+INSERT INTO blackout_periods (name, start_date, end_date, reason, division_id, is_active, created_by)
+VALUES
+(
+    'Tutup Buku Akhir Tahun 2026',
+    '2026-12-28',
+    '2026-12-31',
+    'Periode audit operasional dan tutup buku tahunan perusahaan; seluruh tim diwajibkan siaga.',
+    NULL,
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
 );
 
 COMMIT;

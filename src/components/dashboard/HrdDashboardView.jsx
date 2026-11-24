@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
+import ExpiringQuotaPanel from "@/components/dashboard/ExpiringQuotaPanel";
 
 const LEAVES_PAGE_SIZE = 5;
 const HRD_TABS = ["leaves", "divisions"];
@@ -47,6 +48,7 @@ export default function HrdDashboardView({ initialData, data }) {
     stats,
     monthlyApprovedLeaves = [],
     divisionsSummary = [],
+    expiringQuotaEmployees = [],
   } = dashboardData;
 
   const divisionOptions = useMemo(() => {
@@ -65,11 +67,12 @@ export default function HrdDashboardView({ initialData, data }) {
     );
   }, [monthlyApprovedLeaves, activeDivision]);
 
-  // Hitung divisi dengan beban cuti harian > 30% murni dari props divisionsSummary
+  // Hitung divisi dengan beban cuti harian > batas kapasitas divisi (default 30%)
   const highLeaveDivisions = useMemo(() => {
     return divisionsSummary.filter((div) => {
       if (!div.activeMembers) return false;
-      return (div.currentlyOnLeave / div.activeMembers) * 100 > 30;
+      const limit = Number(div.maxConcurrentLeavePct || 30);
+      return (div.currentlyOnLeave / div.activeMembers) * 100 > limit;
     });
   }, [divisionsSummary]);
 
@@ -535,7 +538,8 @@ export default function HrdDashboardView({ initialData, data }) {
                             (div.currentlyOnLeave / div.activeMembers) * 100
                           )
                         : 0;
-                    const isOverCapacity = leaveRatioPct > 30;
+                    const isOverCapacity =
+                      leaveRatioPct > Number(div.maxConcurrentLeavePct || 30);
                     const barTone = isOverCapacity
                       ? "otium-progress--danger"
                       : availPercent >= 80
@@ -612,6 +616,12 @@ export default function HrdDashboardView({ initialData, data }) {
           )}
         </div>
       </section>
+
+      {/* 4. PERINGATAN KUOTA HANGUS (FASE 2 - 8.5) */}
+      <ExpiringQuotaPanel
+        employees={expiringQuotaEmployees}
+        onSent={handleRefresh}
+      />
     </div>
   );
 }

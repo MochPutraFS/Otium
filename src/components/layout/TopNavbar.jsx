@@ -12,10 +12,12 @@ import {
 } from "lucide-react";
 import NotificationDropdown from "@/components/layout/NotificationDropdown";
 import StatusBadge from "@/components/ui/StatusBadge";
+import UserAvatar from "@/components/ui/UserAvatar";
 import { logoutAction } from "@/actions/auth-actions";
 
 const PAGE_TITLE_MAP = {
   "/dashboard": { title: "Dashboard", section: "Ringkasan" },
+  "/calendar": { title: "Kalender Cuti Perusahaan", section: "Transparansi Tim" },
   "/profile": { title: "Profil & Saldo Kuota", section: "Akun Saya" },
   "/leaves": { title: "Riwayat Cuti Saya", section: "Operasional Cuti" },
   "/leaves/new": { title: "Pengajuan Cuti", section: "Operasional Cuti" },
@@ -36,6 +38,14 @@ const PAGE_TITLE_MAP = {
   "/admin/leave-types": {
     title: "Jenis Cuti Dinamis",
     section: "CMS Master Data",
+  },
+  "/admin/holidays": {
+    title: "Hari Libur & Cuti Bersama",
+    section: "Kebijakan & Kalender",
+  },
+  "/admin/policies": {
+    title: "Blackout & Kapasitas Tim",
+    section: "Kebijakan & Kalender",
   },
 };
 
@@ -133,50 +143,50 @@ export default function TopNavbar({
   const currentTheme = THEME_MODES[themeIndex];
 
   return (
-    <header className="sticky top-0 z-20 flex h-[60px] shrink-0 items-center justify-between gap-3 border-b border-[var(--rule-strong)] bg-[color-mix(in_oklab,var(--paper)_94%,transparent)] px-4 backdrop-blur-md sm:px-6">
+    <header className="sticky top-0 z-20 flex h-[60px] shrink-0 items-center justify-between gap-2.5 border-b border-[var(--rule-strong)] bg-[color-mix(in_oklab,var(--paper)_94%,transparent)] px-4 backdrop-blur-md sm:px-6">
       {/* Bagian kiri: tombol drawer mobile, breadcrumb role, & judul halaman serif */}
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 flex-1 items-center gap-2.5">
         <button
           type="button"
           onClick={onOpenMobileMenu}
           aria-label="Buka menu navigasi"
           aria-controls="mobile-navigation-drawer"
           aria-expanded={isMobileMenuOpen}
-          className="btn btn-icon lg:hidden"
+          className="btn btn-icon shrink-0 lg:hidden"
         >
           <Menu className="h-4 w-4" aria-hidden="true" />
         </button>
 
         <div className="flex min-w-0 items-baseline gap-2.5">
-          <span className="hidden shrink-0 text-[12.5px] text-[var(--ink-muted)] sm:inline">
+          <span className="hidden shrink-0 text-[12.5px] text-[var(--ink-muted)] xl:inline">
             {user.role}
           </span>
           <span
-            className="hidden shrink-0 text-[var(--rule-strong)] sm:inline"
+            className="hidden shrink-0 text-[var(--rule-strong)] xl:inline"
             aria-hidden="true"
           >
             /
           </span>
-          <h1 className="m-0 truncate font-serif text-[22px] font-semibold leading-none tracking-[-0.01em] text-[var(--ink)] sm:text-[26px]">
+          <h1 className="m-0 truncate font-serif text-[20px] font-semibold leading-none tracking-[-0.01em] text-[var(--ink)] sm:text-[22px] xl:text-[25px]">
             {pageMeta.title}
           </h1>
         </div>
       </div>
 
       {/* Bagian kanan: tanggal/libur realtime, switcher tema, notifikasi, & panel akun */}
-      <div className="flex items-center gap-2 sm:gap-2.5">
+      <div className="flex shrink-0 items-center gap-2">
         {todayLabel && (
           <div
-            className="hidden items-center gap-2.5 rounded-[2px] border border-[var(--rule)] bg-[var(--alabaster)] px-2.5 py-1 text-xs md:flex"
+            className="hidden shrink-0 items-center gap-2.5 whitespace-nowrap rounded-[2px] border border-[var(--rule)] bg-[var(--alabaster)] px-2.5 py-1 text-xs md:flex"
             title={
               upcomingHoliday
                 ? `Hari libur terdekat: ${upcomingHoliday.name} (${upcomingHoliday.dateLabel})`
                 : `Hari ini: ${todayLabel}`
             }
           >
-            <span className="mono inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--ink-soft)]">
+            <span className="mono inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium text-[var(--ink-soft)]">
               <CalendarDays
-                className="h-3.5 w-3.5 text-[var(--spruce)]"
+                className="h-3.5 w-3.5 shrink-0 text-[var(--spruce)]"
                 aria-hidden="true"
               />
               {todayLabel}
@@ -188,9 +198,9 @@ export default function TopNavbar({
                   className="hidden h-3.5 w-px bg-[var(--rule-strong)] xl:inline-block"
                   aria-hidden="true"
                 />
-                <span className="hidden items-center gap-1.5 text-[11.5px] text-[var(--ink-soft)] xl:inline-flex">
+                <span className="hidden items-center gap-1.5 whitespace-nowrap text-[11.5px] text-[var(--ink-soft)] xl:inline-flex">
                   <span
-                    className="h-1.5 w-1.5 bg-[var(--ochre)]"
+                    className="h-1.5 w-1.5 shrink-0 bg-[var(--ochre)]"
                     aria-hidden="true"
                   />
                   <span>
@@ -214,10 +224,10 @@ export default function TopNavbar({
           onClick={handleCycleTheme}
           aria-label={`Ganti tema tampilan (saat ini: ${currentTheme.label})`}
           title={`Tema: ${currentTheme.label} — klik untuk mengganti (Sistem / Terang / Gelap)`}
-          className="btn btn-sm"
+          className="btn btn-sm shrink-0"
         >
           <span aria-hidden="true">{currentTheme.icon}</span>
-          <span className="hidden sm:inline">Tema: {currentTheme.label}</span>
+          <span className="hidden xl:inline">Tema: {currentTheme.label}</span>
         </button>
 
         {/* Dropdown Notifikasi Realtime */}
@@ -234,30 +244,27 @@ export default function TopNavbar({
             aria-expanded={isUserMenuOpen}
             aria-controls="user-account-panel"
             aria-label={`Menu akun ${user.fullName}`}
-            className="flex h-9 cursor-pointer items-center gap-2.5 rounded-[2px] border border-[var(--rule-strong)] bg-[var(--paper-pure)] pl-1 pr-2.5 text-left transition-colors duration-150 hover:border-[var(--ink)] hover:bg-[var(--alabaster)]"
+            className="flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-[2px] border border-[var(--rule-strong)] bg-[var(--paper-pure)] pl-1 pr-2 text-left transition-colors duration-150 hover:border-[var(--ink)] hover:bg-[var(--alabaster)] sm:gap-2.5 sm:pr-2.5"
           >
-            {user.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={user.avatarUrl}
-                alt=""
-                className="h-7 w-7 shrink-0 rounded-[2px] border border-[var(--rule)] object-cover"
-              />
-            ) : (
-              <span className="avatar-sq">{user.initials}</span>
-            )}
+            <UserAvatar
+              src={user.avatarUrl}
+              alt=""
+              initials={user.initials}
+              imgClassName="h-7 w-7 shrink-0 rounded-[2px] border border-[var(--rule)] object-cover"
+              fallbackClassName="avatar-sq"
+            />
 
             <div className="hidden min-w-0 sm:block">
-              <p className="max-w-[136px] truncate text-[12.5px] font-semibold leading-tight text-[var(--ink)]">
+              <p className="max-w-[104px] truncate text-[12.5px] font-semibold leading-tight text-[var(--ink)] xl:max-w-[136px]">
                 {user.fullName}
               </p>
-              <p className="mono max-w-[136px] truncate text-[10px] leading-tight text-[var(--ink-muted)]">
+              <p className="mono max-w-[104px] truncate text-[10px] leading-tight text-[var(--ink-muted)] xl:max-w-[136px]">
                 {user.role}
                 {user.divisionName ? ` • ${user.divisionName}` : ""}
               </p>
             </div>
             <ChevronDown
-              className={`hidden h-3.5 w-3.5 text-[var(--ink-muted)] transition-transform duration-150 sm:block ${
+              className={`hidden h-3.5 w-3.5 shrink-0 text-[var(--ink-muted)] transition-transform duration-150 sm:block ${
                 isUserMenuOpen ? "rotate-180" : ""
               }`}
               aria-hidden="true"

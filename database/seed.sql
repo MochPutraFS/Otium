@@ -152,4 +152,84 @@ VALUES
     TRUE
 );
 
+-- 5. Hari Libur Nasional & Cuti Bersama 2026 (Fase 2 - 8.3)
+INSERT INTO holidays (holiday_date, name, holiday_type, is_active, created_by)
+VALUES
+(
+    '2026-01-01',
+    'Tahun Baru 2026 Masehi',
+    'National Holiday',
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
+),
+(
+    '2026-03-19',
+    'Hari Suci Nyepi (Tahun Baru Saka 1948)',
+    'National Holiday',
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
+),
+(
+    '2026-03-20',
+    'Hari Raya Idul Fitri 1447 H',
+    'National Holiday',
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
+),
+(
+    '2026-03-23',
+    'Cuti Bersama Idul Fitri 1447 H',
+    'Collective Leave',
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
+),
+(
+    '2026-05-01',
+    'Hari Buruh Internasional',
+    'National Holiday',
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
+),
+(
+    '2026-06-01',
+    'Hari Lahir Pancasila',
+    'National Holiday',
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
+),
+(
+    '2026-08-17',
+    'Hari Kemerdekaan Republik Indonesia',
+    'National Holiday',
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
+),
+(
+    '2026-12-24',
+    'Cuti Bersama Hari Raya Natal',
+    'Collective Leave',
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
+),
+(
+    '2026-12-25',
+    'Hari Raya Natal',
+    'National Holiday',
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
+);
+
+-- 6. Periode Blackout Awal (Fase 2 - 8.6)
+INSERT INTO blackout_periods (name, start_date, end_date, reason, division_id, is_active, created_by)
+VALUES
+(
+    'Tutup Buku Akhir Tahun 2026',
+    '2026-12-28',
+    '2026-12-31',
+    'Periode audit operasional dan tutup buku tahunan perusahaan; seluruh tim diwajibkan siaga.',
+    NULL,
+    TRUE,
+    (SELECT id FROM users WHERE username = 'admin')
+);
+
 COMMIT;

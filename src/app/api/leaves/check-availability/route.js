@@ -11,6 +11,10 @@ import {
   getHolidaysInRange,
   validateSubmissionLeadTime,
 } from "@/lib/date-utils";
+import {
+  evaluateDivisionCapacityImpact,
+  findOverlappingBlackoutPeriod,
+} from "@/lib/policy-data";
 import { validateAvailabilityPayload } from "@/lib/validators";
 
 /**
@@ -192,6 +196,42 @@ export async function POST(request) {
       ? Number((currentQuota - totalWorkingDays).toFixed(1))
       : currentQuota;
 
+    let usedNonAnnualDays = 0;
+    let remainingNonAnnualQuota = null;
+
+    if (!deductsAnnualQuota) {
+      const usedNonAnnualRes = await query(
+        `
+          SELECT COALESCE(SUM(total_days), 0) AS used_days
+          FROM leave_requests
+          WHERE user_id = $1
+            AND leave_type_id = $2
+            AND status IN ('Pending', 'Approved by Leader', 'Approved')
+            AND EXTRACT(YEAR FROM start_date) = EXTRACT(YEAR FROM $3::date);
+        `,
+        [auth.user.id, leaveType.id, startDate]
+      );
+      usedNonAnnualDays = Number(usedNonAnnualRes.rows[0]?.used_days || 0);
+      remainingNonAnnualQuota = Number(
+        Math.max(0, maxQuota - usedNonAnnualDays).toFixed(1)
+      );
+    }
+
+    const [blackoutConflict, capacityWarning] = await Promise.all([
+      findOverlappingBlackoutPeriod(
+        null,
+        userRow.division_id,
+        startDate,
+        endDate
+      ),
+      evaluateDivisionCapacityImpact({
+        divisionId: userRow.division_id,
+        startDate,
+        endDate,
+        applicantUserId: auth.user.id,
+      }),
+    ]);
+
     const errors = [];
     let inlineDateError = "";
 
@@ -217,16 +257,28 @@ export async function POST(request) {
       errors.push(overlapMsg);
     }
 
+    if (blackoutConflict) {
+      inlineDateError = blackoutConflict.message;
+      errors.push(blackoutConflict.message);
+    }
+
     if (deductsAnnualQuota) {
       if (totalWorkingDays > currentQuota) {
         errors.push(
           `Sisa kuota cuti tahunan Anda (${currentQuota.toFixed(1)} hari) tidak mencukupi untuk pengajuan ${totalWorkingDays.toFixed(1)} hari.`
         );
       }
-    } else if (totalWorkingDays > maxQuota) {
-      errors.push(
-        `Durasi ${totalWorkingDays.toFixed(1)} hari melebihi batas maksimal ${leaveType.name} (${maxQuota.toFixed(1)} hari).`
+    } else {
+      const projectedNonAnnualDays = Number(
+        (usedNonAnnualDays + totalWorkingDays).toFixed(1)
       );
+      if (projectedNonAnnualDays > maxQuota) {
+        const msg =
+          usedNonAnnualDays > 0
+            ? `Akumulasi pemakaian ${leaveType.name} tahun ini (${usedNonAnnualDays.toFixed(1)} hari terpakai + ${totalWorkingDays.toFixed(1)} hari diajukan = ${projectedNonAnnualDays.toFixed(1)} hari) melebihi batas maksimal ${maxQuota.toFixed(1)} hari/tahun. Sisa tersedia: ${remainingNonAnnualQuota.toFixed(1)} hari.`
+            : `Durasi ${totalWorkingDays.toFixed(1)} hari melebihi batas maksimal ${leaveType.name} (${maxQuota.toFixed(1)} hari/tahun).`;
+        errors.push(msg);
+      }
     }
 
     return NextResponse.json(
@@ -245,7 +297,11 @@ export async function POST(request) {
         initialQuota,
         maxQuota,
         deductsAnnualQuota,
+        usedNonAnnualDays,
+        remainingNonAnnualQuota,
         estimatedRemainingQuota,
+        blackoutConflict,
+        capacityWarning,
         inlineDateError,
         errors,
       },

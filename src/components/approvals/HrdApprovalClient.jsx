@@ -4,6 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
   Eye,
   FileDown,
@@ -152,6 +153,11 @@ export default function HrdApprovalClient({
   const hrdQueue = useMemo(
     () => allRequests.filter(isPendingFinalHrd),
     [allRequests]
+  );
+
+  const capacityExceededQueue = useMemo(
+    () => hrdQueue.filter((req) => req.capacityWarning?.isExceeded),
+    [hrdQueue]
   );
 
   const filteredQueue = useMemo(() => {
@@ -435,6 +441,42 @@ export default function HrdApprovalClient({
           </div>
         </div>
       </div>
+
+      {/* Banner Peringatan Limit Kapasitas Tim (Fase 2 - 8.6) */}
+      {capacityExceededQueue.length > 0 && (
+        <div
+          role="alert"
+          className="notice notice-warn !border-[var(--ochre)] !py-3.5"
+        >
+          <AlertTriangle
+            className="mt-0.5 h-5 w-5 shrink-0 text-[var(--ochre)]"
+            aria-hidden="true"
+          />
+          <div className="min-w-0 flex-1 space-y-1">
+            <p className="m-0 text-sm font-bold text-[var(--ink)]">
+              Peringatan Limit Kapasitas Tim: {capacityExceededQueue.length}{" "}
+              Pengajuan Melebihi Batas Cuti Bersamaan Divisi
+            </p>
+            <p className="m-0 text-xs text-[var(--ink-soft)]">
+              Menyetujui pengajuan berikut akan membuat rasio karyawan cuti
+              melampaui batas kapasitas yang ditetapkan perusahaan:
+            </p>
+            <ul className="mt-1 space-y-0.5 pl-4 text-xs text-[var(--ink)]">
+              {capacityExceededQueue.map((req) => (
+                <li key={req.id} className="list-disc">
+                  <strong>{req.applicantName}</strong> ({req.divisionName}) —{" "}
+                  <span className="mono font-semibold text-[var(--terracotta)]">
+                    {req.capacityWarning.concurrentCount}/
+                    {req.capacityWarning.activeMembers} orang (
+                    {req.capacityWarning.projectedPct}% &gt; batas{" "}
+                    {req.capacityWarning.maxAllowedPct}%)
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* Main Workspace Panel */}
       <section className="panel overflow-hidden">

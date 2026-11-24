@@ -277,6 +277,8 @@ export function validateAdminUserPayload(payload = {}, { mode = "create" } = {})
   const password = typeof payload.password === "string" ? payload.password : "";
   const role = sanitizeText(payload.role);
   const rawDivisionId = payload.divisionId;
+  const phone = sanitizeText(payload.phone);
+  const address = sanitizeText(payload.address);
   const joinDate = sanitizeText(payload.joinDate);
   const isActive =
     typeof payload.isActive === "boolean" ? payload.isActive : true;
@@ -326,6 +328,15 @@ export function validateAdminUserPayload(payload = {}, { mode = "create" } = {})
 
   if (!VALID_USER_ROLES.includes(role)) {
     fieldErrors.role = "Role pengguna tidak valid.";
+  }
+
+  if (phone && !/^[0-9+\-\s()]{8,20}$/.test(phone)) {
+    fieldErrors.phone =
+      "Format nomor telepon tidak valid (8–20 karakter, gunakan angka, +, -, spasi, atau kurung).";
+  }
+
+  if (address.length > 500) {
+    fieldErrors.address = "Alamat domisili maksimal 500 karakter.";
   }
 
   let divisionId = null;
@@ -407,6 +418,8 @@ export function validateAdminUserPayload(payload = {}, { mode = "create" } = {})
       password: password || null,
       role,
       divisionId,
+      phone: phone || null,
+      address: address || null,
       initialLeaveQuota: Number(parsedInitialQuota.toFixed(1)),
       remainingLeaveQuota,
       joinDate,
@@ -1320,4 +1333,218 @@ export function validateHrdApprovalQueryParams(params) {
       search,
     },
   };
+}
+
+export const VALID_HOLIDAY_TYPES = ["National Holiday", "Collective Leave"];
+
+/**
+ * Validasi payload CRUD Hari Libur Nasional & Cuti Bersama (Fase 2 - 8.3).
+ * @param {object} payload
+ * @param {{ mode?: "create" | "edit" }} [options]
+ */
+export function validateHolidayPayload(payload = {}, { mode = "create" } = {}) {
+  const fieldErrors = {};
+
+  if (mode === "edit" && !isPositiveInt(payload?.id)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "ID hari libur tidak valid.",
+    };
+  }
+
+  const holidayDate = sanitizeText(payload?.holidayDate);
+  if (!isValidCalendarIsoDate(holidayDate)) {
+    fieldErrors.holidayDate =
+      "Tanggal hari libur wajib diisi dengan format valid (YYYY-MM-DD).";
+  }
+
+  const name = sanitizeText(payload?.name);
+  if (!name || name.length < 3) {
+    fieldErrors.name = "Nama hari libur wajib diisi (minimal 3 karakter).";
+  } else if (name.length > 150) {
+    fieldErrors.name = "Nama hari libur maksimal 150 karakter.";
+  }
+
+  const holidayType = sanitizeText(payload?.holidayType);
+  if (!VALID_HOLIDAY_TYPES.includes(holidayType)) {
+    fieldErrors.holidayType =
+      "Kategori harus 'National Holiday' atau 'Collective Leave'.";
+  }
+
+  const isActive =
+    payload?.isActive === undefined ? true : Boolean(payload.isActive);
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Periksa kembali data hari libur yang dimasukkan.",
+      fieldErrors,
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      id: mode === "edit" ? Number(payload.id) : null,
+      holidayDate,
+      name,
+      holidayType,
+      isActive,
+    },
+  };
+}
+
+/**
+ * Validasi payload CRUD Blackout Period (Fase 2 - 8.6).
+ * @param {object} payload
+ * @param {{ mode?: "create" | "edit" }} [options]
+ */
+export function validateBlackoutPeriodPayload(
+  payload = {},
+  { mode = "create" } = {}
+) {
+  const fieldErrors = {};
+
+  if (mode === "edit" && !isPositiveInt(payload?.id)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "ID periode blackout tidak valid.",
+    };
+  }
+
+  const name = sanitizeText(payload?.name);
+  if (!name || name.length < 3) {
+    fieldErrors.name = "Nama periode blackout wajib diisi (minimal 3 karakter).";
+  } else if (name.length > 150) {
+    fieldErrors.name = "Nama periode blackout maksimal 150 karakter.";
+  }
+
+  const startDate = sanitizeText(payload?.startDate);
+  const endDate = sanitizeText(payload?.endDate);
+  if (!isValidCalendarIsoDate(startDate)) {
+    fieldErrors.startDate = "Tanggal mulai tidak valid (YYYY-MM-DD).";
+  }
+  if (!isValidCalendarIsoDate(endDate)) {
+    fieldErrors.endDate = "Tanggal selesai tidak valid (YYYY-MM-DD).";
+  } else if (isValidCalendarIsoDate(startDate) && endDate < startDate) {
+    fieldErrors.endDate =
+      "Tanggal selesai tidak boleh lebih awal dari tanggal mulai.";
+  }
+
+  const reason = sanitizeText(payload?.reason);
+  if (!reason || reason.length < 5) {
+    fieldErrors.reason =
+      "Keterangan/alasan larangan cuti wajib diisi (minimal 5 karakter).";
+  } else if (reason.length > 500) {
+    fieldErrors.reason = "Keterangan maksimal 500 karakter.";
+  }
+
+  let divisionId = null;
+  const rawDivisionId = payload?.divisionId;
+  if (
+    rawDivisionId !== null &&
+    rawDivisionId !== undefined &&
+    String(rawDivisionId).trim() !== ""
+  ) {
+    if (!isPositiveInt(rawDivisionId)) {
+      fieldErrors.divisionId = "Pilihan divisi tidak valid.";
+    } else {
+      divisionId = Number(rawDivisionId);
+    }
+  }
+
+  const isActive =
+    payload?.isActive === undefined ? true : Boolean(payload.isActive);
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Periksa kembali data periode blackout yang dimasukkan.",
+      fieldErrors,
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      id: mode === "edit" ? Number(payload.id) : null,
+      name,
+      startDate,
+      endDate,
+      reason,
+      divisionId,
+      isActive,
+    },
+  };
+}
+
+/**
+ * Validasi batas persentase kapasitas tim per divisi (1–100%).
+ * @param {number | string} divisionId
+ * @param {number | string} maxConcurrentLeavePct
+ */
+export function validateDivisionCapacityPayload(
+  divisionId,
+  maxConcurrentLeavePct
+) {
+  if (!isPositiveInt(divisionId)) {
+    return { ok: false, status: 400, error: "ID divisi tidak valid." };
+  }
+  const pct = Number(maxConcurrentLeavePct);
+  if (!Number.isInteger(pct) || pct < 1 || pct > 100) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Batas kapasitas tim harus bilangan bulat antara 1% hingga 100%.",
+    };
+  }
+  return {
+    ok: true,
+    data: {
+      divisionId: Number(divisionId),
+      maxConcurrentLeavePct: pct,
+    },
+  };
+}
+
+/**
+ * Validasi daftar ID karyawan penerima notifikasi pengingat kuota hangus (Fase 2 - 8.5).
+ * @param {Array<number | string>} userIds
+ */
+export function validateQuotaReminderPayload(userIds) {
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Pilih minimal 1 karyawan untuk dikirimi notifikasi pengingat.",
+    };
+  }
+  const uniqueIds = [];
+  const seen = new Set();
+  for (const rawId of userIds) {
+    if (!isPositiveInt(rawId)) {
+      return {
+        ok: false,
+        status: 400,
+        error: "Terdapat ID karyawan yang tidak valid.",
+      };
+    }
+    const parsed = Number(rawId);
+    if (!seen.has(parsed)) {
+      seen.add(parsed);
+      uniqueIds.push(parsed);
+    }
+  }
+  if (uniqueIds.length > 200) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Maksimal 200 penerima pengingat dalam satu pengiriman massal.",
+    };
+  }
+  return { ok: true, data: { userIds: uniqueIds } };
 }

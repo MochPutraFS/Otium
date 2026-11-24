@@ -37,6 +37,8 @@ export default async function NewLeavePage() {
       colleagues={workspaceData.colleagues}
       holidays={workspaceData.holidays}
       activeLeaveRanges={workspaceData.activeLeaveRanges}
+      colleagueLeaves={workspaceData.colleagueLeaves}
+      blackoutPeriods={workspaceData.blackoutPeriods}
     />
   );
 }

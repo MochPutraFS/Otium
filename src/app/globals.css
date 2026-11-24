@@ -363,6 +363,10 @@
   background: var(--paper-pure);
   border: 1px solid var(--rule);
 }
+fieldset.panel {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
 .panel-head {
   padding: 14px 20px;
   border-bottom: 1px solid var(--rule);
@@ -641,10 +645,26 @@ button.cal-day:hover:not(:disabled) {
   color: var(--slate-blue);
   font-weight: 600;
 }
+.cal-day.collective {
+  background: var(--ochre-tint);
+  color: var(--ochre);
+  font-weight: 600;
+}
+.cal-day.blackout {
+  background: var(--terracotta-tint);
+  color: var(--terracotta);
+  font-weight: 600;
+}
 .cal-day.selected {
   background: var(--spruce-btn);
   color: var(--spruce-btn-ink);
   font-weight: 700;
+}
+.cal-day.selected .cal-marker {
+  color: var(--spruce-btn-ink);
+}
+.cal-day.selected .cal-colleague-dot {
+  background: var(--spruce-btn-ink);
 }
 .cal-day.is-today {
   box-shadow: inset 0 0 0 2px var(--spruce);
@@ -655,6 +675,14 @@ button.cal-day:hover:not(:disabled) {
 .cal-marker {
   font-size: 8px;
   line-height: 1;
+  margin-top: 1px;
+}
+.cal-colleague-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: var(--spruce);
+  display: inline-block;
   margin-top: 1px;
 }
 

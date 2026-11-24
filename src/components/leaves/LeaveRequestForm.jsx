@@ -51,6 +51,8 @@ export default function LeaveRequestForm({
   colleagues = [],
   holidays = [],
   activeLeaveRanges = [],
+  colleagueLeaves = [],
+  blackoutPeriods = [],
 }) {
   const router = useRouter();
   const isLeaderRole = userProfile.role === "Ketua Divisi";
@@ -210,6 +212,8 @@ export default function LeaveRequestForm({
     holidayHits,
     currentQuota,
     initialQuota,
+    usedNonAnnualDays,
+    remainingNonAnnualQuota,
     validationErrors,
     inlineDateError,
   } = useMemo(() => {
@@ -224,6 +228,9 @@ export default function LeaveRequestForm({
         holidayHits: availabilityState.holidayHits || localHolidayHits,
         currentQuota: availabilityState.currentQuota,
         initialQuota: availabilityState.initialQuota,
+        usedNonAnnualDays: Number(availabilityState.usedNonAnnualDays || 0),
+        remainingNonAnnualQuota:
+          availabilityState.remainingNonAnnualQuota ?? null,
         validationErrors: availabilityState.errors || [],
         inlineDateError: availabilityState.inlineDateError || "",
       };
@@ -293,6 +300,8 @@ export default function LeaveRequestForm({
       holidayHits: localHolidayHits,
       currentQuota: userProfile.remainingLeaveQuota,
       initialQuota: userProfile.initialLeaveQuota,
+      usedNonAnnualDays: 0,
+      remainingNonAnnualQuota: selectedLeaveType?.maxQuota ?? null,
       validationErrors: errors,
       inlineDateError: dateErr,
     };
@@ -728,12 +737,12 @@ export default function LeaveRequestForm({
         </div>
       )}
 
-      {/* Layout 2 Kolom (8/12 Form Kiri + 4/12 Sticky What-If Ruler & Kalender Kanan) */}
-      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
+      {/* Layout 2 Kolom (Form Kiri fleksibel + Sticky What-If Ruler & Kalender Kanan) */}
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_308px] xl:grid-cols-[minmax(0,1fr)_348px]">
         <form
           onSubmit={handleSubmit}
           noValidate
-          className="space-y-5 lg:col-span-8"
+          className="min-w-0 space-y-5"
         >
           {/* Banner Blokir Masa Kerja < 1 Tahun (Garda 4) */}
           {isTenureBlocked && (
@@ -757,23 +766,25 @@ export default function LeaveRequestForm({
           )}
 
           {/* PANEL 1: Jenis & Tanggal Cuti */}
-          <fieldset className="panel">
+          <fieldset className="panel min-w-0">
             <legend className="visually-hidden">
               1. Jenis dan Tanggal Cuti
             </legend>
             <div className="panel-head">
-              <div>
+              <div className="min-w-0">
                 <span className="panel-eyebrow !mb-0">Bagian 01</span>
                 <h3 className="panel-title">Jenis &amp; Rentang Tanggal</h3>
               </div>
               {selectedLeaveType?.ruleSummary && (
-                <span className="tag">{selectedLeaveType.ruleSummary}</span>
+                <span className="tag max-w-full truncate">
+                  {selectedLeaveType.ruleSummary}
+                </span>
               )}
             </div>
 
             <div className="panel-body space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-1.5">
+                <div className="flex min-w-0 flex-col gap-1.5">
                   <label
                     htmlFor="leave-type-select"
                     className="text-xs font-semibold text-[var(--ink-soft)]"
@@ -800,7 +811,7 @@ export default function LeaveRequestForm({
                           ? "leave-type-desc"
                           : undefined
                     }
-                    className="otium-field-input select cursor-pointer"
+                    className="otium-field-input select min-w-0 w-full cursor-pointer"
                   >
                     {leaveTypes.map((lt) => (
                       <option key={lt.id} value={String(lt.id)}>
@@ -827,11 +838,11 @@ export default function LeaveRequestForm({
                   )}
                 </div>
 
-                <div className="flex flex-col gap-1.5">
+                <div className="flex min-w-0 flex-col gap-1.5">
                   <span className="text-xs font-semibold text-[var(--ink-soft)]">
                     Opsi Durasi
                   </span>
-                  <label className="otium-checkbox-label flex min-h-[40px] cursor-pointer select-none items-center gap-2.5 rounded-[2px] border border-[var(--rule-strong)] bg-[var(--alabaster)] px-3 py-2 transition-colors hover:border-[var(--ink)]">
+                  <label className="otium-checkbox-label flex min-h-[40px] min-w-0 cursor-pointer select-none items-center gap-2.5 rounded-[2px] border border-[var(--rule-strong)] bg-[var(--alabaster)] px-3 py-2 transition-colors hover:border-[var(--ink)]">
                     <input
                       type="checkbox"
                       id="is-half-day"
@@ -840,7 +851,7 @@ export default function LeaveRequestForm({
                       onChange={(e) => handleHalfDayToggle(e.target.checked)}
                       className="otium-checkbox h-4 w-4 shrink-0 cursor-pointer"
                     />
-                    <span className="text-[13px] font-medium leading-tight text-[var(--ink)]">
+                    <span className="min-w-0 text-[13px] font-medium leading-tight text-[var(--ink)]">
                       Cuti Setengah Hari (
                       <span className="mono font-semibold">0.5</span> hari)
                     </span>
@@ -849,7 +860,7 @@ export default function LeaveRequestForm({
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-1.5">
+                <div className="flex min-w-0 flex-col gap-1.5">
                   <label
                     htmlFor="start-date"
                     className="text-xs font-semibold text-[var(--ink-soft)]"
@@ -877,11 +888,11 @@ export default function LeaveRequestForm({
                         ? "date-range-error"
                         : undefined
                     }
-                    className="otium-field-input input mono cursor-pointer"
+                    className="otium-field-input input mono min-w-0 w-full cursor-pointer"
                   />
                 </div>
 
-                <div className="flex flex-col gap-1.5">
+                <div className="flex min-w-0 flex-col gap-1.5">
                   <label
                     htmlFor="end-date"
                     className="text-xs font-semibold text-[var(--ink-soft)]"
@@ -909,7 +920,7 @@ export default function LeaveRequestForm({
                         ? "date-range-error"
                         : undefined
                     }
-                    className="otium-field-input input mono cursor-pointer"
+                    className="otium-field-input input mono min-w-0 w-full cursor-pointer"
                   />
                 </div>
               </div>
@@ -970,7 +981,7 @@ export default function LeaveRequestForm({
           </fieldset>
 
           {/* PANEL 2: Serah Terima Tugas (Handover) */}
-          <fieldset className="panel">
+          <fieldset className="panel min-w-0">
             <legend className="visually-hidden">
               2. Serah Terima Tugas (Handover)
             </legend>
@@ -1102,7 +1113,7 @@ export default function LeaveRequestForm({
           </fieldset>
 
           {/* PANEL 3: Kontak Selama Cuti & Lampiran Pendukung */}
-          <fieldset className="panel">
+          <fieldset className="panel min-w-0">
             <legend className="visually-hidden">
               3. Kontak Selama Cuti dan Lampiran Pendukung
             </legend>
@@ -1441,21 +1452,26 @@ export default function LeaveRequestForm({
           </div>
         </form>
 
-        {/* Kolom Kanan Sticky (4/12): What-If Projection Ruler + Kalender Interaktif */}
-        <div className="lg:col-span-4">
+        {/* Kolom Kanan Sticky: What-If Projection Ruler + Kalender Interaktif */}
+        <div className="min-w-0">
           <WhatIfQuotaWidget
             selectedLeaveType={selectedLeaveType}
             totalDays={totalWorkingDays}
             currentQuota={currentQuota}
             initialQuota={initialQuota}
+            usedNonAnnualDays={usedNonAnnualDays}
+            remainingNonAnnualQuota={remainingNonAnnualQuota}
             holidayHits={holidayHits}
             validationErrors={validationErrors}
+            capacityWarning={availabilityState?.capacityWarning || null}
             isCheckingAvailability={isCheckingAvailability}
             startDate={startDate}
             endDate={effectiveEndDate}
             isHalfDay={isHalfDay}
             serverToday={serverToday}
             holidays={holidays}
+            colleagueLeaves={colleagueLeaves}
+            blackoutPeriods={blackoutPeriods}
             onSelectDateRange={handleCalendarRangeSelect}
           />
         </div>

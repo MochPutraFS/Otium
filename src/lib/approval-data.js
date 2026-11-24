@@ -1,5 +1,6 @@
 import { query } from "@/lib/db";
 import { buildUserInitials } from "@/lib/auth";
+import { evaluateDivisionCapacityImpact } from "@/lib/policy-data";
 
 /**
  * Format timestamp PostgreSQL menjadi label waktu Indonesia ringkas (misal: "18 Nov 2026, 14:20").
@@ -516,14 +517,42 @@ export async function getHrdApprovalWorkspaceData(hrdId, filters = {}) {
     total: Number(countRow.total_count || 0),
   };
 
+  const mappedRequests = requestsRes.rows.map((row) => ({
+    ...mapLeaderApprovalRow(row),
+    divisionId: row.division_id ?? null,
+    capacityWarning: null,
+  }));
+
+  // Fase 2 (8.6): Evaluasi dampak kapasitas tim untuk setiap pengajuan pada antrean final HRD
+  const pendingFinalItems = mappedRequests.filter(
+    (req) =>
+      (req.applicantRole === "Karyawan" &&
+        req.status === "Approved by Leader") ||
+      (req.applicantRole === "Ketua Divisi" && req.status === "Pending")
+  );
+
+  if (pendingFinalItems.length > 0) {
+    const warnings = await Promise.all(
+      pendingFinalItems.map((req) =>
+        evaluateDivisionCapacityImpact({
+          divisionId: req.divisionId,
+          startDate: req.startDate,
+          endDate: req.endDate,
+          applicantUserId: req.userId,
+          excludeRequestId: req.id,
+        })
+      )
+    );
+    pendingFinalItems.forEach((req, idx) => {
+      req.capacityWarning = warnings[idx] || null;
+    });
+  }
+
   return {
     hrdProfile,
     divisions,
     leaveTypes,
     counts,
-    requests: requestsRes.rows.map((row) => ({
-      ...mapLeaderApprovalRow(row),
-      divisionId: row.division_id ?? null,
-    })),
+    requests: mappedRequests,
   };
 }

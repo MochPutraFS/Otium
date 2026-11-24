@@ -6,7 +6,9 @@ import { usePathname } from "next/navigation";
 import { logoutAction } from "@/actions/auth-actions";
 import {
   Building2,
+  CalendarOff,
   CalendarPlus,
+  CalendarRange,
   CheckSquare,
   ClipboardCheck,
   FileClock,
@@ -14,6 +16,7 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
+  ShieldAlert,
   SlidersHorizontal,
   UserCircle2,
   UserCog,
@@ -29,6 +32,12 @@ const MENU_GROUPS = [
         label: "Dashboard",
         href: "/dashboard",
         icon: LayoutDashboard,
+        roles: ["Admin", "Karyawan", "Ketua Divisi", "HRD"],
+      },
+      {
+        label: "Kalender Cuti Tim",
+        href: "/calendar",
+        icon: CalendarRange,
         roles: ["Admin", "Karyawan", "Ketua Divisi", "HRD"],
       },
     ],
@@ -59,6 +68,23 @@ const MENU_GROUPS = [
         href: "/admin/leave-types",
         icon: SlidersHorizontal,
         roles: ["Admin"],
+      },
+    ],
+  },
+  {
+    section: "Kebijakan & Kalender",
+    items: [
+      {
+        label: "Hari Libur Nasional",
+        href: "/admin/holidays",
+        icon: CalendarOff,
+        roles: ["Admin", "HRD"],
+      },
+      {
+        label: "Blackout & Kapasitas",
+        href: "/admin/policies",
+        icon: ShieldAlert,
+        roles: ["Admin", "HRD"],
       },
     ],
   },

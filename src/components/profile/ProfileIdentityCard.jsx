@@ -13,6 +13,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import StatusBadge from "@/components/ui/StatusBadge";
+import UserAvatar from "@/components/ui/UserAvatar";
 
 const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
 const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -97,18 +98,13 @@ export default function ProfileIdentityCard({
             title="Klik untuk mengganti foto profil"
             aria-label="Ganti foto profil"
           >
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={avatarUrl}
-                alt={`Foto profil ${profile.fullName}`}
-                className="h-24 w-24 rounded-[6px] border border-[var(--rule-strong)] object-cover"
-              />
-            ) : (
-              <div className="flex h-24 w-24 items-center justify-center rounded-[6px] border border-[var(--rule-strong)] bg-[var(--spruce-btn)] font-serif text-3xl font-semibold tracking-tight text-[var(--spruce-btn-ink)]">
-                {initials}
-              </div>
-            )}
+            <UserAvatar
+              src={avatarUrl}
+              alt={`Foto profil ${profile.fullName}`}
+              initials={initials}
+              imgClassName="h-24 w-24 rounded-[6px] border border-[var(--rule-strong)] object-cover"
+              fallbackClassName="flex h-24 w-24 items-center justify-center rounded-[6px] border border-[var(--rule-strong)] bg-[var(--spruce-btn)] font-serif text-3xl font-semibold tracking-tight text-[var(--spruce-btn-ink)]"
+            />
 
             {/* Overlay kamera saat hover atau loading */}
             <span

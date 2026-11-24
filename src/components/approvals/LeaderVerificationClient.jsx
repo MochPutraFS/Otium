@@ -10,6 +10,7 @@ import {
   Search,
 } from "lucide-react";
 import StatusBadge from "@/components/ui/StatusBadge";
+import UserAvatar from "@/components/ui/UserAvatar";
 import EmptyState from "@/components/ui/EmptyState";
 import ApprovalModal from "@/components/ui/ApprovalModal";
 import VerificationCard from "@/components/approvals/VerificationCard";
@@ -550,18 +551,14 @@ export default function LeaderVerificationClient({
                       </td>
                       <th scope="row" className="font-normal">
                         <div className="flex items-center gap-2.5">
-                          {request.applicantAvatar ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={request.applicantAvatar}
-                              alt={`Foto profil ${request.applicantName}`}
-                              className="h-8 w-8 shrink-0 rounded-[2px] border border-[var(--rule)] object-cover"
-                            />
-                          ) : (
-                            <span className="avatar-sq" aria-hidden="true">
-                              {request.applicantInitials || "KR"}
-                            </span>
-                          )}
+                          <UserAvatar
+                            src={request.applicantAvatar}
+                            alt={`Foto profil ${request.applicantName}`}
+                            initials={request.applicantInitials || "KR"}
+                            imgClassName="h-8 w-8 shrink-0 rounded-[2px] border border-[var(--rule)] object-cover"
+                            fallbackClassName="avatar-sq"
+                            ariaHiddenFallback
+                          />
                           <div className="min-w-0">
                             <p className="truncate font-semibold text-[var(--ink)]">
                               {request.applicantName}

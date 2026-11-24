@@ -93,15 +93,57 @@ export async function getNewLeaveWorkspaceData(userId) {
     ORDER BY start_date ASC;
   `;
 
-  const [leaveTypesRes, colleaguesRes, holidaysRes, activeRangesRes] =
-    await Promise.all([
-      query(leaveTypesSql),
-      userRow.division_id
-        ? query(colleaguesSql, [userRow.division_id, userRow.id])
-        : Promise.resolve({ rows: [] }),
-      query(holidaysSql),
-      query(activeRangesSql, [userRow.id]),
-    ]);
+  const colleagueLeavesSql = `
+    SELECT
+      lr.id,
+      u.full_name AS employee_name,
+      TO_CHAR(lr.start_date, 'YYYY-MM-DD') AS start_date,
+      TO_CHAR(lr.end_date, 'YYYY-MM-DD') AS end_date,
+      lr.is_half_day,
+      lr.status
+    FROM leave_requests lr
+    JOIN users u ON lr.user_id = u.id
+    WHERE u.division_id = $1
+      AND lr.user_id <> $2
+      AND lr.status IN ('Pending', 'Approved by Leader', 'Approved')
+      AND lr.end_date >= (CURRENT_DATE - INTERVAL '31 days')::date
+    ORDER BY lr.start_date ASC, u.full_name ASC;
+  `;
+
+  const blackoutPeriodsSql = `
+    SELECT
+      id,
+      name,
+      TO_CHAR(start_date, 'YYYY-MM-DD') AS start_date,
+      TO_CHAR(end_date, 'YYYY-MM-DD') AS end_date,
+      reason,
+      division_id
+    FROM blackout_periods
+    WHERE is_active = TRUE
+      AND (division_id IS NULL OR division_id = $1)
+      AND end_date >= (CURRENT_DATE - INTERVAL '31 days')::date
+    ORDER BY start_date ASC;
+  `;
+
+  const [
+    leaveTypesRes,
+    colleaguesRes,
+    holidaysRes,
+    activeRangesRes,
+    colleagueLeavesRes,
+    blackoutPeriodsRes,
+  ] = await Promise.all([
+    query(leaveTypesSql),
+    userRow.division_id
+      ? query(colleaguesSql, [userRow.division_id, userRow.id])
+      : Promise.resolve({ rows: [] }),
+    query(holidaysSql),
+    query(activeRangesSql, [userRow.id]),
+    userRow.division_id
+      ? query(colleagueLeavesSql, [userRow.division_id, userRow.id])
+      : Promise.resolve({ rows: [] }),
+    query(blackoutPeriodsSql, [userRow.division_id]),
+  ]);
 
   const userProfile = {
     id: userRow.id,
@@ -157,6 +199,24 @@ export async function getNewLeaveWorkspaceData(userId) {
     status: row.status,
   }));
 
+  const colleagueLeaves = colleagueLeavesRes.rows.map((row) => ({
+    id: row.id,
+    employeeName: row.employee_name,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    isHalfDay: Boolean(row.is_half_day),
+    status: row.status,
+  }));
+
+  const blackoutPeriods = blackoutPeriodsRes.rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    reason: row.reason,
+    divisionId: row.division_id,
+  }));
+
   return {
     serverToday: userRow.server_today,
     userProfile,
@@ -164,6 +224,8 @@ export async function getNewLeaveWorkspaceData(userId) {
     colleagues,
     holidays,
     activeLeaveRanges,
+    colleagueLeaves,
+    blackoutPeriods,
   };
 }
 

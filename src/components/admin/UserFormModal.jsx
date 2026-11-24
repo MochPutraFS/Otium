@@ -143,6 +143,19 @@ function validateSingleField(field, values, { isEdit, initialUser, existingUsers
       }
       return "";
     }
+    case "phone": {
+      const trimmed = values.phone.trim();
+      if (trimmed && !/^[0-9+\-\s()]{8,20}$/.test(trimmed)) {
+        return "Format nomor telepon tidak valid (8–20 karakter angka, +, -, spasi, atau kurung).";
+      }
+      return "";
+    }
+    case "address": {
+      if (values.address.trim().length > 500) {
+        return "Alamat domisili maksimal 500 karakter.";
+      }
+      return "";
+    }
     default:
       return "";
   }
@@ -181,6 +194,8 @@ export default function UserFormModal({
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("Karyawan");
   const [divisionId, setDivisionId] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
   const [initialLeaveQuota, setInitialLeaveQuota] = useState("12.0");
   const [remainingLeaveQuota, setRemainingLeaveQuota] = useState("12.0");
   const [joinDate, setJoinDate] = useState(todayIso);
@@ -201,6 +216,8 @@ export default function UserFormModal({
       setShowPassword(false);
       setRole(initialUser.role || "Karyawan");
       setDivisionId(initialUser.divisionId ? String(initialUser.divisionId) : "");
+      setPhone(initialUser.phone || "");
+      setAddress(initialUser.address || "");
       setInitialLeaveQuota(Number(initialUser.initialLeaveQuota ?? 12).toFixed(1));
       setRemainingLeaveQuota(
         Number(initialUser.remainingLeaveQuota ?? 12).toFixed(1)
@@ -215,6 +232,8 @@ export default function UserFormModal({
       setShowPassword(false);
       setRole("Karyawan");
       setDivisionId("");
+      setPhone("");
+      setAddress("");
       setInitialLeaveQuota("12.0");
       setRemainingLeaveQuota("12.0");
       setJoinDate(todayIso);
@@ -325,6 +344,8 @@ export default function UserFormModal({
       password,
       role,
       divisionId,
+      phone,
+      address,
       initialLeaveQuota,
       remainingLeaveQuota,
       joinDate,
@@ -337,6 +358,8 @@ export default function UserFormModal({
       password,
       role,
       divisionId,
+      phone,
+      address,
       initialLeaveQuota,
       remainingLeaveQuota,
       joinDate,
@@ -402,6 +425,8 @@ export default function UserFormModal({
       "username",
       "email",
       "password",
+      "phone",
+      "address",
       "initialLeaveQuota",
       "remainingLeaveQuota",
       "joinDate",
@@ -436,6 +461,8 @@ export default function UserFormModal({
         username: "user-username",
         email: "user-email",
         password: "user-password",
+        phone: "user-phone",
+        address: "user-address",
         initialLeaveQuota: "user-initial-quota",
         remainingLeaveQuota: "user-remaining-quota",
         joinDate: isEdit ? "user-joindate-edit" : "user-joindate",
@@ -459,6 +486,8 @@ export default function UserFormModal({
       password: password || undefined,
       role: isEditingSelf ? initialUser.role : role,
       divisionId: divisionId ? Number(divisionId) : null,
+      phone: phone.trim() || null,
+      address: address.trim() || null,
       initialLeaveQuota: initQuotaNum,
       remainingLeaveQuota: remQuotaNum,
       joinDate,
@@ -979,7 +1008,7 @@ export default function UserFormModal({
             )}
           </div>
 
-          {/* Join Date (Edit) + Status Akun */}
+          {/* Join Date (Edit), Kontak & Status Akun */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {isEdit && (
               <div>
@@ -1017,29 +1046,147 @@ export default function UserFormModal({
               </div>
             )}
 
-            <div className={isEdit ? "" : "sm:col-span-2"}>
-              <span className="block text-xs font-semibold text-[var(--ink-soft)]">
-                Status Akun
-              </span>
+            {/* Nomor Telepon */}
+            <div>
               <label
-                className={`otium-checkbox-label mt-1.5 flex items-center gap-3 rounded-[4px] border border-[var(--rule-strong)] px-3.5 py-2.5 transition-colors duration-150 ${
-                  isEditingSelf
-                    ? "cursor-not-allowed bg-[var(--alabaster)] opacity-70"
-                    : "cursor-pointer bg-[var(--alabaster)] hover:bg-[var(--paper)]"
-                }`}
+                htmlFor="user-phone"
+                className="block text-xs font-semibold text-[var(--ink-soft)]"
               >
-                <input
-                  type="checkbox"
-                  disabled={isEditingSelf}
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                  className="otium-checkbox h-4 w-4 cursor-pointer rounded disabled:cursor-not-allowed"
-                />
-                <span className="text-[12.5px] font-medium text-[var(--ink)]">
-                  Akun Aktif (Dapat Login &amp; Bertransaksi Cuti)
+                Nomor Telepon{" "}
+                <span className="font-normal text-[var(--ink-muted)]">
+                  (Opsional)
                 </span>
               </label>
+              <input
+                id="user-phone"
+                name="phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                maxLength={20}
+                value={phone}
+                onChange={(e) =>
+                  handleFieldChange("phone", setPhone, e.target.value)
+                }
+                onBlur={() => handleBlur("phone")}
+                aria-invalid={Boolean(errors.phone) ? "true" : "false"}
+                aria-describedby={
+                  errors.phone
+                    ? "user-phone-hint user-phone-error"
+                    : "user-phone-hint"
+                }
+                placeholder="Contoh: 081234567890"
+                className={`${inputBaseClass} font-mono`}
+              />
+              <span
+                id="user-phone-hint"
+                className="mt-1 block text-[11px] text-[var(--ink-muted)]"
+              >
+                8–20 karakter (angka, +, -, spasi, atau kurung).
+              </span>
+              {errors.phone && (
+                <p
+                  id="user-phone-error"
+                  className="mt-1.5 flex items-start gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
+                >
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>{errors.phone}</span>
+                </p>
+              )}
             </div>
+
+            {!isEdit && (
+              <div>
+                <span className="block text-xs font-semibold text-[var(--ink-soft)]">
+                  Status Akun
+                </span>
+                <label className="otium-checkbox-label mt-1.5 flex cursor-pointer items-center gap-3 rounded-[4px] border border-[var(--rule-strong)] bg-[var(--alabaster)] px-3.5 py-2.5 transition-colors duration-150 hover:bg-[var(--paper)]">
+                  <input
+                    type="checkbox"
+                    checked={isActive}
+                    onChange={(e) => setIsActive(e.target.checked)}
+                    className="otium-checkbox h-4 w-4 cursor-pointer rounded"
+                  />
+                  <span className="text-[12.5px] font-medium text-[var(--ink)]">
+                    Akun Aktif (Dapat Login &amp; Bertransaksi Cuti)
+                  </span>
+                </label>
+              </div>
+            )}
+
+            {/* Alamat Domisili */}
+            <div className="sm:col-span-2">
+              <label
+                htmlFor="user-address"
+                className="block text-xs font-semibold text-[var(--ink-soft)]"
+              >
+                Alamat Domisili{" "}
+                <span className="font-normal text-[var(--ink-muted)]">
+                  (Opsional)
+                </span>
+              </label>
+              <textarea
+                id="user-address"
+                name="address"
+                rows={2}
+                maxLength={500}
+                autoComplete="street-address"
+                value={address}
+                onChange={(e) =>
+                  handleFieldChange("address", setAddress, e.target.value)
+                }
+                onBlur={() => handleBlur("address")}
+                aria-invalid={Boolean(errors.address) ? "true" : "false"}
+                aria-describedby={
+                  errors.address
+                    ? "user-address-hint user-address-error"
+                    : "user-address-hint"
+                }
+                placeholder="Contoh: Jl. Jend. Sudirman No. 1, Jakarta"
+                className="textarea otium-field-input mt-1 w-full"
+              />
+              <span
+                id="user-address-hint"
+                className="mt-1 block text-[11px] text-[var(--ink-muted)]"
+              >
+                Maksimal 500 karakter. Digunakan sebagai default kontak saat pengajuan cuti.
+              </span>
+              {errors.address && (
+                <p
+                  id="user-address-error"
+                  className="mt-1.5 flex items-start gap-1 text-[11.5px] font-medium text-[var(--terracotta)]"
+                >
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>{errors.address}</span>
+                </p>
+              )}
+            </div>
+
+            {isEdit && (
+              <div className="sm:col-span-2">
+                <span className="block text-xs font-semibold text-[var(--ink-soft)]">
+                  Status Akun
+                </span>
+                <label
+                  className={`otium-checkbox-label mt-1.5 flex items-center gap-3 rounded-[4px] border border-[var(--rule-strong)] px-3.5 py-2.5 transition-colors duration-150 ${
+                    isEditingSelf
+                      ? "cursor-not-allowed bg-[var(--alabaster)] opacity-70"
+                      : "cursor-pointer bg-[var(--alabaster)] hover:bg-[var(--paper)]"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    disabled={isEditingSelf}
+                    checked={isActive}
+                    onChange={(e) => setIsActive(e.target.checked)}
+                    className="otium-checkbox h-4 w-4 cursor-pointer rounded disabled:cursor-not-allowed"
+                  />
+                  <span className="text-[12.5px] font-medium text-[var(--ink)]">
+                    Akun Aktif (Dapat Login &amp; Bertransaksi Cuti)
+                  </span>
+                </label>
+              </div>
+            )}
           </div>
 
           {/* Live Preview Kelayakan Masa Kerja 1 Tahun */}

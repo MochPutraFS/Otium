@@ -4,6 +4,7 @@
 -- ============================================================================
 
 -- Bersihkan tabel jika sudah ada (urutan terbalik dari dependensi Foreign Key)
+DROP TABLE IF EXISTS blackout_periods CASCADE;
 DROP TABLE IF EXISTS holidays CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
 DROP TABLE IF EXISTS leave_approvals CASCADE;
@@ -19,6 +20,8 @@ CREATE TABLE divisions (
     name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
     leader_id INTEGER UNIQUE, -- Constraint UNIQUE: 1 Ketua Divisi maks memimpin 1 Divisi
+    max_concurrent_leave_pct INTEGER NOT NULL DEFAULT 30
+        CHECK (max_concurrent_leave_pct BETWEEN 1 AND 100),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -172,6 +175,24 @@ CREATE TABLE holidays (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 8. TABEL BLACKOUT_PERIODS (Periode Larangan Cuti Perusahaan / Divisi - Fase 2)
+CREATE TABLE blackout_periods (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    reason TEXT NOT NULL,
+    division_id INTEGER
+        REFERENCES divisions(id) ON DELETE CASCADE ON UPDATE CASCADE, -- NULL = seluruh perusahaan
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_by INTEGER
+        REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT chk_blackout_dates CHECK (end_date >= start_date)
+);
+
 -- Indeks Performa untuk Query Filter, Anti-Overlap, dan Antrean Approval
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_users_division_id ON users(division_id);
@@ -181,3 +202,4 @@ CREATE INDEX idx_leave_requests_status ON leave_requests(status);
 CREATE INDEX idx_leave_approvals_request_id ON leave_approvals(leave_request_id);
 CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read);
 CREATE INDEX idx_holidays_date_active ON holidays(holiday_date, is_active);
+CREATE INDEX idx_blackout_dates_active ON blackout_periods(start_date, end_date, is_active);
