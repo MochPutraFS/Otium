@@ -329,7 +329,7 @@ export default function LoginFormCard({ callbackUrl = "", reason = "" }) {
                 value={identifier}
                 onChange={handleIdentifierChange}
                 onBlur={handleIdentifierBlur}
-                placeholder="nama@otium.id atau username"
+                placeholder="nama@perusahaan.com atau username"
                 className={`otium-input input !pl-9 !pr-3 ${
                   fieldErrors.identifier
                     ? "!border-[var(--terracotta)] !bg-[var(--terracotta-tint)]"

@@ -19,6 +19,7 @@ import {
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import DataTableToolbar from "@/components/ui/DataTableToolbar";
+import UserAvatar from "@/components/ui/UserAvatar";
 import UserFormModal from "@/components/admin/UserFormModal";
 import { formatIndonesianDate } from "@/lib/date-utils";
 import {
@@ -672,7 +673,13 @@ export default function AdminUsersClient({
                         </td>
                         <th scope="row" className="whitespace-nowrap font-normal">
                           <div className="flex items-center gap-3">
-                            <div className="avatar-sq">{user.initials}</div>
+                            <UserAvatar
+                              src={user.avatarUrl}
+                              fullName={user.fullName}
+                              initials={user.initials}
+                              size="sm"
+                              ariaHiddenFallback
+                            />
                             <div className="min-w-0">
                               <p className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--ink)]">
                                 <span className="truncate">{user.fullName}</span>
@@ -786,7 +793,13 @@ export default function AdminUsersClient({
                   <article key={user.id} className="ledger-card">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-2.5">
-                        <div className="avatar-sq">{user.initials}</div>
+                        <UserAvatar
+                          src={user.avatarUrl}
+                          fullName={user.fullName}
+                          initials={user.initials}
+                          size="sm"
+                          ariaHiddenFallback
+                        />
                         <div className="min-w-0">
                           <p className="flex items-center gap-1.5 text-[13.5px] font-semibold text-[var(--ink)]">
                             <span className="truncate">{user.fullName}</span>

@@ -34,27 +34,32 @@ export const metadata = {
 };
 
 export const viewport = {
-  colorScheme: "light",
+  colorScheme: "light dark",
 };
 
 const THEME_INIT_SCRIPT = `
 (function() {
+  var root = document.documentElement;
   try {
     var saved = window.localStorage.getItem("otium-color-scheme");
-    var root = document.documentElement;
+    var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
     if (saved === "dark") {
       root.style.colorScheme = "dark";
       root.dataset.theme = "dark";
+      root.style.backgroundColor = "#141311";
     } else if (saved === "system") {
       root.style.colorScheme = "light dark";
       root.dataset.theme = "system";
+      root.style.backgroundColor = prefersDark ? "#141311" : "#F4F1EA";
     } else {
       root.style.colorScheme = "light";
       root.dataset.theme = "light";
+      root.style.backgroundColor = "#F4F1EA";
     }
   } catch (e) {
-    document.documentElement.style.colorScheme = "light";
-    document.documentElement.dataset.theme = "light";
+    root.style.colorScheme = "light";
+    root.dataset.theme = "light";
+    root.style.backgroundColor = "#F4F1EA";
   }
 })();
 `;

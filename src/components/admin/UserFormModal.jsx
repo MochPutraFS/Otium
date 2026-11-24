@@ -80,7 +80,7 @@ function validateSingleField(field, values, { isEdit, initialUser, existingUsers
         trimmed.length > 100 ||
         !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)
       ) {
-        return "Masukkan alamat email valid, misalnya nama@otium.id.";
+        return "Masukkan alamat email valid, misalnya nama@perusahaan.com.";
       }
       const dup = existingUsers.some(
         (u) =>
@@ -694,14 +694,14 @@ export default function UserFormModal({
                     ? "user-email-hint user-email-error"
                     : "user-email-hint"
                 }
-                placeholder="rina.permata@otium.id"
+                placeholder="rina.permata@perusahaan.com"
                 className={inputBaseClass}
               />
               <span
                 id="user-email-hint"
                 className="mt-1 block text-[11px] text-[var(--ink-muted)]"
               >
-                Format: nama@otium.id (unik per akun).
+                Format: nama@perusahaan.com (unik per akun).
               </span>
               {errors.email && (
                 <p

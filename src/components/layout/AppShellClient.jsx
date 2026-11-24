@@ -39,9 +39,9 @@ export default function AppShellClient({ sessionUser, shellData, children }) {
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
 
-      {/* Kolom workspace utama dengan latar kertas Swiss Archival (.arch-grid-bg) */}
+      {/* Kolom workspace utama dengan kanvas polos Swiss Archival (--alabaster) */}
       <div
-        className={`arch-grid-bg flex min-h-dvh flex-col transition-[padding] duration-200 ${
+        className={`flex min-h-dvh flex-col bg-[var(--alabaster)] transition-[padding] duration-200 ${
           isSidebarCollapsed ? "lg:pl-[76px]" : "lg:pl-[256px]"
         }`}
       >

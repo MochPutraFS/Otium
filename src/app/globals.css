@@ -83,9 +83,30 @@
   scrollbar-color: var(--rule-strong) var(--alabaster);
 }
 
+:root[data-theme="dark"] {
+  --alabaster: var(--alabaster-d);
+  --alabaster-deep: var(--alabaster-deep-d);
+  --paper: var(--paper-d);
+  --paper-pure: var(--paper-pure-d);
+  --rule: var(--rule-d);
+  --rule-strong: var(--rule-strong-d);
+  --ink: var(--ink-d);
+  --ink-soft: var(--ink-soft-d);
+  --ink-muted: var(--ink-muted-d);
+  --tint-base: var(--tint-base-d);
+  --spruce: var(--spruce-d);
+  --spruce-btn: var(--spruce-btn-d);
+  --spruce-hover: var(--spruce-btn-hover-d);
+  --spruce-btn-ink: var(--spruce-btn-ink-d);
+  --ochre: var(--ochre-d);
+  --terracotta: var(--terracotta-d);
+  --terracotta-btn: var(--terracotta-btn-d);
+  --terracotta-hover: var(--terracotta-hover-d);
+  --slate-blue: var(--slate-blue-d);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root[data-theme="system"],
-  :root[data-theme="dark"] {
+  :root[data-theme="system"] {
     --alabaster: var(--alabaster-d);
     --alabaster-deep: var(--alabaster-deep-d);
     --paper: var(--paper-d);
@@ -187,7 +208,7 @@
   white-space: nowrap !important;
 }
 
-/* Subtle Swiss Architectural Paper Grid (untuk Login Atelier & Workspace backdrop) */
+/* Subtle Swiss Architectural Paper Grid (eksklusif untuk LoginBrandPanel) */
 .arch-grid-bg {
   background-color: var(--alabaster);
   background-image:
@@ -204,21 +225,10 @@
   background-size: 28px 28px;
 }
 
-/* Legacy alias untuk halaman yang belum dimigrasi */
+/* Legacy alias workspace — diseragamkan ke kanvas polos --alabaster */
 .otium-architectural-grid {
   background-color: var(--alabaster);
-  background-image:
-    linear-gradient(
-      to right,
-      color-mix(in oklab, var(--rule-strong) 20%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      to bottom,
-      color-mix(in oklab, var(--rule-strong) 20%, transparent) 1px,
-      transparent 1px
-    );
-  background-size: 28px 28px;
+  background-image: none;
 }
 
 /* Keyframes */
@@ -362,6 +372,7 @@
 .panel {
   background: var(--paper-pure);
   border: 1px solid var(--rule);
+  border-color: color-mix(in oklab, var(--rule-strong) 40%, var(--rule));
 }
 fieldset.panel {
   min-inline-size: 0;

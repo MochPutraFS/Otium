@@ -112,6 +112,11 @@ export async function GET(_request, context) {
     const hrdTime = stage2?.actedAt || leave.hrdApprovedAt || "-";
     const hrdNotes = stage2?.notes || leave.hrdNotes || "-";
 
+    const backHref = isHrd ? "/approvals/hrd" : "/leaves";
+    const backTitle = isHrd
+      ? "Kembali ke Persetujuan Final HRD"
+      : "Kembali ke Riwayat Cuti";
+
     const html = `<!DOCTYPE html>
 <html lang="id">
 <head>
@@ -139,6 +144,7 @@ export async function GET(_request, context) {
       max-width: 780px;
       margin: 0 auto 16px;
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
@@ -153,6 +159,8 @@ export async function GET(_request, context) {
     }
     .toolbar-actions {
       display: flex;
+      flex-wrap: wrap;
+      align-items: center;
       gap: 8px;
     }
     .btn {
@@ -168,11 +176,19 @@ export async function GET(_request, context) {
       background: #ffffff;
       color: #0f172a;
       text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn:hover {
+      background: #f5f5f4;
     }
     .btn-primary {
       background: #0f172a;
       border-color: #0f172a;
       color: #ffffff;
+    }
+    .btn-primary:hover {
+      background: #1e293b;
+      border-color: #1e293b;
     }
     .sheet {
       max-width: 780px;
@@ -336,6 +352,7 @@ export async function GET(_request, context) {
       Dokumen resmi siap cetak A4. Gunakan tombol di kanan untuk mencetak atau menyimpan sebagai PDF.
     </div>
     <div class="toolbar-actions">
+      <a href="${backHref}" class="btn" title="${escapeHtml(backTitle)}">&larr; Kembali</a>
       <button type="button" class="btn btn-primary" onclick="window.print()">Cetak / Simpan PDF</button>
       <button type="button" class="btn" onclick="window.close()">Tutup</button>
     </div>

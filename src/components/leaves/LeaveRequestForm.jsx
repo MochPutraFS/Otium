@@ -738,7 +738,7 @@ export default function LeaveRequestForm({
       )}
 
       {/* Layout 2 Kolom (Form Kiri fleksibel + Sticky What-If Ruler & Kalender Kanan) */}
-      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_308px] xl:grid-cols-[minmax(0,1fr)_348px]">
+      <div className="grid grid-cols-1 items-start gap-5 min-[1180px]:grid-cols-[minmax(0,1fr)_308px] xl:grid-cols-[minmax(0,1fr)_348px] xl:gap-6">
         <form
           onSubmit={handleSubmit}
           noValidate
@@ -776,7 +776,7 @@ export default function LeaveRequestForm({
                 <h3 className="panel-title">Jenis &amp; Rentang Tanggal</h3>
               </div>
               {selectedLeaveType?.ruleSummary && (
-                <span className="tag max-w-full truncate">
+                <span className="tag max-w-full !whitespace-normal leading-snug">
                   {selectedLeaveType.ruleSummary}
                 </span>
               )}
@@ -1152,7 +1152,7 @@ export default function LeaveRequestForm({
                   id="contact-editor-panel"
                   className="grid grid-cols-1 gap-4 sm:grid-cols-2"
                 >
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex min-w-0 flex-col gap-1.5">
                     <label
                       htmlFor="leave-address"
                       className="text-xs font-semibold text-[var(--ink-soft)]"
@@ -1191,7 +1191,7 @@ export default function LeaveRequestForm({
                           ? "leave-address-error"
                           : undefined
                       }
-                      className="otium-field-input input"
+                      className="otium-field-input input min-w-0 w-full"
                     />
                     {fieldErrors.leaveAddress && (
                       <p
@@ -1207,7 +1207,7 @@ export default function LeaveRequestForm({
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex min-w-0 flex-col gap-1.5">
                     <label
                       htmlFor="emergency-phone"
                       className="text-xs font-semibold text-[var(--ink-soft)]"
@@ -1248,7 +1248,7 @@ export default function LeaveRequestForm({
                           ? "emergency-phone-error"
                           : undefined
                       }
-                      className="otium-field-input input mono"
+                      className="otium-field-input input mono min-w-0 w-full"
                     />
                     {fieldErrors.emergencyPhone && (
                       <p
@@ -1428,7 +1428,7 @@ export default function LeaveRequestForm({
             <button
               type="submit"
               disabled={isHardBlocked || isSubmitting}
-              className="btn btn-primary"
+              className="btn btn-primary w-full sm:w-auto"
             >
               {isSubmitting ? (
                 <>

@@ -83,20 +83,43 @@ export default function TopNavbar({
     section: "Workspace",
   };
 
-  // Sinkronkan preferensi tema tersimpan saat mount (default: light)
+  // Sinkronkan preferensi tema tersimpan saat mount & antar-tab (tanpa hydration warning)
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
-      const foundIdx = THEME_MODES.findIndex((m) => m.id === saved);
-      const activeIdx = foundIdx >= 0 ? foundIdx : 0;
-      setThemeIndex(activeIdx);
-      document.documentElement.style.colorScheme =
-        THEME_MODES[activeIdx].scheme;
-      document.documentElement.dataset.theme = THEME_MODES[activeIdx].id;
-    } catch {
-      document.documentElement.style.colorScheme = "light";
-      document.documentElement.dataset.theme = "light";
+    function syncThemeFromClient() {
+      try {
+        const saved =
+          document.documentElement.dataset.theme ||
+          window.localStorage.getItem(THEME_STORAGE_KEY);
+        const foundIdx = THEME_MODES.findIndex((m) => m.id === saved);
+        const activeIdx = foundIdx >= 0 ? foundIdx : 0;
+        setThemeIndex(activeIdx);
+        document.documentElement.style.colorScheme =
+          THEME_MODES[activeIdx].scheme;
+        document.documentElement.dataset.theme = THEME_MODES[activeIdx].id;
+      } catch {
+        setThemeIndex(0);
+        document.documentElement.style.colorScheme = "light";
+        document.documentElement.dataset.theme = "light";
+      } finally {
+        document.documentElement.style.removeProperty("background-color");
+      }
     }
+
+    syncThemeFromClient();
+
+    function handleStorage(event) {
+      if (event.key === THEME_STORAGE_KEY) {
+        const foundIdx = THEME_MODES.findIndex((m) => m.id === event.newValue);
+        const activeIdx = foundIdx >= 0 ? foundIdx : 0;
+        setThemeIndex(activeIdx);
+        document.documentElement.style.colorScheme =
+          THEME_MODES[activeIdx].scheme;
+        document.documentElement.dataset.theme = THEME_MODES[activeIdx].id;
+      }
+    }
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
   function handleCycleTheme() {
@@ -105,6 +128,7 @@ export default function TopNavbar({
     setThemeIndex(nextIdx);
     document.documentElement.style.colorScheme = nextMode.scheme;
     document.documentElement.dataset.theme = nextMode.id;
+    document.documentElement.style.removeProperty("background-color");
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, nextMode.id);
     } catch {
@@ -167,7 +191,7 @@ export default function TopNavbar({
           >
             /
           </span>
-          <h1 className="m-0 truncate font-serif text-[20px] font-semibold leading-none tracking-[-0.01em] text-[var(--ink)] sm:text-[22px] xl:text-[25px]">
+          <h1 className="m-0 truncate font-serif text-[19px] font-semibold leading-none tracking-[-0.01em] text-[var(--ink)] sm:text-[22px] xl:text-[25px]">
             {pageMeta.title}
           </h1>
         </div>
@@ -177,7 +201,7 @@ export default function TopNavbar({
       <div className="flex shrink-0 items-center gap-2">
         {todayLabel && (
           <div
-            className="hidden shrink-0 items-center gap-2.5 whitespace-nowrap rounded-[2px] border border-[var(--rule)] bg-[var(--alabaster)] px-2.5 py-1 text-xs md:flex"
+            className="hidden shrink-0 items-center gap-2.5 whitespace-nowrap rounded-[2px] border border-[var(--rule)] bg-[var(--alabaster)] px-2.5 py-1 text-xs lg:flex"
             title={
               upcomingHoliday
                 ? `Hari libur terdekat: ${upcomingHoliday.name} (${upcomingHoliday.dateLabel})`
@@ -195,10 +219,10 @@ export default function TopNavbar({
             {upcomingHoliday && (
               <>
                 <span
-                  className="hidden h-3.5 w-px bg-[var(--rule-strong)] xl:inline-block"
+                  className="hidden h-3.5 w-px bg-[var(--rule-strong)] 2xl:inline-block"
                   aria-hidden="true"
                 />
-                <span className="hidden items-center gap-1.5 whitespace-nowrap text-[11.5px] text-[var(--ink-soft)] xl:inline-flex">
+                <span className="hidden items-center gap-1.5 whitespace-nowrap text-[11.5px] text-[var(--ink-soft)] 2xl:inline-flex">
                   <span
                     className="h-1.5 w-1.5 shrink-0 bg-[var(--ochre)]"
                     aria-hidden="true"

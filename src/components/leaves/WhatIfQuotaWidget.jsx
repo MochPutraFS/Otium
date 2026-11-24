@@ -209,7 +209,7 @@ export default function WhatIfQuotaWidget({
   return (
     <aside
       aria-label="Simulasi kuota dan kalender interaktif pengajuan cuti"
-      className="min-w-0 space-y-4 lg:sticky lg:top-[76px]"
+      className="min-w-0 space-y-4 min-[1180px]:sticky min-[1180px]:top-[76px]"
     >
       {/* PANEL 1: WHAT-IF PROJECTION RULER */}
       <div className="panel min-w-0 overflow-hidden">
@@ -452,12 +452,26 @@ export default function WhatIfQuotaWidget({
           </div>
 
           <div className="panel-body space-y-3 !p-3.5">
-            <p className="text-[11px] text-[var(--ink-muted)]">
-              {isHalfDay
-                ? "Klik 1 tanggal kerja untuk cuti 0.5 hari."
-                : pickPhase === "end"
-                  ? "Klik tanggal selesai rentang cuti Anda."
-                  : "Klik tanggal mulai, lalu klik tanggal selesai."}
+            <p
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              className={`mono flex items-center gap-1.5 rounded-[2px] border px-2 py-1 text-[10.5px] leading-snug transition-colors ${
+                !isHalfDay && pickPhase === "end"
+                  ? "border-[var(--spruce-border)] bg-[var(--spruce-tint)] font-medium text-[var(--spruce)]"
+                  : "border-[var(--rule)] bg-[var(--alabaster)] text-[var(--ink-soft)]"
+              }`}
+            >
+              <span className="shrink-0 font-semibold uppercase tracking-[0.04em]">
+                {isHalfDay ? "[0.5]" : pickPhase === "end" ? "[2/2]" : "[1/2]"}
+              </span>
+              <span>
+                {isHalfDay
+                  ? "Klik 1 hari kerja aktif untuk cuti 0.5 hari"
+                  : pickPhase === "end"
+                    ? "Klik tanggal selesai untuk melengkapi rentang"
+                    : "Klik tanggal mulai pada kalender"}
+              </span>
             </p>
 
             <div className="cal-grid" role="grid" aria-label="Kalender pilih tanggal cuti">
