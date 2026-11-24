@@ -26,7 +26,7 @@
 
 **Otium** *(Lat. ōtium — waktu rehat yang teratur)* adalah aplikasi web *full-stack* untuk mendigitalisasi dan mengotomatisasi siklus pengajuan cuti karyawan, verifikasi berjenjang, manajemen kuota presisi `0.5` hari kerja, serah terima tugas (*handover*), hingga penerbitan **Surat Persetujuan Cuti Resmi siap cetak A4/PDF**.
 
-Dibangun sebagai **Individual Project 7 — Tugas Final Praktikum Pemrograman Web 2026**, proyek ini mematuhi arsitektur **100% JavaScript Murni** (tanpa TypeScript) dan **100% PostgreSQL Raw SQL** melalui `pg` (*zero ORM*), dibalut dalam antarmuka **Swiss Archival / Editorial Ledger** yang mendukung **Light & Dark Mode** secara penuh.
+Dibangun sebagai **Individual Project 7 — Tugas Final Praktikum Pemrograman Web 2026**, proyek ini mematuhi arsitektur **100% JavaScript Murni** (tanpa TypeScript) dan **100% PostgreSQL Raw SQL** melalui `pg` (*zero ORM*), dibalut dalam antarmuka **Swiss Archival / Editorial Ledger** yang mendukung **Light & Dark Mode anti-FOUC** secara penuh.
 
 ---
 
@@ -35,10 +35,12 @@ Dibangun sebagai **Individual Project 7 — Tugas Final Praktikum Pemrograman We
 | Pilar | Implementasi |
 | :--- | :--- |
 | **Autentikasi & RBAC 2 Lapis** | Login tunggal via `Email` atau `Username` + `Password` (`bcryptjs`), deteksi role otomatis, opsi **Remember Me** (JWT HttpOnly Cookie `1 hari` / `7 hari`), Edge `middleware.js`, pemblokiran akun nonaktif, dan tanpa registrasi publik. |
-| **Kalkulasi Kuota Presisi `0.5` Hari** | Kuota tahunan `12.0` hari kerja/tahun, otomatis mengecualikan **Sabtu–Minggu** dan **hari libur nasional** (`holidays`), mendukung cuti setengah hari (`0.5`), dilengkapi **12-Day Quota Precision Ruler** & **What-If Projection**. |
+| **Kalkulasi Kuota Presisi `0.5` Hari** | Kuota tahunan `12.0` hari kerja/tahun, otomatis mengecualikan **Sabtu–Minggu** dan **hari libur nasional** (`holidays`), mendukung cuti setengah hari (`0.5`), akumulasi kuota tahunan jenis cuti non-tahunan (`max_quota`), **12-Day Quota Precision Ruler**, serta kalender interaktif **What-If Projection** 2-arah dengan sinkronisasi rekan sedivisi. |
 | **Transaksi SQL Atomik & Auto-Refund** | Seluruh mutasi kuota & multi-tabel dibungkus `BEGIN ... COMMIT / ROLLBACK` dengan penguncian baris (`SELECT ... FOR UPDATE`). Kuota otomatis dikembalikan (*auto-refund*) saat pengajuan dibatalkan atau ditolak. |
-| **Lembar Edaran Paraf (*Routing Slip*)** | Verifikasi Tahap 1 (**Ketua Divisi**) dan Persetujuan Final (**HRD**) lengkap dengan riwayat paraf, alasan wajib tolak/batal, **Multi-Approve Checkbox** atomik untuk HRD, dan dokumen cetak **Surat Cuti PDF**. |
-| **Jenis Cuti Dinamis & CMS Lengkap** | Seluruh kategori cuti (Tahunan, Sakit, Menikah, dll.) dikelola dinamis dari tabel `leave_types`, bersama CRUD User (proteksi anti-hapus `Admin`/`HRD`), Divisi (*Double Confirmation Delete* tanpa hapus anggota), dan Anggota Divisi. |
+| **Lembar Edaran Paraf & Surat PDF** | Verifikasi Tahap 1 (**Ketua Divisi**) dan Persetujuan Final (**HRD**) lengkap dengan riwayat paraf, peringatan kapasitas/blackout, alasan wajib tolak/batal, **Multi-Approve Checkbox** atomik untuk HRD, dan dokumen cetak **Surat Cuti Resmi A4/PDF** dengan navigasi toolbar berbasis role (`@media print`). |
+| **Kalender Tim, Kebijakan, & Pengingat** | **Kalender Cuti Perusahaan** (`/calendar`) lintas 4 role dengan *privacy masking* di level SQL, CRUD **Hari Libur Nasional** (`/admin/holidays`), **Blackout Period & Batas Kapasitas Divisi** (`/admin/policies`), serta **Expiring Quota Alert** (`≥ 6.0` hari) di Dashboard Admin & HRD. |
+| **Jenis Cuti Dinamis & CMS Lengkap** | Seluruh kategori cuti (Tahunan, Sakit, Menikah, dll.) dikelola dinamis dari tabel `leave_types`, bersama CRUD User (termasuk kontak `phone`/`address`, avatar dengan fallback inisial aman, dan proteksi anti-hapus `Admin`/`HRD`), Divisi (*Double Confirmation Delete* tanpa hapus anggota), dan Anggota Divisi. |
+| **Swiss Archival UI & Anti-FOUC Theme** | Diferensiasi kanvas editorial Login (`.arch-grid-bg`) vs ruang kerja polos (`--alabaster`) untuk kontras tabel/panel optimal, inisialisasi tema gelap bebas kedipan (*anti-FOUC*), serta layout responsif penuh dari mobile hingga desktop lebar. |
 
 ---
 
@@ -62,15 +64,18 @@ flowchart LR
 
 | Modul / Rute | Admin | HRD | Ketua Divisi | Karyawan |
 | :--- | :---: | :---: | :---: | :---: |
-| **Dashboard Adaptif** (`/dashboard`) | Statistik Master | Antrean & Kapasitas | Kuota & Tim Divisi | Kuota & Riwayat |
+| **Dashboard Adaptif** (`/dashboard`) | Statistik & Expiring Alert | Antrean, Kapasitas, & Expiring Alert | Kuota & Tim Divisi | Kuota & Riwayat |
+| **Kalender Cuti Tim** (`/calendar`) | Ya *(semua divisi)* | Ya *(semua divisi)* | Ya *(alasan termasking)* | Ya *(alasan termasking)* |
 | **Ajukan Cuti & What-If** (`/leaves/new`) | — | — | Ya *(langsung ke HRD)* | Ya *(via Ketua Divisi)* |
 | **Riwayat, Batal, & Surat PDF** (`/leaves`) | — | — | Ya *(milik sendiri)* | Ya *(milik sendiri)* |
 | **Verifikasi Tahap 1** (`/approvals/leader`) | — | — | Ya *(divisi sendiri)* | — |
-| **Persetujuan Final & Bulk** (`/approvals/hrd`) | — | Ya *(+ Cetak PDF)* | — | — |
+| **Persetujuan Final & Bulk** (`/approvals/hrd`) | — | Ya *(+ Cetak PDF & Banner Kapasitas)* | — | — |
 | **Manajemen Pengguna** (`/admin/users`) | Ya *(proteksi Admin/HRD)* | — | — | — |
 | **Manajemen Divisi** (`/admin/divisions`) | Ya *(2x konfirmasi hapus)* | — | — | — |
 | **Anggota Divisi** (`/admin/division-members`) | Ya *(lepas tanpa hapus akun)* | — | — | — |
 | **Jenis Cuti Dinamis** (`/admin/leave-types`) | Ya | — | — | — |
+| **Hari Libur Nasional** (`/admin/holidays`) | Ya | Ya | — | — |
+| **Blackout & Kapasitas** (`/admin/policies`) | Ya | Ya | — | — |
 | **Profil, Avatar, & Password** (`/profile`) | Ya *(full edit)* | Ya | Ya *(+ Precision Ruler)* | Ya *(+ Precision Ruler)* |
 
 ---
@@ -78,10 +83,10 @@ flowchart LR
 ## Arsitektur & Keamanan Database
 
 - **Zero ORM / Pure Raw SQL:** Seluruh query dieksekusi menggunakan `pg` (`Pool`) dengan *parameterized queries* (`$1, $2, ...`) untuk mencegah *SQL Injection*.
-- **7 Tabel Relasional PostgreSQL:**
-  `divisions` &bull; `users` &bull; `leave_types` &bull; `leave_requests` &bull; `leave_approvals` &bull; `notifications` &bull; `holidays`
-- **Validasi Berlapis:** Validasi UX sisi klien pada form `.jsx` + validasi keamanan sisi server pada **Next.js Server Actions** (`src/actions/*.js`) dan **Route Handlers** (`src/app/api/**/route.js`).
-- **Penyimpanan Lokal Aman:** Unggahan lampiran surat dokter (`/public/uploads/attachments`) dan avatar (`/public/uploads/avatars`) divalidasi tipe & ukurannya di sisi server.
+- **8 Tabel Relasional PostgreSQL:**
+  `divisions` &bull; `users` &bull; `leave_types` &bull; `leave_requests` &bull; `leave_approvals` &bull; `notifications` &bull; `holidays` &bull; `blackout_periods`
+- **Validasi Berlapis:** Validasi UX sisi klien pada form `.jsx` + validasi keamanan sisi server pada **Next.js Server Actions** (`src/actions/*.js`) dan **Route Handlers** (`src/app/api/**/route.js`), termasuk proteksi *Blackout Period*, batas kapasitas divisi, akumulasi `max_quota`, dan anti-overlap tanggal.
+- **Penyimpanan Lokal Aman:** Unggahan lampiran surat dokter (`/public/uploads/attachments`) dan avatar (`/public/uploads/avatars`) divalidasi tipe & ukurannya di sisi server, dilengkapi komponen `UserAvatar` dengan fallback inisial otomatis jika berkas avatar tidak ditemukan.
 
 ### Struktur Direktori
 
@@ -89,19 +94,21 @@ flowchart LR
 otium/
 ├── database/
 │   ├── database.sql           # Skrip gabungan DDL + Seed Data (1x impor pgAdmin)
-│   ├── schema.sql             # DDL 7 tabel, constraint, & indeks performa
-│   └── seed.sql               # Data awal 4 role, divisi, & 3 jenis cuti inti
+│   ├── schema.sql             # DDL 8 tabel, constraint, & indeks performa
+│   └── seed.sql               # Data awal 4 role, divisi, jenis cuti, hari libur 2026, & blackout period
 ├── public/
 │   ├── images/                # Logo Otium (Swiss Ledger Seal)
 │   └── uploads/               # Direktori penyimpanan lampiran & avatar lokal
+├── scripts/
+│   └── setup.js               # Skrip setup lokal interaktif (npm run setup)
 ├── src/
 │   ├── middleware.js          # Edge Auth Guard & RBAC Route Protection
 │   ├── app/
-│   │   ├── (auth)/login/      # Halaman Login terpusat + switch mode tema
-│   │   ├── (dashboard)/       # Workspace terproteksi (dashboard, leaves, approvals, admin, profile)
-│   │   └── api/               # Route Handlers (auth, leaves, pdf, approvals, admin, upload, notifications)
+│   │   ├── (auth)/login/      # Halaman Login terpusat (.arch-grid-bg + switch tema)
+│   │   ├── (dashboard)/       # Workspace terproteksi (dashboard, calendar, leaves, approvals, admin, profile)
+│   │   └── api/               # Route Handlers (auth, dashboard, calendar, leaves, pdf, approvals, admin, divisions, upload, notifications)
 │   ├── actions/               # Next.js Server Actions ("use server")
-│   ├── components/            # Komponen UI modular (auth, layout, ui, dashboard, leaves, approvals, admin, profile)
+│   ├── components/            # Komponen UI modular (auth, layout, ui, dashboard, calendar, leaves, approvals, admin, profile)
 │   └── lib/                   # Pool 'pg', withTransaction, JWT/auth, validator, utilitas tanggal
 ├── .env.example               # Template variabel lingkungan
 ├── jsconfig.json              # Alias path JavaScript (@/* -> ./src/*)
@@ -142,8 +149,8 @@ Seluruh akun awal dari `database/database.sql` / `database/seed.sql` menggunakan
 
 | Role | Username | Email | Divisi | Keterangan |
 | :--- | :--- | :--- | :--- | :--- |
-| **Admin** | `admin` | `admin@perusahaan.com` | — | Akses penuh CMS Modul 1–4 |
-| **HRD** | `hrd` | `hrd@perusahaan.com` | — | Persetujuan final, *bulk approve*, & cetak PDF |
+| **Admin** | `admin` | `admin@perusahaan.com` | — | Akses penuh CMS (Users, Divisi, Jenis Cuti, Libur, Kebijakan) |
+| **HRD** | `hrd` | `hrd@perusahaan.com` | — | Persetujuan final, *bulk approve*, cetak PDF, libur & kebijakan |
 | **Ketua Divisi** | `leader.eng` | `ketua.eng@perusahaan.com` | Engineering | Verifikasi Tahap 1 divisi & ajukan cuti ke HRD |
 | **Karyawan 1** | `karyawan1` | `andi.pratama@perusahaan.com` | Engineering | Pemohon cuti / rekan *handover* |
 | **Karyawan 2** | `karyawan2` | `dewi.lestari@perusahaan.com` | Engineering | Pemohon cuti / rekan *handover* |
