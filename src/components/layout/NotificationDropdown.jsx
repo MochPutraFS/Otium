@@ -205,7 +205,7 @@ export default function NotificationDropdown({
       {isOpen && (
         <div
           id="notification-panel"
-          className="absolute right-0 z-40 mt-2 w-[calc(100vw-2rem)] max-w-[360px] overflow-hidden rounded-[2px] border border-[var(--ink)] bg-[var(--paper-pure)] shadow-[0_14px_32px_rgba(25,24,22,0.16)] sm:w-[360px]"
+          className="fixed inset-x-3 top-[66px] z-40 mx-auto max-w-[380px] overflow-hidden rounded-[2px] border border-[var(--ink)] bg-[var(--paper-pure)] shadow-[0_14px_32px_rgba(25,24,22,0.16)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mx-0 sm:mt-2 sm:w-[360px] sm:max-w-[calc(100vw-2rem)]"
         >
           {/* Header Panel */}
           <div className="flex items-center justify-between gap-2 border-b border-[var(--rule)] bg-[var(--paper)] px-4 py-3">
@@ -257,7 +257,7 @@ export default function NotificationDropdown({
           )}
 
           {/* Daftar Notifikasi */}
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-[min(65dvh,20rem)] overflow-y-auto">
             {items.length === 0 ? (
               <div className="px-4 py-10 text-center">
                 <Bell

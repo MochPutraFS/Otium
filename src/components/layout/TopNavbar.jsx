@@ -298,7 +298,7 @@ export default function TopNavbar({
           {isUserMenuOpen && (
             <div
               id="user-account-panel"
-              className="absolute right-0 z-40 mt-2 w-64 overflow-hidden rounded-[2px] border border-[var(--ink)] bg-[var(--paper-pure)] shadow-[0_14px_32px_rgba(25,24,22,0.16)]"
+              className="absolute right-0 z-40 mt-2 w-64 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-[2px] border border-[var(--ink)] bg-[var(--paper-pure)] shadow-[0_14px_32px_rgba(25,24,22,0.16)]"
             >
               <div className="border-b border-[var(--rule)] bg-[var(--paper)] px-4 py-3">
                 <p className="truncate text-sm font-semibold text-[var(--ink)]">

@@ -36,20 +36,26 @@ export default async function LoginPage({ searchParams }) {
       {/* Area Form Login Kanan */}
       <section
         aria-label="Formulir Masuk Portal Otium"
-        className="relative flex flex-col items-center justify-center bg-[var(--paper)] px-5 pb-10 pt-16 sm:px-8 lg:px-12 lg:py-10"
+        className="flex min-h-dvh flex-col justify-between bg-[var(--paper)] px-5 py-5 sm:px-8 sm:py-6 lg:min-h-0 lg:px-10 lg:py-8"
       >
-        {/* Switch Mode Tema (Terang / Gelap / Sistem) */}
-        <div className="absolute right-5 top-5 sm:right-8 lg:right-10 lg:top-8">
+        {/* Baris atas: Switch Mode Tema (Terang / Gelap / Sistem) in-flow agar tidak pernah menumpuk kartu */}
+        <div className="flex w-full items-center justify-end">
           <ThemeToggleButton />
         </div>
 
-        <LoginFormCard callbackUrl={callbackUrl} reason={reason} />
+        {/* Kartu Login terpusat dengan ruang napas aman di segala resolusi & zoom */}
+        <div className="my-auto flex w-full flex-col items-center py-6">
+          <LoginFormCard callbackUrl={callbackUrl} reason={reason} />
 
-        {/* Footer ringkas khusus Mobile/Tablet */}
-        <p className="mt-7 text-center font-mono text-[11px] text-[var(--ink-muted)] lg:hidden">
-          &copy; {new Date().getFullYear()} OTIUM &bull; SISTEM MANAJEMEN CUTI
-          KARYAWAN
-        </p>
+          {/* Footer ringkas khusus Mobile/Tablet */}
+          <p className="mt-7 text-center font-mono text-[11px] text-[var(--ink-muted)] lg:hidden">
+            &copy; {new Date().getFullYear()} OTIUM &bull; SISTEM MANAJEMEN CUTI
+            KARYAWAN
+          </p>
+        </div>
+
+        {/* Spacer penyeimbang desktop agar kartu tetap sejajar tengah secara optik */}
+        <div className="hidden h-8 lg:block" aria-hidden="true" />
       </section>
     </main>
   );
