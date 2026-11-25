@@ -218,7 +218,10 @@ export default function ExpiringQuotaPanel({
                 );
                 return (
                   <tr key={emp.id}>
-                    <td data-label="Pilih" className="text-center">
+                    <td
+                      data-label="Pilih"
+                      className="text-center md:w-10"
+                    >
                       <input
                         type="checkbox"
                         checked={isSelected}
@@ -234,7 +237,7 @@ export default function ExpiringQuotaPanel({
                         </span>
                         <StatusBadge status={emp.role} />
                       </div>
-                      <p className="mono text-[11px] text-[var(--ink-muted)]">
+                      <p className="mono break-all text-[11px] text-[var(--ink-muted)]">
                         {emp.email}
                       </p>
                     </th>
@@ -244,22 +247,27 @@ export default function ExpiringQuotaPanel({
                     >
                       {emp.divisionName}
                     </td>
-                    <td data-label="Sisa Kuota" className="min-w-[165px]">
-                      <div className="mono flex items-center justify-between gap-2 text-xs">
-                        <span className="font-bold text-[var(--ochre)]">
-                          {emp.remainingQuota.toFixed(1)} hr
-                        </span>
-                        <span className="text-[10.5px] text-[var(--ink-muted)]">
-                          / {emp.initialQuota.toFixed(1)} hr ({pct}%)
-                        </span>
-                      </div>
-                      <div className="mt-1">
-                        <progress
-                          className="otium-progress otium-progress--amber"
-                          value={pct}
-                          max={100}
-                          aria-label={`Sisa kuota ${emp.fullName}: ${emp.remainingQuota.toFixed(1)} dari ${emp.initialQuota.toFixed(1)} hari`}
-                        />
+                    <td
+                      data-label="Sisa Kuota"
+                      className="otium-mobile-stack md:min-w-[165px]"
+                    >
+                      <div className="w-full">
+                        <div className="mono flex items-center justify-between gap-2 text-xs">
+                          <span className="font-bold text-[var(--ochre)]">
+                            {emp.remainingQuota.toFixed(1)} hr
+                          </span>
+                          <span className="text-[10.5px] text-[var(--ink-muted)]">
+                            / {emp.initialQuota.toFixed(1)} hr ({pct}%)
+                          </span>
+                        </div>
+                        <div className="mt-1">
+                          <progress
+                            className="otium-progress otium-progress--amber"
+                            value={pct}
+                            max={100}
+                            aria-label={`Sisa kuota ${emp.fullName}: ${emp.remainingQuota.toFixed(1)} dari ${emp.initialQuota.toFixed(1)} hari`}
+                          />
+                        </div>
                       </div>
                     </td>
                     <td

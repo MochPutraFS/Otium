@@ -444,7 +444,10 @@ export default function AdminPoliciesClient({
                       <td data-label="Anggota Aktif" className="mono text-xs">
                         {div.activeMembers} orang
                       </td>
-                      <td data-label="Batas Kapasitas">
+                      <td
+                        data-label="Batas Kapasitas"
+                        className="otium-mobile-stack"
+                      >
                         <div className="flex flex-wrap items-center gap-2">
                           <input
                             type="number"
@@ -573,7 +576,7 @@ export default function AdminPoliciesClient({
                       <StatusBadge status={bp.isActive ? "Aktif" : "Nonaktif"} />
                     </td>
                     <td data-label="Aksi" className="whitespace-nowrap text-right">
-                      <div className="inline-flex items-center justify-end gap-1.5">
+                      <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
                         <button
                           type="button"
                           onClick={() => openEditModal(bp)}

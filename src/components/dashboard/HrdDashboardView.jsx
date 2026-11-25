@@ -562,9 +562,9 @@ export default function HrdDashboardView({ initialData, data }) {
                         </td>
                         <td
                           data-label="Ketersediaan Tim"
-                          className="min-w-[200px]"
+                          className="otium-mobile-stack md:min-w-[200px]"
                         >
-                          <div className="w-full max-w-[220px] sm:max-w-none">
+                          <div className="w-full">
                             <div className="mono flex items-center justify-between gap-2 text-[11px]">
                               <span className="font-semibold text-[var(--ink)]">
                                 {availableCount}/{div.activeMembers} Hadir

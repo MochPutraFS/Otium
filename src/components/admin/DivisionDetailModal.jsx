@@ -206,9 +206,9 @@ export default function DivisionDetailModal({
                     tabIndex={0}
                     role="region"
                     aria-labelledby={membersCaptionId}
-                    className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--spruce)]"
+                    className="otium-responsive-table-wrap focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--spruce)]"
                   >
-                    <table className="ledger">
+                    <table className="ledger otium-responsive-table text-left">
                       <caption id={membersCaptionId} className="sr-only">
                         Daftar anggota pada divisi {division.name}
                       </caption>
@@ -229,17 +229,23 @@ export default function DivisionDetailModal({
                               <p className="text-[12.5px] font-semibold text-[var(--ink)]">
                                 {member.fullName}
                               </p>
-                              <p className="font-mono text-[11px] text-[var(--ink-muted)]">
+                              <p className="break-all font-mono text-[11px] text-[var(--ink-muted)]">
                                 {member.email}
                               </p>
                             </th>
-                            <td className="whitespace-nowrap">
+                            <td data-label="Role" className="whitespace-nowrap">
                               <StatusBadge status={member.role} />
                             </td>
-                            <td className="whitespace-nowrap font-mono text-[12px] font-semibold tabular-nums text-[var(--ink)]">
+                            <td
+                              data-label="Sisa Kuota"
+                              className="whitespace-nowrap font-mono text-[12px] font-semibold tabular-nums text-[var(--ink)]"
+                            >
                               {Number(member.remainingLeaveQuota).toFixed(1)} Hari
                             </td>
-                            <td className="whitespace-nowrap text-right">
+                            <td
+                              data-label="Status"
+                              className="whitespace-nowrap text-right"
+                            >
                               <StatusBadge
                                 status={member.isActive ? "Aktif" : "Nonaktif"}
                               />

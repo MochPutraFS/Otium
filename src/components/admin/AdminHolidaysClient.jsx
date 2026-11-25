@@ -533,7 +533,7 @@ export default function AdminHolidaysClient({
                       {item.createdByName}
                     </td>
                     <td data-label="Aksi" className="whitespace-nowrap text-right">
-                      <div className="inline-flex items-center justify-end gap-1.5">
+                      <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
                         <button
                           type="button"
                           onClick={() => openEditModal(item)}

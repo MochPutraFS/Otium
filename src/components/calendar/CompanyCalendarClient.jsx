@@ -31,7 +31,15 @@ const MONTH_NAMES_ID = [
   "Desember",
 ];
 
-const DOW_LABELS = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+const DOW_LABELS = [
+  { full: "Sen", short: "Sn" },
+  { full: "Sel", short: "Sl" },
+  { full: "Rab", short: "Rb" },
+  { full: "Kam", short: "Km" },
+  { full: "Jum", short: "Jm" },
+  { full: "Sab", short: "Sb" },
+  { full: "Min", short: "Mg" },
+];
 
 function toIsoDate(year, month, day) {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -172,6 +180,15 @@ export default function CompanyCalendarClient({
     }
     return cells;
   }, [year, month, holidayMap, blackoutPeriods, leaves, todayIso]);
+
+  const selectedDayInfo = useMemo(() => {
+    if (!selectedDayIso) return null;
+    return (
+      calendarCells.find(
+        (c) => c.type === "day" && c.iso === selectedDayIso
+      ) || null
+    );
+  }, [calendarCells, selectedDayIso]);
 
   const stats = useMemo(() => {
     const total = leaves.length;
@@ -315,12 +332,12 @@ export default function CompanyCalendarClient({
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <select
               aria-label="Filter divisi"
               value={divisionFilter}
               onChange={(e) => handleDivisionChange(e.target.value)}
-              className="select !w-auto !py-1.5 text-xs"
+              className="select min-w-[130px] flex-1 !py-1.5 text-xs sm:w-auto sm:flex-none"
             >
               <option value="ALL">Semua Divisi</option>
               {divisions.map((d) => (
@@ -334,7 +351,7 @@ export default function CompanyCalendarClient({
               aria-label="Filter status cuti"
               value={statusFilter}
               onChange={(e) => handleStatusChange(e.target.value)}
-              className="select !w-auto !py-1.5 text-xs"
+              className="select min-w-[135px] flex-1 !py-1.5 text-xs sm:w-auto sm:flex-none"
             >
               <option value="ALL">Status: Semua Aktif</option>
               <option value="Approved">Approved</option>
@@ -342,7 +359,7 @@ export default function CompanyCalendarClient({
               <option value="Pending">Pending</option>
             </select>
 
-            <div className="flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1">
               <button
                 type="button"
                 disabled={isLoading}
@@ -365,125 +382,199 @@ export default function CompanyCalendarClient({
           </div>
         </div>
 
-        {/* Grid Kalender 7 Kolom */}
-        <div className="panel-body !p-4">
-          <div className="overflow-x-auto">
-            <div className="grid min-w-[640px] grid-cols-7 border-l border-t border-[var(--rule-strong)]">
-              {DOW_LABELS.map((dow) => (
-                <div
-                  key={dow}
-                  className="border-b border-r border-[var(--rule-strong)] bg-[var(--alabaster-deep)] py-2 text-center font-mono text-[11px] font-semibold uppercase text-[var(--ink-soft)]"
-                >
-                  {dow}
-                </div>
-              ))}
+        {/* Grid Kalender 7 Kolom — Responsif Penuh di Mobile tanpa Overflow */}
+        <div className="panel-body !p-2.5 sm:!p-4">
+          <div className="grid w-full grid-cols-7 border-l border-t border-[var(--rule-strong)]">
+            {DOW_LABELS.map((dow) => (
+              <div
+                key={dow.full}
+                className="border-b border-r border-[var(--rule-strong)] bg-[var(--alabaster-deep)] py-1.5 text-center font-mono text-[10px] font-semibold uppercase text-[var(--ink-soft)] sm:py-2 sm:text-[11px]"
+              >
+                <span className="sm:hidden">{dow.short}</span>
+                <span className="hidden sm:inline">{dow.full}</span>
+              </div>
+            ))}
 
-              {calendarCells.map((cell) => {
-                if (cell.type === "blank") {
-                  return (
-                    <div
-                      key={cell.key}
-                      className="min-h-[88px] border-b border-r border-[var(--rule)] bg-[var(--alabaster)]"
-                      aria-hidden="true"
-                    />
-                  );
-                }
-
-                const isSelected = selectedDayIso === cell.iso;
-                const cellBg = cell.blackout
-                  ? "bg-[var(--terracotta-tint)]"
-                  : cell.holiday
-                    ? cell.holiday.holidayType === "Collective Leave"
-                      ? "bg-[var(--ochre-tint)]"
-                      : "bg-[var(--slate-tint)]"
-                    : cell.isWeekend
-                      ? "bg-[var(--alabaster)]"
-                      : "bg-[var(--paper-pure)]";
-
+            {calendarCells.map((cell) => {
+              if (cell.type === "blank") {
                 return (
-                  <button
+                  <div
                     key={cell.key}
-                    type="button"
-                    onClick={() =>
-                      setSelectedDayIso((prev) =>
-                        prev === cell.iso ? "" : cell.iso
-                      )
-                    }
-                    className={`flex min-h-[88px] flex-col items-stretch justify-start gap-1 border-b border-r border-[var(--rule)] p-1.5 text-left transition-colors hover:bg-[var(--spruce-tint)] ${cellBg} ${
-                      isSelected
-                        ? "ring-2 ring-inset ring-[var(--spruce)]"
-                        : cell.isToday
-                          ? "ring-1 ring-inset ring-[var(--spruce)]"
-                          : ""
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1">
-                      <span
-                        className={`mono text-xs font-semibold ${
-                          cell.isToday
-                            ? "rounded-[2px] bg-[var(--spruce)] px-1 text-[var(--spruce-btn-ink)]"
-                            : cell.isWeekend
-                              ? "text-[var(--ink-muted)]"
-                              : "text-[var(--ink)]"
-                        }`}
-                      >
-                        {cell.day}
-                      </span>
-                      {cell.dayLeaves.length > 0 && (
-                        <span className="mono rounded-[2px] bg-[var(--spruce-tint-strong)] px-1 text-[10px] font-semibold text-[var(--spruce)]">
-                          {cell.dayLeaves.length} cuti
-                        </span>
-                      )}
-                    </div>
+                    className="min-h-[54px] border-b border-r border-[var(--rule)] bg-[var(--alabaster)] sm:min-h-[88px]"
+                    aria-hidden="true"
+                  />
+                );
+              }
 
-                    {cell.blackout && (
-                      <span
-                        title={`Blackout: ${cell.blackout.name}`}
-                        className="truncate rounded-[2px] border border-[var(--terracotta-border)] bg-[var(--paper-pure)] px-1 py-0.5 font-mono text-[9.5px] font-semibold text-[var(--terracotta)]"
-                      >
-                        ✕ {cell.blackout.name}
+              const isSelected = selectedDayIso === cell.iso;
+              const cellBg = cell.blackout
+                ? "bg-[var(--terracotta-tint)]"
+                : cell.holiday
+                  ? cell.holiday.holidayType === "Collective Leave"
+                    ? "bg-[var(--ochre-tint)]"
+                    : "bg-[var(--slate-tint)]"
+                  : cell.isWeekend
+                    ? "bg-[var(--alabaster)]"
+                    : "bg-[var(--paper-pure)]";
+
+              const ariaSummary = [
+                formatIndonesianDate(cell.iso),
+                cell.blackout ? `Blackout ${cell.blackout.name}` : null,
+                cell.holiday ? cell.holiday.name : null,
+                cell.dayLeaves.length > 0
+                  ? `${cell.dayLeaves.length} karyawan cuti`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(", ");
+
+              return (
+                <button
+                  key={cell.key}
+                  type="button"
+                  aria-label={ariaSummary}
+                  aria-pressed={isSelected}
+                  onClick={() =>
+                    setSelectedDayIso((prev) =>
+                      prev === cell.iso ? "" : cell.iso
+                    )
+                  }
+                  className={`flex min-h-[54px] min-w-0 flex-col items-stretch justify-between gap-1 overflow-hidden border-b border-r border-[var(--rule)] p-1 text-left transition-colors hover:bg-[var(--spruce-tint)] sm:min-h-[88px] sm:justify-start sm:p-1.5 ${cellBg} ${
+                    isSelected
+                      ? "ring-2 ring-inset ring-[var(--spruce)]"
+                      : cell.isToday
+                        ? "ring-1 ring-inset ring-[var(--spruce)]"
+                        : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-0.5 sm:gap-1">
+                    <span
+                      className={`mono text-[11px] font-semibold leading-none sm:text-xs ${
+                        cell.isToday
+                          ? "rounded-[2px] bg-[var(--spruce)] px-1 py-0.5 text-[var(--spruce-btn-ink)]"
+                          : cell.isWeekend
+                            ? "text-[var(--ink-muted)]"
+                            : "text-[var(--ink)]"
+                      }`}
+                    >
+                      {cell.day}
+                    </span>
+                    {cell.dayLeaves.length > 0 && (
+                      <span className="mono hidden rounded-[2px] bg-[var(--spruce-tint-strong)] px-1 text-[10px] font-semibold text-[var(--spruce)] sm:inline-block">
+                        {cell.dayLeaves.length} cuti
                       </span>
                     )}
+                  </div>
 
+                  {/* Indikator Ringkas Mobile (< sm) agar 7 Kolom Fit Sempurna */}
+                  <div className="flex flex-wrap items-center gap-0.5 sm:hidden">
+                    {cell.blackout && (
+                      <span
+                        className="mono text-[9px] font-bold leading-none text-[var(--terracotta)]"
+                        aria-hidden="true"
+                      >
+                        ✕
+                      </span>
+                    )}
                     {cell.holiday && (
                       <span
-                        title={cell.holiday.name}
-                        className={`truncate rounded-[2px] px-1 py-0.5 font-mono text-[9.5px] font-semibold ${
+                        className={`mono text-[9px] font-bold leading-none ${
                           cell.holiday.holidayType === "Collective Leave"
                             ? "text-[var(--ochre)]"
                             : "text-[var(--slate-blue)]"
                         }`}
+                        aria-hidden="true"
                       >
                         {cell.holiday.holidayType === "Collective Leave"
                           ? "◇"
-                          : "◆"}{" "}
-                        {cell.holiday.name}
+                          : "◆"}
                       </span>
                     )}
-
-                    {cell.dayLeaves.slice(0, 2).map((lv) => (
+                    {cell.dayLeaves.length > 0 && (
                       <span
-                        key={`${cell.iso}-${lv.id}`}
-                        title={`${lv.employeeName} (${lv.divisionName}) — ${lv.leaveTypeName}`}
-                        className="truncate rounded-[2px] border border-[var(--spruce-border)] bg-[var(--spruce-tint)] px-1 py-0.5 text-[10px] font-medium text-[var(--spruce)]"
+                        className="mono rounded-[2px] bg-[var(--spruce-tint-strong)] px-1 text-[9px] font-bold leading-tight text-[var(--spruce)]"
+                        aria-hidden="true"
                       >
-                        {lv.employeeName}
-                      </span>
-                    ))}
-                    {cell.dayLeaves.length > 2 && (
-                      <span className="mono text-[9.5px] text-[var(--ink-muted)]">
-                        +{cell.dayLeaves.length - 2} lainnya
+                        {cell.dayLeaves.length}
                       </span>
                     )}
-                  </button>
-                );
-              })}
-            </div>
+                  </div>
+
+                  {/* Chip Detail Lengkap Desktop (sm+) */}
+                  {cell.blackout && (
+                    <span
+                      title={`Blackout: ${cell.blackout.name}`}
+                      className="hidden truncate rounded-[2px] border border-[var(--terracotta-border)] bg-[var(--paper-pure)] px-1 py-0.5 font-mono text-[9.5px] font-semibold text-[var(--terracotta)] sm:block"
+                    >
+                      ✕ {cell.blackout.name}
+                    </span>
+                  )}
+
+                  {cell.holiday && (
+                    <span
+                      title={cell.holiday.name}
+                      className={`hidden truncate rounded-[2px] px-1 py-0.5 font-mono text-[9.5px] font-semibold sm:block ${
+                        cell.holiday.holidayType === "Collective Leave"
+                          ? "text-[var(--ochre)]"
+                          : "text-[var(--slate-blue)]"
+                      }`}
+                    >
+                      {cell.holiday.holidayType === "Collective Leave"
+                        ? "◇"
+                        : "◆"}{" "}
+                      {cell.holiday.name}
+                    </span>
+                  )}
+
+                  {cell.dayLeaves.slice(0, 2).map((lv) => (
+                    <span
+                      key={`${cell.iso}-${lv.id}`}
+                      title={`${lv.employeeName} (${lv.divisionName}) — ${lv.leaveTypeName}`}
+                      className="hidden truncate rounded-[2px] border border-[var(--spruce-border)] bg-[var(--spruce-tint)] px-1 py-0.5 text-[10px] font-medium text-[var(--spruce)] sm:block"
+                    >
+                      {lv.employeeName}
+                    </span>
+                  ))}
+                  {cell.dayLeaves.length > 2 && (
+                    <span className="mono hidden text-[9.5px] text-[var(--ink-muted)] sm:block">
+                      +{cell.dayLeaves.length - 2} lainnya
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
+
+          {/* Ringkasan Detail Tanggal Terpilih (Berguna terutama saat mengetuk tanggal di Mobile) */}
+          {selectedDayInfo && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[2px] border border-[var(--spruce-border)] bg-[var(--spruce-tint)] px-3 py-2 text-xs">
+              <div className="min-w-0 space-y-0.5">
+                <p className="font-semibold text-[var(--ink)]">
+                  Dipilih: {formatIndonesianDate(selectedDayInfo.iso)}
+                </p>
+                <p className="mono text-[11px] text-[var(--ink-soft)]">
+                  {selectedDayInfo.dayLeaves.length} karyawan cuti
+                  {selectedDayInfo.holiday
+                    ? ` • ${selectedDayInfo.holiday.holidayType === "Collective Leave" ? "Cuti Bersama" : "Libur Nasional"}: ${selectedDayInfo.holiday.name}`
+                    : ""}
+                  {selectedDayInfo.blackout
+                    ? ` • Blackout: ${selectedDayInfo.blackout.name}`
+                    : ""}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedDayIso("")}
+                className="btn btn-sm"
+              >
+                Tampilkan Semua Tanggal
+              </button>
+            </div>
+          )}
 
           {/* Legenda & Banner Blackout Aktif Bulan Ini */}
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--ink-muted)]">
-            <div className="mono flex flex-wrap items-center gap-x-4 gap-y-1">
+            <div className="mono flex flex-wrap items-center gap-x-3 gap-y-1 sm:gap-x-4">
               <span>
                 <strong className="text-[var(--slate-blue)]">◆</strong> Libur
                 Nasional
@@ -497,18 +588,11 @@ export default function CompanyCalendarClient({
               </span>
               <span>
                 <strong className="text-[var(--spruce)]">■</strong> Jadwal Cuti
-                Karyawan
               </span>
             </div>
-            {selectedDayIso && (
-              <button
-                type="button"
-                onClick={() => setSelectedDayIso("")}
-                className="btn btn-sm"
-              >
-                Tampilkan Semua Tanggal ({formatIndonesianDate(selectedDayIso)})
-              </button>
-            )}
+            <span className="mono text-[10.5px] text-[var(--ink-muted)] sm:hidden">
+              Ketuk tanggal untuk melihat detail
+            </span>
           </div>
 
           {blackoutPeriods.length > 0 && (

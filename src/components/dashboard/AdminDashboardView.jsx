@@ -374,8 +374,11 @@ export default function AdminDashboardView({ initialData, data }) {
                     >
                       {emp.joinDate}
                     </td>
-                    <td data-label="Progres 1 Tahun" className="min-w-[190px]">
-                      <div className="w-full max-w-[220px] sm:max-w-none">
+                    <td
+                      data-label="Progres 1 Tahun"
+                      className="otium-mobile-stack md:min-w-[190px]"
+                    >
+                      <div className="w-full">
                         <div className="mono flex items-center justify-between gap-2 text-[11px]">
                           <span className="font-semibold text-[var(--ink)]">
                             {emp.tenureLabel}
