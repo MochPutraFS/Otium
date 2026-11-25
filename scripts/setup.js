@@ -164,7 +164,7 @@ async function main() {
       try {
         await targetClient.query(sqlScript);
         console.log(
-          "[OK] Skema 7 tabel & data awal (database/database.sql) berhasil diimpor."
+          "[OK] Skema 8 tabel & data awal (database/database.sql) berhasil diimpor."
         );
       } finally {
         await targetClient.end();

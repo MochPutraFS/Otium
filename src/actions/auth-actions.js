@@ -51,8 +51,16 @@ export async function loginAction(input) {
     };
   }
 
-  const token = await createSessionToken(authResult.user, rememberMe);
-  await setSessionCookie(token, rememberMe);
+  try {
+    const token = await createSessionToken(authResult.user, rememberMe);
+    await setSessionCookie(token, rememberMe);
+  } catch (error) {
+    console.error("Login session token/cookie error:", error);
+    return {
+      error:
+        "Gagal membuat sesi login. Pastikan JWT_SECRET sudah terisi di file .env (atau jalankan npm run setup).",
+    };
+  }
 
   const destination = getSafeCallbackUrl(callbackUrl, authResult.user.role);
   redirect(destination);

@@ -21,6 +21,20 @@ export {
 };
 
 /**
+ * Menentukan flag Secure cookie sesi.
+ * Aktif otomatis pada deployment HTTPS (VERCEL / NEXT_PUBLIC_APP_URL=https://...) atau COOKIE_SECURE=true,
+ * namun tetap kompatibel saat menjalankan `npm run start` lokal melalui HTTP (localhost / IP LAN).
+ */
+function shouldUseSecureCookie() {
+  if (process.env.COOKIE_SECURE === "true") return true;
+  if (process.env.COOKIE_SECURE === "false") return false;
+  return Boolean(
+    process.env.VERCEL === "1" ||
+      String(process.env.NEXT_PUBLIC_APP_URL || "").startsWith("https://")
+  );
+}
+
+/**
  * Membangun opsi standar HttpOnly Cookie untuk token sesi.
  * @param {boolean} rememberMe
  */
@@ -29,7 +43,7 @@ export function buildSessionCookieOptions(rememberMe = false) {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureCookie(),
     maxAge: getSessionMaxAge(rememberMe),
   };
 }
@@ -42,7 +56,7 @@ export function buildClearSessionCookieOptions() {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureCookie(),
     maxAge: 0,
   };
 }
